@@ -11,7 +11,7 @@ class CategoriaInsumo extends Model
     protected $table = 'categorias_insumos';
     
     protected $fillable = [
-        'descripcion',
+        'nombre',
     ];
 
     public function insumos(): HasMany
