@@ -8,6 +8,8 @@ use App\Models\Deposito;
 use App\Models\MovimientoInsumo;
 use App\Models\MovimientoEncabezado;
 use App\Models\TipoMovimiento;
+use App\Models\CategoriaInsumo;
+use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,16 @@ class TransferenciasInsumos extends Component
 
     public $search = '';
     public $showModal = false;
+    public $showFilters = false;
+    
+    // Filtros
+    public $filtro_fecha_desde = '';
+    public $filtro_fecha_hasta = '';
+    public $filtro_deposito_origen = '';
+    public $filtro_deposito_destino = '';
+    public $filtro_usuario = '';
+    public $filtro_insumo = '';
+    public $filtro_categoria = '';
     
     // Campos del formulario
     public $id_deposito_destino;
@@ -64,7 +76,7 @@ class TransferenciasInsumos extends Component
 
     public function render()
     {
-        // Obtener transferencias agrupadas
+        // Obtener transferencias agrupadas con filtros
         $transferencias = MovimientoEncabezado::with([
                 'movimientos.insumo.categoriaInsumo',
                 'movimientos.insumo.deposito',
@@ -75,6 +87,31 @@ class TransferenciasInsumos extends Component
             ->when($this->search, function($query) {
                 $query->whereHas('movimientos.insumo', function($q) {
                     $q->where('insumo', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filtro_fecha_desde, function($query) {
+                $query->whereDate('fecha', '>=', $this->filtro_fecha_desde);
+            })
+            ->when($this->filtro_fecha_hasta, function($query) {
+                $query->whereDate('fecha', '<=', $this->filtro_fecha_hasta);
+            })
+            ->when($this->filtro_deposito_origen, function($query) {
+                $query->where('id_deposito_origen', $this->filtro_deposito_origen);
+            })
+            ->when($this->filtro_deposito_destino, function($query) {
+                $query->where('id_deposito_destino', $this->filtro_deposito_destino);
+            })
+            ->when($this->filtro_usuario, function($query) {
+                $query->where('id_usuario', $this->filtro_usuario);
+            })
+            ->when($this->filtro_insumo, function($query) {
+                $query->whereHas('movimientos.insumo', function($q) {
+                    $q->where('insumo', 'like', '%' . $this->filtro_insumo . '%');
+                });
+            })
+            ->when($this->filtro_categoria, function($query) {
+                $query->whereHas('movimientos.insumo', function($q) {
+                    $q->where('id_categoria', $this->filtro_categoria);
                 });
             })
             ->orderBy('created_at', 'desc')
@@ -106,9 +143,17 @@ class TransferenciasInsumos extends Component
                 ->get();
         }
 
+        // Datos para los filtros
+        $depositos = Deposito::orderBy('deposito')->get();
+        $categorias = CategoriaInsumo::orderBy('nombre')->get();
+        $usuarios = User::orderBy('name')->get();
+
         return view('livewire.transferencias-insumos', [
             'transferencias' => $transferencias,
             'insumos_filtrados' => $insumos_filtrados,
+            'depositos' => $depositos,
+            'categorias' => $categorias,
+            'usuarios' => $usuarios,
         ])->layout('layouts.app', [
             'header' => 'Transferencias de Insumos'
         ]);
@@ -125,6 +170,53 @@ class TransferenciasInsumos extends Component
 
     public function updatingSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroFechaHasta()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroDepositoOrigen()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroDepositoDestino()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroUsuario()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroInsumo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->filtro_fecha_desde = '';
+        $this->filtro_fecha_hasta = '';
+        $this->filtro_deposito_origen = '';
+        $this->filtro_deposito_destino = '';
+        $this->filtro_usuario = '';
+        $this->filtro_insumo = '';
+        $this->filtro_categoria = '';
         $this->resetPage();
     }
 

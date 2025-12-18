@@ -1,6 +1,6 @@
 {{-- resources/views/livewire/transferencias-insumos.blade.php --}}
 <div>
-    <!-- Header con búsqueda y botón crear -->
+    <!-- Header con búsqueda y botones -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
@@ -15,15 +15,156 @@
                 >
             </div>
         </div>
-        <button 
-            wire:click="crear" 
-            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-        >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-            </svg>
-            Nueva Transferencia
-        </button>
+        <div class="flex gap-3">
+            <button 
+                wire:click="$toggle('showFilters')" 
+                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                </svg>
+                Filtros
+                @if($filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_deposito_destino || $filtro_usuario || $filtro_insumo || $filtro_categoria)
+                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                        {{ collect([$filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_deposito_destino, $filtro_usuario, $filtro_insumo, $filtro_categoria])->filter()->count() }}
+                    </span>
+                @endif
+            </button>
+            <button 
+                wire:click="crear" 
+                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Nueva Transferencia
+            </button>
+        </div>
+    </div>
+
+    <!-- Panel de Filtros -->
+    <div 
+        x-data="{ show: @entangle('showFilters') }"
+        x-show="show"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform -translate-y-4"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 transform translate-y-0"
+        x-transition:leave-end="opacity-0 transform -translate-y-4"
+        class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+        style="display: none;"
+    >
+        <div class="px-6 py-5">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                    </svg>
+                    Filtros Avanzados
+                </h3>
+                @if($filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_deposito_destino || $filtro_usuario || $filtro_insumo || $filtro_categoria)
+                    <button 
+                        wire:click="limpiarFiltros"
+                        class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Limpiar filtros
+                    </button>
+                @endif
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Filtro Fecha Desde -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
+                    <input 
+                        type="date" 
+                        wire:model.live="filtro_fecha_desde"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                </div>
+
+                <!-- Filtro Fecha Hasta -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
+                    <input 
+                        type="date" 
+                        wire:model.live="filtro_fecha_hasta"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                </div>
+
+                <!-- Filtro Depósito Origen -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Origen</label>
+                    <select 
+                        wire:model.live="filtro_deposito_origen"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todos los depósitos</option>
+                        @foreach($depositos as $deposito)
+                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filtro Depósito Destino -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino</label>
+                    <select 
+                        wire:model.live="filtro_deposito_destino"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todos los depósitos</option>
+                        @foreach($depositos as $deposito)
+                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filtro Usuario -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
+                    <select 
+                        wire:model.live="filtro_usuario"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todos los usuarios</option>
+                        @foreach($usuarios as $usuario)
+                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Filtro Insumo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Insumo</label>
+                    <input 
+                        type="text" 
+                        wire:model.live="filtro_insumo"
+                        placeholder="Nombre del insumo"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                </div>
+
+                <!-- Filtro Categoría -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                    <select 
+                        wire:model.live="filtro_categoria"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todas las categorías</option>
+                        @foreach($categorias as $categoria)
+                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Mensaje de éxito -->
@@ -153,7 +294,7 @@
         {{ $transferencias->links() }}
     </div>
 
-    <!-- Modal (sin cambios, el mismo que ya tienes) -->
+    <!-- Modal (sin cambios) -->
     @if($showModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
