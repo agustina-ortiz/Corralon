@@ -10,6 +10,7 @@ class MovimientoInsumo extends Model
     protected $table = 'movimiento_insumos';
     
     protected $fillable = [
+        'id_movimiento_encabezado',
         'id_insumo',
         'id_tipo_movimiento',
         'cantidad',
@@ -44,5 +45,10 @@ class MovimientoInsumo extends Model
     public function depositoEntrada(): BelongsTo
     {
         return $this->belongsTo(Deposito::class, 'id_deposito_entrada');
+    }
+
+    public function encabezado(): BelongsTo
+    {
+        return $this->belongsTo(MovimientoEncabezado::class, 'id_movimiento_encabezado');
     }
 }

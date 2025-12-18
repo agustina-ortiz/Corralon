@@ -7,6 +7,7 @@ use App\Livewire\AbmCategoriasInsumos;
 use App\Livewire\AbmMaquinarias;
 use App\Livewire\AbmCategoriasMaquinarias;
 use App\Livewire\AbmDepositos;
+use App\Livewire\TransferenciasInsumos;
 use App\Livewire\AbmEmpleados;
 use App\Livewire\AbmVehiculos;
 
@@ -39,6 +40,10 @@ Route::get('/categorias-maquinarias', AbmCategoriasMaquinarias::class)
 Route::get('/depositos', AbmDepositos::class)
     ->middleware(['auth'])
     ->name('depositos');
+
+Route::get('/transferencias-insumos', TransferenciasInsumos::class)
+    ->middleware(['auth'])
+    ->name('transferencias-insumos');
 
 Route::get('/empleados', AbmEmpleados::class)
     ->middleware(['auth'])

@@ -9,14 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categoria_maquinarias', function (Blueprint $table) {
-            $table->text('descripcion')->nullable()->after('nombre');
+            // Solo agregar si no existe
+            if (!Schema::hasColumn('categoria_maquinarias', 'descripcion')) {
+                $table->text('descripcion')->nullable()->after('nombre');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('categoria_maquinarias', function (Blueprint $table) {
-            $table->dropColumn('descripcion');
+            if (Schema::hasColumn('categoria_maquinarias', 'descripcion')) {
+                $table->dropColumn('descripcion');
+            }
         });
     }
 };
