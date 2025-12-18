@@ -2,18 +2,19 @@
 
 namespace App\Livewire;
 
+use App\Models\CategoriaMaquinaria;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\CategoriaInsumo;
 
-class AbmCategoriasInsumos extends Component
+class AbmCategoriasMaquinarias extends Component
 {
     use WithPagination;
 
     public $search = '';
     public $showModal = false;
     public $editMode = false;
-
+    
+    // Campos del formulario
     public $categoria_id;
     public $nombre;
     public $descripcion;
@@ -25,17 +26,18 @@ class AbmCategoriasInsumos extends Component
 
     public function render()
     {
-        $categorias = CategoriaInsumo::when($this->search, function ($query) {
+        $categorias = CategoriaMaquinaria::query()
+            ->when($this->search, function($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('id')
+            ->orderBy('nombre')
             ->paginate(10);
 
-        return view('livewire.abm-categorias-insumos', [
+        return view('livewire.abm-categorias-maquinarias', [
             'categorias' => $categorias
         ])->layout('layouts.app', [
-            'header' => 'ABM Categorías de Insumos'
+            'header' => 'ABM Categorías de Maquinarias'
         ]);
     }
 
@@ -53,12 +55,11 @@ class AbmCategoriasInsumos extends Component
 
     public function editar($id)
     {
-        $categoria = CategoriaInsumo::findOrFail($id);
-
+        $categoria = CategoriaMaquinaria::findOrFail($id);
         $this->categoria_id = $categoria->id;
         $this->nombre = $categoria->nombre;
         $this->descripcion = $categoria->descripcion;
-
+        
         $this->editMode = true;
         $this->showModal = true;
     }
@@ -67,27 +68,28 @@ class AbmCategoriasInsumos extends Component
     {
         $this->validate();
 
-        CategoriaInsumo::updateOrCreate(
-            ['id' => $this->categoria_id],
-            [
+        if ($this->editMode) {
+            $categoria = CategoriaMaquinaria::findOrFail($this->categoria_id);
+            $categoria->update([
                 'nombre' => $this->nombre,
                 'descripcion' => $this->descripcion,
-            ]
-        );
+            ]);
+            session()->flash('message', 'Categoría actualizada correctamente.');
+        } else {
+            CategoriaMaquinaria::create([
+                'nombre' => $this->nombre,
+                'descripcion' => $this->descripcion,
+            ]);
+            session()->flash('message', 'Categoría creada correctamente.');
+        }
 
-        session()->flash(
-            'message',
-            $this->editMode
-                ? 'Categoría actualizada correctamente.'
-                : 'Categoría creada correctamente.'
-        );
-
-        $this->cerrarModal();
+        $this->showModal = false;
+        $this->resetForm();
     }
 
     public function eliminar($id)
     {
-        CategoriaInsumo::findOrFail($id)->delete();
+        CategoriaMaquinaria::findOrFail($id)->delete();
         session()->flash('message', 'Categoría eliminada correctamente.');
     }
 

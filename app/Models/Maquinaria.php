@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Maquinaria extends Model
 {
-     protected $table = 'maquinarias';
+    protected $table = 'maquinarias';
     
     protected $fillable = [
         'maquinaria',
@@ -17,7 +17,7 @@ class Maquinaria extends Model
         'id_deposito',
     ];
 
-    public function categoria(): BelongsTo
+    public function categoriaMaquinaria(): BelongsTo
     {
         return $this->belongsTo(CategoriaMaquinaria::class, 'id_categoria_maquinaria');
     }

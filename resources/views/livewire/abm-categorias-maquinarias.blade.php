@@ -6,16 +6,16 @@
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                <input
-                    type="text"
-                    wire:model.live="search"
+                <input 
+                    type="text" 
+                    wire:model.live="search" 
                     placeholder="Buscar categorías..."
                     class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                 >
             </div>
         </div>
-        <button
-            wire:click="crear"
+        <button 
+            wire:click="crear" 
             class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
         >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button 
-                                        wire:click="editar({{ $categoria->id }})" 
+                                        wire:click="editar({{ $categoria->id }})"
                                         class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
                                         title="Editar"
                                     >
@@ -72,9 +72,9 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
-                                    <button
+                                    <button 
                                         wire:click="eliminar({{ $categoria->id }})"
-                                        onclick="return confirm('¿Eliminar categoría?')"
+                                        onclick="return confirm('¿Está seguro de eliminar esta categoría?')"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -100,7 +100,7 @@
                 </tbody>
             </table>
         </div>
-
+        
         <!-- Paginación -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
             {{ $categorias->links() }}
@@ -108,7 +108,7 @@
     </div>
 
     <!-- Modal -->
-    @if ($showModal)
+    @if($showModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <!-- Overlay -->
@@ -138,8 +138,8 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
                                     <input 
-                                        type="text"
-                                        wire:model="nombre" 
+                                        type="text" 
+                                        wire:model="nombre"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
                                     @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
@@ -161,7 +161,7 @@
                         <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
                             <button 
                                 type="button"
-                                wire:click="cerrarModal" 
+                                wire:click="cerrarModal"
                                 class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
                             >
                                 Cancelar

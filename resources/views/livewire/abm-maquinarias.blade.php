@@ -9,7 +9,7 @@
                 <input 
                     type="text" 
                     wire:model.live="search" 
-                    placeholder="Buscar insumos..."
+                    placeholder="Buscar maquinarias..."
                     class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                 >
             </div>
@@ -23,9 +23,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
                 Filtros
-                @if($filtro_categoria || $filtro_unidad || $filtro_deposito || $filtro_stock_bajo)
+                @if($filtro_categoria || $filtro_estado || $filtro_deposito)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_categoria, $filtro_unidad, $filtro_deposito, $filtro_stock_bajo])->filter()->count() }}
+                        {{ collect([$filtro_categoria, $filtro_estado, $filtro_deposito])->filter()->count() }}
                     </span>
                 @endif
             </button>
@@ -36,7 +36,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Nuevo Insumo
+                Nueva Maquinaria
             </button>
         </div>
     </div>
@@ -62,7 +62,7 @@
                     </svg>
                     Filtros Avanzados
                 </h3>
-                @if($filtro_categoria || $filtro_unidad || $filtro_deposito || $filtro_stock_bajo)
+                @if($filtro_categoria || $filtro_estado || $filtro_deposito)
                     <button 
                         wire:click="limpiarFiltros"
                         class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
@@ -75,7 +75,7 @@
                 @endif
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Filtro Categoría -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
@@ -90,17 +90,16 @@
                     </select>
                 </div>
 
-                <!-- Filtro Unidad -->
+                <!-- Filtro Estado -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidad de Medida</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                     <select 
-                        wire:model.live="filtro_unidad"
+                        wire:model.live="filtro_estado"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
-                        <option value="">Todas las unidades</option>
-                        @foreach($unidades as $unidad)
-                            <option value="{{ $unidad }}">{{ $unidad }}</option>
-                        @endforeach
+                        <option value="">Todos los estados</option>
+                        <option value="disponible">Disponible</option>
+                        <option value="no disponible">No Disponible</option>
                     </select>
                 </div>
 
@@ -116,19 +115,6 @@
                             <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
                         @endforeach
                     </select>
-                </div>
-
-                <!-- Filtro Stock Bajo -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado de Stock</label>
-                    <label class="flex items-center px-4 py-2.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-all duration-200">
-                        <input 
-                            type="checkbox" 
-                            wire:model.live="filtro_stock_bajo"
-                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        >
-                        <span class="ml-3 text-sm text-gray-700 font-medium">Solo stock bajo mínimo</span>
-                    </label>
                 </div>
             </div>
         </div>
@@ -150,36 +136,40 @@
             <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Insumo</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Maquinaria</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Categoría</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unidad</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Actual</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Mínimo</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                         <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-50">
-                    @forelse ($insumos as $item)
-                        <tr class="hover:bg-gray-50/50 transition-colors duration-150 {{ $item->stock_actual < $item->stock_minimo ? 'bg-red-50/50' : '' }}">
+                    @forelse ($maquinarias as $item)
+                        <tr class="hover:bg-gray-50/50 transition-colors duration-150">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->insumo }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $item->maquinaria }}</div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
-                                    {{ $item->categoriaInsumo->nombre }}
+                                    {{ $item->categoriaMaquinaria->nombre }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $item->unidad }}
                             </td>
                             <td class="px-6 py-4">
-                                <span class="text-sm {{ $item->stock_actual < $item->stock_minimo ? 'text-red-600 font-semibold' : 'text-gray-600' }}">
-                                    {{ number_format($item->stock_actual, 2) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ number_format($item->stock_minimo, 2) }}
+                                @if($item->estado === 'disponible')
+                                    <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-200">
+                                        <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Disponible
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200">
+                                        <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        No Disponible
+                                    </span>
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $item->deposito->deposito }}
@@ -197,7 +187,7 @@
                                     </button>
                                     <button 
                                         wire:click="eliminar({{ $item->id }})"
-                                        onclick="return confirm('¿Está seguro de eliminar este insumo?')"
+                                        onclick="return confirm('¿Está seguro de eliminar esta maquinaria?')"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -210,12 +200,12 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
+                            <td colspan="5" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center text-gray-400">
                                     <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                                     </svg>
-                                    <p class="text-sm font-medium">No se encontraron insumos</p>
+                                    <p class="text-sm font-medium">No se encontraron maquinarias</p>
                                 </div>
                             </td>
                         </tr>
@@ -226,7 +216,7 @@
         
         <!-- Paginación -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
-            {{ $insumos->links() }}
+            {{ $maquinarias->links() }}
         </div>
     </div>
 
@@ -243,7 +233,7 @@
                         <div class="bg-white px-6 pt-6 pb-5">
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Insumo' : 'Nuevo Insumo' }}
+                                    {{ $editMode ? 'Editar Maquinaria' : 'Nueva Maquinaria' }}
                                 </h3>
                                 <button 
                                     type="button" 
@@ -257,22 +247,22 @@
                             </div>
 
                             <div class="space-y-5">
-                                <!-- Insumo -->
+                                <!-- Maquinaria -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Insumo *</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Maquinaria *</label>
                                     <input 
                                         type="text" 
-                                        wire:model="insumo"
+                                        wire:model="maquinaria"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
-                                    @error('insumo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    @error('maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Categoría -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
                                     <select 
-                                        wire:model="id_categoria"
+                                        wire:model="id_categoria_maquinaria"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
                                         <option value="">Seleccione una categoría</option>
@@ -280,44 +270,21 @@
                                             <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
                                         @endforeach
                                     </select>
-                                    @error('id_categoria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    @error('id_categoria_maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <!-- Unidad -->
+                                <!-- Estado -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidad *</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="unidad"
-                                        placeholder="kg, m, unidad, litro, etc."
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+                                    <select 
+                                        wire:model="estado"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
-                                    @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Stock Actual y Mínimo -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual *</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            wire:model="stock_actual"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('stock_actual') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo *</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            wire:model="stock_minimo"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('stock_minimo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
+                                        <option value="">Seleccione un estado</option>
+                                        <option value="disponible">Disponible</option>
+                                        <option value="no disponible">No Disponible</option>
+                                    </select>
+                                    @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Depósito -->

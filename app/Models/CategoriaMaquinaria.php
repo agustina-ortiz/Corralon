@@ -11,6 +11,7 @@ class CategoriaMaquinaria extends Model
     
     protected $fillable = [
         'nombre',
+        'descripcion',
     ];
 
     public function maquinarias(): HasMany

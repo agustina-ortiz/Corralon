@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
+use App\Models\Deposito;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -14,42 +15,62 @@ class AbmInsumos extends Component
     public $search = '';
     public $showModal = false;
     public $editMode = false;
+    public $showFilters = false;
+    
+    // Filtros
+    public $filtro_categoria = '';
+    public $filtro_unidad = '';
+    public $filtro_deposito = '';
+    public $filtro_stock_bajo = false;
     
     // Campos del formulario
     public $insumo_id;
-    public $nombre;
-    public $descripcion;
-    public $unidad_medida;
-    public $stock_minimo;
+    public $insumo;
+    public $id_categoria;
+    public $unidad;
     public $stock_actual;
-    public $precio_unitario;
-    public $categoria_insumo_id;
+    public $stock_minimo;
+    public $id_deposito;
 
     protected $rules = [
-        'nombre' => 'required|string|max:100',
-        'descripcion' => 'nullable|string',
-        'unidad_medida' => 'required|string|max:20',
-        'stock_minimo' => 'required|numeric|min:0',
+        'insumo' => 'required|string|max:100',
+        'id_categoria' => 'required|exists:categorias_insumos,id',
+        'unidad' => 'required|string|max:20',
         'stock_actual' => 'required|numeric|min:0',
-        'precio_unitario' => 'required|numeric|min:0',
-        'categoria_insumo_id' => 'required|exists:categorias_insumo,id',
+        'stock_minimo' => 'required|numeric|min:0',
+        'id_deposito' => 'required|exists:depositos,id',
     ];
 
     public function render()
     {
-        $insumos = Insumo::with('categoriaInsumo')
+        $insumos = Insumo::with(['categoriaInsumo', 'deposito'])
             ->when($this->search, function($query) {
-                $query->where('nombre', 'like', '%' . $this->search . '%')
-                      ->orWhere('descripcion', 'like', '%' . $this->search . '%');
+                $query->where('insumo', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('nombre')
+            ->when($this->filtro_categoria, function($query) {
+                $query->where('id_categoria', $this->filtro_categoria);
+            })
+            ->when($this->filtro_unidad, function($query) {
+                $query->where('unidad', $this->filtro_unidad);
+            })
+            ->when($this->filtro_deposito, function($query) {
+                $query->where('id_deposito', $this->filtro_deposito);
+            })
+            ->when($this->filtro_stock_bajo, function($query) {
+                $query->whereColumn('stock_actual', '<', 'stock_minimo');
+            })
+            ->orderBy('insumo')
             ->paginate(10);
 
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
+        $depositos = Deposito::orderBy('deposito')->get();
+        $unidades = Insumo::select('unidad')->distinct()->orderBy('unidad')->pluck('unidad');
 
         return view('livewire.abm-insumos', [
             'insumos' => $insumos,
-            'categorias' => $categorias
+            'categorias' => $categorias,
+            'depositos' => $depositos,
+            'unidades' => $unidades
         ])->layout('layouts.app', [
             'header' => 'ABM Insumos'
         ]);
@@ -57,6 +78,35 @@ class AbmInsumos extends Component
 
     public function updatingSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroUnidad()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroDeposito()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroStockBajo()
+    {
+        $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->filtro_categoria = '';
+        $this->filtro_unidad = '';
+        $this->filtro_deposito = '';
+        $this->filtro_stock_bajo = false;
         $this->resetPage();
     }
 
@@ -71,13 +121,12 @@ class AbmInsumos extends Component
     {
         $insumo = Insumo::findOrFail($id);
         $this->insumo_id = $insumo->id;
-        $this->nombre = $insumo->nombre;
-        $this->descripcion = $insumo->descripcion;
-        $this->unidad_medida = $insumo->unidad_medida;
-        $this->stock_minimo = $insumo->stock_minimo;
+        $this->insumo = $insumo->insumo;
+        $this->id_categoria = $insumo->id_categoria;
+        $this->unidad = $insumo->unidad;
         $this->stock_actual = $insumo->stock_actual;
-        $this->precio_unitario = $insumo->precio_unitario;
-        $this->categoria_insumo_id = $insumo->categoria_insumo_id;
+        $this->stock_minimo = $insumo->stock_minimo;
+        $this->id_deposito = $insumo->id_deposito;
         
         $this->editMode = true;
         $this->showModal = true;
@@ -90,24 +139,22 @@ class AbmInsumos extends Component
         if ($this->editMode) {
             $insumo = Insumo::findOrFail($this->insumo_id);
             $insumo->update([
-                'nombre' => $this->nombre,
-                'descripcion' => $this->descripcion,
-                'unidad_medida' => $this->unidad_medida,
-                'stock_minimo' => $this->stock_minimo,
+                'insumo' => $this->insumo,
+                'id_categoria' => $this->id_categoria,
+                'unidad' => $this->unidad,
                 'stock_actual' => $this->stock_actual,
-                'precio_unitario' => $this->precio_unitario,
-                'categoria_insumo_id' => $this->categoria_insumo_id,
+                'stock_minimo' => $this->stock_minimo,
+                'id_deposito' => $this->id_deposito,
             ]);
             session()->flash('message', 'Insumo actualizado correctamente.');
         } else {
             Insumo::create([
-                'nombre' => $this->nombre,
-                'descripcion' => $this->descripcion,
-                'unidad_medida' => $this->unidad_medida,
-                'stock_minimo' => $this->stock_minimo,
+                'insumo' => $this->insumo,
+                'id_categoria' => $this->id_categoria,
+                'unidad' => $this->unidad,
                 'stock_actual' => $this->stock_actual,
-                'precio_unitario' => $this->precio_unitario,
-                'categoria_insumo_id' => $this->categoria_insumo_id,
+                'stock_minimo' => $this->stock_minimo,
+                'id_deposito' => $this->id_deposito,
             ]);
             session()->flash('message', 'Insumo creado correctamente.');
         }
@@ -131,13 +178,12 @@ class AbmInsumos extends Component
     private function resetForm()
     {
         $this->insumo_id = null;
-        $this->nombre = '';
-        $this->descripcion = '';
-        $this->unidad_medida = '';
-        $this->stock_minimo = '';
+        $this->insumo = '';
+        $this->id_categoria = '';
+        $this->unidad = '';
         $this->stock_actual = '';
-        $this->precio_unitario = '';
-        $this->categoria_insumo_id = '';
+        $this->stock_minimo = '';
+        $this->id_deposito = '';
         $this->resetErrorBag();
     }
 }

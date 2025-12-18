@@ -14,12 +14,12 @@ class Insumo extends Model
         'insumo',
         'id_categoria',
         'unidad',
-        'medida',
+        'stock_actual',
         'stock_minimo',
         'id_deposito',
     ];
 
-    public function categoria(): BelongsTo
+    public function categoriaInsumo(): BelongsTo
     {
         return $this->belongsTo(CategoriaInsumo::class, 'id_categoria');
     }
