@@ -41,12 +41,22 @@ class AbmInsumos extends Component
         'id_deposito' => 'required|exists:depositos,id',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+        
+        $this->limpiarFiltros();
+    }
+
     public function render()
     {
         $user = auth()->user();
         
         $insumos = Insumo::with(['categoriaInsumo', 'deposito.corralon'])
-            ->porCorralonesPermitidos() // ← AGREGAR ESTO - CRÍTICO
+            ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('insumo', 'like', '%' . $this->search . '%');
             })
@@ -86,15 +96,14 @@ class AbmInsumos extends Component
             'insumos' => $insumos,
             'categorias' => $categorias,
             'depositos' => $depositos,
-            'unidades' => $unidades
+            'unidades' => $unidades,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearInsumos(),
+            'puedeEditar' => $user->puedeEditarInsumos(),
+            'puedeEliminar' => $user->puedeEliminarInsumos(),
         ])->layout('layouts.app', [
             'header' => 'ABM Insumos'
         ]);
-    }
-
-    public function mount()
-    {
-        $this->limpiarFiltros();
     }
 
     public function updatingSearch()
@@ -133,6 +142,12 @@ class AbmInsumos extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear insumos.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
@@ -140,14 +155,20 @@ class AbmInsumos extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar insumos.');
+            return;
+        }
+        
         $insumo = Insumo::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este insumo
+        // Verificar que el usuario tenga acceso a este insumo por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             $corralonId = $insumo->deposito->id_corralon;
             if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar este insumo.');
+                session()->flash('error', 'No tienes permisos para editar insumos de este corralón.');
                 return;
             }
         }
@@ -166,6 +187,19 @@ class AbmInsumos extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear insumos.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar insumos.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
         
         $user = auth()->user();
@@ -182,11 +216,11 @@ class AbmInsumos extends Component
         if ($this->editMode) {
             $insumo = Insumo::findOrFail($this->insumo_id);
             
-            // Verificar acceso al insumo original
+            // Verificar acceso al insumo original por corralón
             if (!$user->acceso_todos_corralones) {
                 $corralonId = $insumo->deposito->id_corralon;
                 if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar este insumo.');
+                    session()->flash('error', 'No tienes permisos para editar insumos de este corralón.');
                     return;
                 }
             }
@@ -218,20 +252,30 @@ class AbmInsumos extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarInsumos()) {
+            session()->flash('error', 'No tienes permisos para eliminar insumos.');
+            return;
+        }
+        
         $insumo = Insumo::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este insumo
+        // Verificar que el usuario tenga acceso a este insumo por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             $corralonId = $insumo->deposito->id_corralon;
             if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar este insumo.');
+                session()->flash('error', 'No tienes permisos para eliminar insumos de este corralón.');
                 return;
             }
         }
         
-        $insumo->delete();
-        session()->flash('message', 'Insumo eliminado correctamente.');
+        try {
+            $insumo->delete();
+            session()->flash('message', 'Insumo eliminado correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se puede eliminar el insumo porque tiene movimientos asociados.');
+        }
     }
 
     public function cerrarModal()

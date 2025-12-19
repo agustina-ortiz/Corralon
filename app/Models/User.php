@@ -15,6 +15,7 @@ class User extends Authenticatable
         'password',
         'corralones_permitidos',
         'acceso_todos_corralones',
+        'id_rol',
     ];
 
     protected $hidden = [
@@ -61,5 +62,31 @@ class User extends Authenticatable
         }
 
         return \App\Models\Corralon::whereIn('id', $this->corralones_permitidos ?? [])->get();
+    }
+
+    public function rol()
+    {
+        return $this->belongsTo(Rol::class, 'id_rol');
+    }
+
+    // Métodos helper para verificar permisos
+    public function esAdministrador(): bool
+    {
+        return $this->rol && $this->rol->nombre === 'Administrador';
+    }
+
+    public function puedeCrearInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
     }
 }
