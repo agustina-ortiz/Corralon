@@ -2,47 +2,64 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'corralones_permitidos',
+        'acceso_todos_corralones',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
         'remember_token',
     ];
 
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'corralones_permitidos' => 'array',
+        'acceso_todos_corralones' => 'boolean',
+    ];
+
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Verifica si el usuario tiene acceso a un corralón específico
      */
-    protected function casts(): array
+    public function tieneAccesoACorralon($corralonId): bool
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        if ($this->acceso_todos_corralones) {
+            return true;
+        }
+
+        return in_array($corralonId, $this->corralones_permitidos ?? []);
+    }
+
+    /**
+     * Obtiene los IDs de corralones a los que el usuario tiene acceso
+     */
+    public function getCorralonesPermitidosIds(): array
+    {
+        if ($this->acceso_todos_corralones) {
+            return \App\Models\Corralon::pluck('id')->toArray();
+        }
+
+        return $this->corralones_permitidos ?? [];
+    }
+
+    /**
+     * Relación con los corralones permitidos
+     */
+    public function corralones()
+    {
+        if ($this->acceso_todos_corralones) {
+            return \App\Models\Corralon::all();
+        }
+
+        return \App\Models\Corralon::whereIn('id', $this->corralones_permitidos ?? [])->get();
     }
 }

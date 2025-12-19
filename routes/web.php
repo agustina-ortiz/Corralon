@@ -53,5 +53,9 @@ Route::get('/vehiculos', AbmVehiculos::class)
     ->middleware(['auth'])
     ->name('vehiculos');
 
+Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
+    ->middleware(['auth'])
+    ->name('usuarios');
+
 
 require __DIR__.'/auth.php';

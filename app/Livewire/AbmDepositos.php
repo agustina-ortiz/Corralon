@@ -27,9 +27,19 @@ class AbmDepositos extends Component
         'id_corralon' => 'required|exists:corralones,id',
     ];
 
+    protected $messages = [
+        'sector.required' => 'El sector es obligatorio',
+        'deposito.required' => 'El nombre del depósito es obligatorio',
+        'id_corralon.required' => 'Debe seleccionar un corralón',
+        'id_corralon.exists' => 'El corralón seleccionado no es válido',
+    ];
+
     public function render()
     {
+        $user = auth()->user(); // ← AGREGAR
+        
         $depositos = Deposito::with('corralon')
+            ->porCorralonesPermitidos() // ← AGREGAR EL SCOPE
             ->when($this->search, function($query) {
                 $query->where('deposito', 'like', '%' . $this->search . '%')
                       ->orWhere('sector', 'like', '%' . $this->search . '%');
@@ -37,7 +47,12 @@ class AbmDepositos extends Component
             ->orderBy('deposito')
             ->paginate(10);
 
-        $corralones = Corralon::orderBy('descripcion')->get();
+        // Filtrar corralones por permisos
+        $corralonesQuery = Corralon::orderBy('descripcion');
+        if (!$user->acceso_todos_corralones) {
+            $corralonesQuery->whereIn('id', $user->corralones_permitidos ?? []);
+        }
+        $corralones = $corralonesQuery->get();
 
         return view('livewire.abm-depositos', [
             'depositos' => $depositos,
@@ -56,12 +71,29 @@ class AbmDepositos extends Component
     {
         $this->resetForm();
         $this->editMode = false;
+        
+        // Si el usuario solo tiene acceso a un corralón, preseleccionarlo
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones && count($user->corralones_permitidos ?? []) === 1) {
+            $this->id_corralon = $user->corralones_permitidos[0];
+        }
+        
         $this->showModal = true;
     }
 
     public function editar($id)
     {
         $deposito = Deposito::findOrFail($id);
+        
+        // Verificar que el usuario tenga acceso a este depósito
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para editar este depósito.');
+                return;
+            }
+        }
+        
         $this->deposito_id = $deposito->id;
         $this->sector = $deposito->sector;
         $this->deposito = $deposito->deposito;
@@ -74,9 +106,28 @@ class AbmDepositos extends Component
     public function guardar()
     {
         $this->validate();
+        
+        $user = auth()->user();
+        
+        // Verificar que el corralón seleccionado esté permitido
+        if (!$user->acceso_todos_corralones) {
+            if (!in_array($this->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para usar ese corralón.');
+                return;
+            }
+        }
 
         if ($this->editMode) {
             $deposito = Deposito::findOrFail($this->deposito_id);
+            
+            // Verificar acceso al depósito original
+            if (!$user->acceso_todos_corralones) {
+                if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                    session()->flash('error', 'No tienes permisos para editar este depósito.');
+                    return;
+                }
+            }
+            
             $deposito->update([
                 'sector' => $this->sector,
                 'deposito' => $this->deposito,
@@ -98,7 +149,34 @@ class AbmDepositos extends Component
 
     public function eliminar($id)
     {
-        Deposito::findOrFail($id)->delete();
+        $deposito = Deposito::findOrFail($id);
+        
+        // Verificar que el usuario tenga acceso a este depósito
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para eliminar este depósito.');
+                return;
+            }
+        }
+        
+        // Verificar que no tenga elementos asignados
+        if ($deposito->insumos()->count() > 0) {
+            session()->flash('error', 'No se puede eliminar el depósito porque tiene insumos asignados.');
+            return;
+        }
+        
+        if ($deposito->maquinarias()->count() > 0) {
+            session()->flash('error', 'No se puede eliminar el depósito porque tiene maquinarias asignadas.');
+            return;
+        }
+        
+        if ($deposito->vehiculos()->count() > 0) {
+            session()->flash('error', 'No se puede eliminar el depósito porque tiene vehículos asignados.');
+            return;
+        }
+        
+        $deposito->delete();
         session()->flash('message', 'Depósito eliminado correctamente.');
     }
 

@@ -156,6 +156,7 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Actual</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Mínimo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Corralón</th>
                         <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -183,6 +184,11 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $item->deposito->deposito }}
+                            </td>
+                            <td class="whitespace-nowrap px-6 py-4">
+                                <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
+                                    {{ $item->deposito?->corralon?->descripcion ?? 'Sin corralón' }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">

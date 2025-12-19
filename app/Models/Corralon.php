@@ -14,6 +14,11 @@ class Corralon extends Model
         'ubicacion',
     ];
 
+    public function getNombreAttribute()
+    {
+        return $this->descripcion;
+    }
+
     public function depositos(): HasMany
     {
         return $this->hasMany(Deposito::class, 'id_corralon');
@@ -23,4 +28,5 @@ class Corralon extends Model
     {
         return $this->hasMany(Cuadrilla::class, 'id_corralon');
     }
+
 }

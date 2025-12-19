@@ -88,7 +88,10 @@ class AbmVehiculos extends Component
 
     public function render()
     {
+        $user = auth()->user();
+
         $vehiculos = Vehiculo::with('deposito')
+            ->porCorralonesPermitidos()
             ->where(function($query) {
                 $query->where('vehiculo', 'like', '%' . $this->search . '%')
                       ->orWhere('marca', 'like', '%' . $this->search . '%')
@@ -110,7 +113,12 @@ class AbmVehiculos extends Component
             ->orderBy('vehiculo')
             ->paginate(10);
 
-        $depositos = Deposito::orderBy('deposito')->get();
+        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
+        if (!$user->acceso_todos_corralones) {
+            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
+        }
+        
+        $depositos = $depositosQuery->get();
         $marcas = Vehiculo::select('marca')->distinct()->whereNotNull('marca')->orderBy('marca')->pluck('marca');
         $modelos = Vehiculo::select('modelo')->distinct()->whereNotNull('modelo')->orderBy('modelo')->pluck('modelo');
 
@@ -133,7 +141,16 @@ class AbmVehiculos extends Component
     public function editar($id)
     {
         $vehiculo = Vehiculo::findOrFail($id);
-        
+
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $vehiculo->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+                return;
+            }
+        }
+            
         $this->vehiculoId = $vehiculo->id;
         $this->vehiculo = $vehiculo->vehiculo;
         $this->marca = $vehiculo->marca;
@@ -152,8 +169,27 @@ class AbmVehiculos extends Component
     {
         $this->validate();
 
+        $user = auth()->user();
+    
+        if (!$user->acceso_todos_corralones) {
+            $deposito = Deposito::find($this->id_deposito);
+            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para usar ese depósito.');
+                return;
+            }
+        }
+
         if ($this->editMode) {
             $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
+
+            if (!$user->acceso_todos_corralones) {
+                $corralonId = $vehiculo->deposito->id_corralon;
+                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                    session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+                    return;
+                }
+            }
+
             $vehiculo->update([
                 'vehiculo' => $this->vehiculo,
                 'marca' => $this->marca,
@@ -188,14 +224,19 @@ class AbmVehiculos extends Component
 
     public function eliminar($id)
     {
-        try {
-            $vehiculo = Vehiculo::findOrFail($id);
-            $vehiculo->delete();
-            
-            session()->flash('message', 'Vehículo eliminado exitosamente.');
-        } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar el vehículo. Puede estar asociado a otros registros.');
+        $vehiculo = Vehiculo::findOrFail($id);
+        
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $vehiculo->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para eliminar este vehiculo.');
+                return;
+            }
         }
+        
+        $vehiculo->delete();
+        session()->flash('message', 'Vehículo eliminado correctamente.');
     }
 
     public function cerrarModal()

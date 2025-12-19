@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\FiltraPorCorralonViaDeposito;
 
 class Insumo extends Model
 {
+    use FiltraPorCorralonViaDeposito;
+
     protected $table = 'insumos';
 
     protected $fillable = [
@@ -17,7 +20,13 @@ class Insumo extends Model
         'stock_actual',
         'stock_minimo',
         'id_deposito',
+        'id_corralon',
     ];
+
+    public function getNombreAttribute()
+    {
+        return $this->insumo;
+    }
 
     public function categoriaInsumo(): BelongsTo
     {
@@ -32,5 +41,15 @@ class Insumo extends Model
     public function movimientos(): HasMany
     {
         return $this->hasMany(MovimientoInsumo::class, 'id_insumo');
+    }
+
+    public function getCorralon()
+    {
+        return $this->deposito?->corralon;
+    }
+
+    public function getCorralonNombreAttribute()
+    {
+        return $this->deposito?->corralon?->descripcion ?? 'Sin corralón';
     }
 }

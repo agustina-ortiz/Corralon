@@ -1,0 +1,218 @@
+<?php
+
+namespace App\Livewire;
+
+use App\Models\User;
+use App\Models\Corralon;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\Hash;
+
+class AbmUsuarios extends Component
+{
+    use WithPagination;
+
+    // Búsqueda y filtros
+    public $busqueda = '';
+    public $filtro_acceso = ''; // 'todos', 'limitado', ''
+    public $filtro_corralon = '';
+
+    // Modal
+    public $modalAbierto = false;
+    public $modo = 'crear'; // 'crear' o 'editar'
+
+    // Campos del formulario
+    public $usuario_id;
+    public $name;
+    public $email;
+    public $password;
+    public $password_confirmation;
+    public $acceso_todos_corralones = false;
+    public $corralones_seleccionados = [];
+
+    // Ordenamiento
+    public $orden_campo = 'name';
+    public $orden_direccion = 'asc';
+
+    protected function rules()
+    {
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $this->usuario_id,
+            'acceso_todos_corralones' => 'boolean',
+        ];
+
+        if ($this->modo === 'crear') {
+            $rules['password'] = 'required|string|min:8|confirmed';
+        } elseif ($this->password) {
+            $rules['password'] = 'string|min:8|confirmed';
+        }
+
+        if (!$this->acceso_todos_corralones) {
+            $rules['corralones_seleccionados'] = 'required|array|min:1';
+        }
+
+        return $rules;
+    }
+
+    protected $messages = [
+        'name.required' => 'El nombre es obligatorio',
+        'email.required' => 'El email es obligatorio',
+        'email.email' => 'Debe ser un email válido',
+        'email.unique' => 'Este email ya está registrado',
+        'password.required' => 'La contraseña es obligatoria',
+        'password.min' => 'La contraseña debe tener al menos 8 caracteres',
+        'password.confirmed' => 'Las contraseñas no coinciden',
+        'corralones_seleccionados.required' => 'Debe seleccionar al menos un corralón',
+        'corralones_seleccionados.min' => 'Debe seleccionar al menos un corralón',
+    ];
+
+    public function updatingBusqueda()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroAcceso()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCorralon()
+    {
+        $this->resetPage();
+    }
+
+    public function getUsersProperty()
+    {
+        return User::query()
+            ->when($this->busqueda, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->busqueda . '%')
+                      ->orWhere('email', 'like', '%' . $this->busqueda . '%');
+                });
+            })
+            ->when($this->filtro_acceso === 'todos', function ($query) {
+                $query->where('acceso_todos_corralones', true);
+            })
+            ->when($this->filtro_acceso === 'limitado', function ($query) {
+                $query->where('acceso_todos_corralones', false);
+            })
+            ->when($this->filtro_corralon, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('acceso_todos_corralones', true)
+                      ->orWhereJsonContains('corralones_permitidos', (int)$this->filtro_corralon);
+                });
+            })
+            ->orderBy($this->orden_campo, $this->orden_direccion)
+            ->paginate(10);
+    }
+
+    public function getCorralonesProperty()
+    {
+        return Corralon::orderBy('descripcion')->get();
+    }
+
+    public function ordenarPor($campo)
+    {
+        if ($this->orden_campo === $campo) {
+            $this->orden_direccion = $this->orden_direccion === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->orden_campo = $campo;
+            $this->orden_direccion = 'asc';
+        }
+    }
+
+    public function abrirModal($modo = 'crear', $id = null)
+    {
+        $this->resetearFormulario();
+        $this->modo = $modo;
+
+        if ($modo === 'editar' && $id) {
+            $usuario = User::findOrFail($id);
+            $this->usuario_id = $usuario->id;
+            $this->name = $usuario->name;
+            $this->email = $usuario->email;
+            $this->acceso_todos_corralones = $usuario->acceso_todos_corralones;
+            $this->corralones_seleccionados = $usuario->corralones_permitidos ?? [];
+        }
+
+        $this->modalAbierto = true;
+    }
+
+    public function cerrarModal()
+    {
+        $this->modalAbierto = false;
+        $this->resetearFormulario();
+    }
+
+    public function guardar()
+    {
+        $this->validate();
+
+        $data = [
+            'name' => $this->name,
+            'email' => $this->email,
+            'acceso_todos_corralones' => $this->acceso_todos_corralones,
+            'corralones_permitidos' => $this->acceso_todos_corralones ? null : $this->corralones_seleccionados,
+        ];
+
+        if ($this->password) {
+            $data['password'] = Hash::make($this->password);
+        }
+
+        if ($this->modo === 'crear') {
+            User::create($data);
+            session()->flash('mensaje', 'Usuario creado exitosamente');
+        } else {
+            $usuario = User::findOrFail($this->usuario_id);
+            $usuario->update($data);
+            session()->flash('mensaje', 'Usuario actualizado exitosamente');
+        }
+
+        $this->cerrarModal();
+    }
+
+    public function eliminar($id)
+    {
+        $usuario = User::findOrFail($id);
+        
+        // No permitir eliminar al usuario actual
+        if ($usuario->id === auth()->id()) {
+            session()->flash('error', 'No puedes eliminar tu propio usuario');
+            return;
+        }
+
+        $usuario->delete();
+        session()->flash('mensaje', 'Usuario eliminado exitosamente');
+    }
+
+    private function resetearFormulario()
+    {
+        $this->usuario_id = null;
+        $this->name = '';
+        $this->email = '';
+        $this->password = '';
+        $this->password_confirmation = '';
+        $this->acceso_todos_corralones = false;
+        $this->corralones_seleccionados = [];
+        $this->resetValidation();
+    }
+
+    public function resetearFiltros()
+    {
+        $this->busqueda = '';
+        $this->filtro_acceso = '';
+        $this->filtro_corralon = '';
+        $this->resetPage();
+    }
+
+    public function render()
+    {
+        return view('livewire.abm-usuarios', [
+            'usuarios' => $this->users,
+            'corralones' => $this->corralones,
+        ])->layout('layouts.app', [
+            'header' => 'ABM Usuarios'
+        ]);
+    }
+}

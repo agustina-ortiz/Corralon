@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Maquinaria;
 use App\Models\CategoriaMaquinaria;
 use App\Models\Deposito;
+use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -38,7 +39,10 @@ class AbmMaquinarias extends Component
 
     public function render()
     {
+        $user = auth()->user();
+
         $maquinarias = Maquinaria::with(['categoriaMaquinaria', 'deposito'])
+            ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('maquinaria', 'like', '%' . $this->search . '%');
             })
@@ -54,8 +58,14 @@ class AbmMaquinarias extends Component
             ->orderBy('maquinaria')
             ->paginate(10);
 
+        // Filtrar depósitos
+        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
+        if (!$user->acceso_todos_corralones) {
+            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
+        }
+        
+        $depositos = $depositosQuery->get();
         $categorias = CategoriaMaquinaria::orderBy('nombre')->get();
-        $depositos = Deposito::orderBy('deposito')->get();
 
         return view('livewire.abm-maquinarias', [
             'maquinarias' => $maquinarias,
@@ -104,6 +114,16 @@ class AbmMaquinarias extends Component
     public function editar($id)
     {
         $maquinaria = Maquinaria::findOrFail($id);
+
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $maquinaria->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para editar esta maquinaria.');
+                return;
+            }
+        }
+
         $this->maquinaria_id = $maquinaria->id;
         $this->maquinaria = $maquinaria->maquinaria;
         $this->id_categoria_maquinaria = $maquinaria->id_categoria_maquinaria;
@@ -118,8 +138,27 @@ class AbmMaquinarias extends Component
     {
         $this->validate();
 
+        $user = auth()->user();
+    
+        if (!$user->acceso_todos_corralones) {
+            $deposito = Deposito::find($this->id_deposito);
+            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para usar ese depósito.');
+                return;
+            }
+        }
+
         if ($this->editMode) {
             $maquinaria = Maquinaria::findOrFail($this->maquinaria_id);
+
+            if (!$user->acceso_todos_corralones) {
+                $corralonId = $maquinaria->deposito->id_corralon;
+                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                    session()->flash('error', 'No tienes permisos para editar esta maquinaria.');
+                    return;
+                }
+            }
+
             $maquinaria->update([
                 'maquinaria' => $this->maquinaria,
                 'id_categoria_maquinaria' => $this->id_categoria_maquinaria,
@@ -143,7 +182,18 @@ class AbmMaquinarias extends Component
 
     public function eliminar($id)
     {
-        Maquinaria::findOrFail($id)->delete();
+        $maquinaria = Maquinaria::findOrFail($id);
+        
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $maquinaria->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para eliminar esta maquinaria.');
+                return;
+            }
+        }
+        
+        $maquinaria->delete();
         session()->flash('message', 'Maquinaria eliminada correctamente.');
     }
 

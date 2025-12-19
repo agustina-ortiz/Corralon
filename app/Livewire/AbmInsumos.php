@@ -43,7 +43,10 @@ class AbmInsumos extends Component
 
     public function render()
     {
-        $insumos = Insumo::with(['categoriaInsumo', 'deposito'])
+        $user = auth()->user();
+        
+        $insumos = Insumo::with(['categoriaInsumo', 'deposito.corralon'])
+            ->porCorralonesPermitidos() // ← AGREGAR ESTO - CRÍTICO
             ->when($this->search, function($query) {
                 $query->where('insumo', 'like', '%' . $this->search . '%');
             })
@@ -63,8 +66,21 @@ class AbmInsumos extends Component
             ->paginate(10);
 
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
-        $depositos = Deposito::orderBy('deposito')->get();
-        $unidades = Insumo::select('unidad')->distinct()->orderBy('unidad')->pluck('unidad');
+        
+        // Filtrar depósitos por corralones permitidos
+        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
+        if (!$user->acceso_todos_corralones) {
+            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
+        }
+        $depositos = $depositosQuery->get();
+        
+        // Filtrar unidades de insumos visibles
+        $unidades = Insumo::select('unidad')
+            ->porCorralonesPermitidos()
+            ->distinct()
+            ->whereNotNull('unidad')
+            ->orderBy('unidad')
+            ->pluck('unidad');
 
         return view('livewire.abm-insumos', [
             'insumos' => $insumos,
@@ -74,6 +90,11 @@ class AbmInsumos extends Component
         ])->layout('layouts.app', [
             'header' => 'ABM Insumos'
         ]);
+    }
+
+    public function mount()
+    {
+        $this->limpiarFiltros();
     }
 
     public function updatingSearch()
@@ -120,6 +141,17 @@ class AbmInsumos extends Component
     public function editar($id)
     {
         $insumo = Insumo::findOrFail($id);
+        
+        // Verificar que el usuario tenga acceso a este insumo
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $insumo->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para editar este insumo.');
+                return;
+            }
+        }
+        
         $this->insumo_id = $insumo->id;
         $this->insumo = $insumo->insumo;
         $this->id_categoria = $insumo->id_categoria;
@@ -135,9 +167,30 @@ class AbmInsumos extends Component
     public function guardar()
     {
         $this->validate();
+        
+        $user = auth()->user();
+        
+        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
+        if (!$user->acceso_todos_corralones) {
+            $deposito = Deposito::find($this->id_deposito);
+            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para usar ese depósito.');
+                return;
+            }
+        }
 
         if ($this->editMode) {
             $insumo = Insumo::findOrFail($this->insumo_id);
+            
+            // Verificar acceso al insumo original
+            if (!$user->acceso_todos_corralones) {
+                $corralonId = $insumo->deposito->id_corralon;
+                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                    session()->flash('error', 'No tienes permisos para editar este insumo.');
+                    return;
+                }
+            }
+            
             $insumo->update([
                 'insumo' => $this->insumo,
                 'id_categoria' => $this->id_categoria,
@@ -165,7 +218,19 @@ class AbmInsumos extends Component
 
     public function eliminar($id)
     {
-        Insumo::findOrFail($id)->delete();
+        $insumo = Insumo::findOrFail($id);
+        
+        // Verificar que el usuario tenga acceso a este insumo
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones) {
+            $corralonId = $insumo->deposito->id_corralon;
+            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
+                session()->flash('error', 'No tienes permisos para eliminar este insumo.');
+                return;
+            }
+        }
+        
+        $insumo->delete();
         session()->flash('message', 'Insumo eliminado correctamente.');
     }
 

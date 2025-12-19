@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\FiltraPorCorralon;
 
 class Deposito extends Model
 {
+    use FiltraPorCorralon;
+
     protected $table = 'depositos';
     
     protected $fillable = [
@@ -15,6 +18,11 @@ class Deposito extends Model
         'deposito',
         'id_corralon',
     ];
+
+    public function getNombreAttribute()
+    {
+        return $this->sector . ' - ' . $this->deposito;
+    }
 
     public function insumos(): HasMany
     {
