@@ -302,7 +302,7 @@
 
                 <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-visible shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
                     <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5 rounded-xl">
+                        <div class="bg-white px-6 pt-6 pb-14 rounded-xl">
                             <div class="flex items-center justify-between mb-6">
                                 <h3 class="text-xl font-semibold text-gray-900">Nueva Transferencia</h3>
                                 <button 

@@ -74,8 +74,26 @@ class TransferenciasInsumos extends Component
         )->id;
     }
 
+    /**
+     * Obtiene los IDs de depósitos accesibles por el usuario actual
+     */
+    private function getDepositosAccesibles()
+    {
+        $user = Auth::user();
+        
+        if ($user->acceso_todos_corralones) {
+            return Deposito::pluck('id')->toArray();
+        }
+
+        return Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])
+            ->pluck('id')
+            ->toArray();
+    }
+
     public function render()
     {
+        $depositosAccesibles = $this->getDepositosAccesibles();
+
         // Obtener transferencias agrupadas con filtros
         $transferencias = MovimientoEncabezado::with([
                 'movimientos.insumo.categoriaInsumo',
@@ -84,6 +102,10 @@ class TransferenciasInsumos extends Component
                 'depositoDestino',
                 'usuario'
             ])
+            // Filtrar solo transferencias de depósitos accesibles
+            ->whereHas('depositoOrigen', function($query) use ($depositosAccesibles) {
+                $query->whereIn('id', $depositosAccesibles);
+            })
             ->when($this->search, function($query) {
                 $query->whereHas('movimientos.insumo', function($q) {
                     $q->where('insumo', 'like', '%' . $this->search . '%');
@@ -126,6 +148,8 @@ class TransferenciasInsumos extends Component
             
             $insumos_filtrados = Insumo::with(['categoriaInsumo', 'deposito'])
                 ->where('stock_actual', '>', 0)
+                // Filtrar solo insumos de depósitos accesibles
+                ->whereIn('id_deposito', $depositosAccesibles)
                 ->whereNotIn('id', $ids_agregados)
                 ->when($this->search_insumo, function($query) {
                     $query->where(function($q) {
@@ -143,8 +167,11 @@ class TransferenciasInsumos extends Component
                 ->get();
         }
 
-        // Datos para los filtros
-        $depositos = Deposito::orderBy('deposito')->get();
+        // Datos para los filtros - solo depósitos accesibles
+        $depositos = Deposito::whereIn('id', $depositosAccesibles)
+            ->orderBy('deposito')
+            ->get();
+            
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
 
@@ -227,7 +254,16 @@ class TransferenciasInsumos extends Component
 
     public function agregarInsumo($insumoId)
     {
-        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($insumoId);
+        $depositosAccesibles = $this->getDepositosAccesibles();
+        
+        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])
+            ->whereIn('id_deposito', $depositosAccesibles)
+            ->find($insumoId);
+        
+        if (!$insumo) {
+            session()->flash('error', 'No tiene acceso a este insumo.');
+            return;
+        }
         
         if ($insumo) {
             $this->insumos_a_transferir[] = [
@@ -266,7 +302,10 @@ class TransferenciasInsumos extends Component
 
     public function cargarDepositosDisponibles($id_deposito_origen)
     {
-        $this->depositos_disponibles = Deposito::where('id', '!=', $id_deposito_origen)
+        $depositosAccesibles = $this->getDepositosAccesibles();
+        
+        $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
+            ->where('id', '!=', $id_deposito_origen)
             ->orderBy('deposito')
             ->get();
     }
@@ -292,14 +331,16 @@ class TransferenciasInsumos extends Component
     {
         $this->validate();
 
+        $depositosAccesibles = $this->getDepositosAccesibles();
+
         // Validaciones adicionales
         $errores = [];
         
         foreach ($this->insumos_a_transferir as $index => $item) {
-            $insumo = Insumo::find($item['id_insumo']);
+            $insumo = Insumo::whereIn('id_deposito', $depositosAccesibles)->find($item['id_insumo']);
             
             if (!$insumo) {
-                $errores[] = "Insumo no encontrado.";
+                $errores[] = "No tiene acceso al insumo: {$item['insumo']}";
                 continue;
             }
             
@@ -311,6 +352,11 @@ class TransferenciasInsumos extends Component
                 $errores[] = "{$item['insumo']}: No puede transferir al mismo depósito de origen.";
             }
         }
+
+        // Validar que el depósito destino sea accesible
+        if (!in_array($this->id_deposito_destino, $depositosAccesibles)) {
+            $errores[] = "No tiene acceso al depósito destino seleccionado.";
+        }
         
         if (count($errores) > 0) {
             session()->flash('error', implode('<br>', $errores));
@@ -321,7 +367,12 @@ class TransferenciasInsumos extends Component
             DB::beginTransaction();
 
             // 1. Crear encabezado de movimiento
-            $primer_insumo = Insumo::find($this->insumos_a_transferir[0]['id_insumo']);
+            $primer_insumo = Insumo::whereIn('id_deposito', $depositosAccesibles)
+                ->find($this->insumos_a_transferir[0]['id_insumo']);
+            
+            if (!$primer_insumo) {
+                throw new \Exception('No tiene acceso a los insumos seleccionados.');
+            }
             
             $encabezado = MovimientoEncabezado::create([
                 'fecha' => now(),
@@ -335,7 +386,8 @@ class TransferenciasInsumos extends Component
 
             // 2. Procesar cada insumo
             foreach ($this->insumos_a_transferir as $item) {
-                $insumo_origen = Insumo::findOrFail($item['id_insumo']);
+                $insumo_origen = Insumo::whereIn('id_deposito', $depositosAccesibles)
+                    ->findOrFail($item['id_insumo']);
 
                 // Descontar del insumo origen
                 $insumo_origen->stock_actual -= $item['cantidad'];

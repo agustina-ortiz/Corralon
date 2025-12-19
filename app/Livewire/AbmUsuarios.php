@@ -16,6 +16,7 @@ class AbmUsuarios extends Component
     public $busqueda = '';
     public $filtro_acceso = ''; // 'todos', 'limitado', ''
     public $filtro_corralon = '';
+    public $mostrarFiltros = false;
 
     // Modal
     public $modalAbierto = false;
@@ -98,9 +99,12 @@ class AbmUsuarios extends Component
                 $query->where('acceso_todos_corralones', false);
             })
             ->when($this->filtro_corralon, function ($query) {
-                $query->where(function ($q) {
+                $corralon_id = $this->filtro_corralon;
+                $query->where(function ($q) use ($corralon_id) {
+                    // Usuarios con acceso a todos los corralones
                     $q->where('acceso_todos_corralones', true)
-                      ->orWhereJsonContains('corralones_permitidos', (int)$this->filtro_corralon);
+                      // O usuarios con este corralón específico en su array de permisos
+                      ->orWhereRaw('JSON_CONTAINS(corralones_permitidos, ?)', ['"' . $corralon_id . '"']);
                 });
             })
             ->orderBy($this->orden_campo, $this->orden_direccion)

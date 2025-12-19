@@ -44,7 +44,7 @@ class AbmDepositos extends Component
                 $query->where('deposito', 'like', '%' . $this->search . '%')
                       ->orWhere('sector', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('deposito')
+            ->orderBy('sector')
             ->paginate(10);
 
         // Filtrar corralones por permisos

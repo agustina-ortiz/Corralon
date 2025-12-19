@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
 use App\Livewire\AbmInsumos;
 use App\Livewire\AbmCategoriasInsumos;
@@ -56,6 +58,14 @@ Route::get('/vehiculos', AbmVehiculos::class)
 Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
     ->middleware(['auth'])
     ->name('usuarios');
+
+Route::post('/logout', function (Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    
+    return redirect('/login');
+})->name('logout');
 
 
 require __DIR__.'/auth.php';
