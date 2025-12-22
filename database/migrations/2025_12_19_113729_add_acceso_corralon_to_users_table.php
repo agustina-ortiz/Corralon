@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->json('corralones_permitidos')->nullable()->after('password');
-            $table->boolean('acceso_todos_corralones')->default(false)->after('corralones_permitidos');
+            $table->longText('corralones_permitidos')->nullable();
+            $table->boolean('acceso_todos_corralones')->default(false);
         });
     }
 

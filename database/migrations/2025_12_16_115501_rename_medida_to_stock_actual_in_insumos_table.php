@@ -9,14 +9,27 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('insumos', function (Blueprint $table) {
-            $table->renameColumn('medida', 'stock_actual');
+            $table->integer('stock_actual')->after('medida');
+        });
+
+        DB::statement('UPDATE insumos SET stock_actual = medida');
+
+        Schema::table('insumos', function (Blueprint $table) {
+            $table->dropColumn('medida');
         });
     }
 
     public function down(): void
     {
         Schema::table('insumos', function (Blueprint $table) {
-            $table->renameColumn('stock_actual', 'medida');
+            $table->integer('medida');
+        });
+
+        DB::statement('UPDATE insumos SET medida = stock_actual');
+
+        Schema::table('insumos', function (Blueprint $table) {
+            $table->dropColumn('stock_actual');
         });
     }
+
 };

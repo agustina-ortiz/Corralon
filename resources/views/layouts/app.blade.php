@@ -20,7 +20,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 overflow-y-auto p-4">
+            <nav class="flex-1 overflow-y-auto p-4 sidebar-scroll">
                 <div class="space-y-2"> 
                     <!-- Dashboard -->
                     <a href="{{ route('dashboard') }}" 
