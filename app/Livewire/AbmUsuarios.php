@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Models\Corralon;
+use App\Models\Rol;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +17,7 @@ class AbmUsuarios extends Component
     public $busqueda = '';
     public $filtro_acceso = ''; // 'todos', 'limitado', ''
     public $filtro_corralon = '';
+    public $filtro_rol = '';
     public $mostrarFiltros = false;
 
     // Modal
@@ -28,6 +30,7 @@ class AbmUsuarios extends Component
     public $email;
     public $password;
     public $password_confirmation;
+    public $id_rol;
     public $acceso_todos_corralones = false;
     public $corralones_seleccionados = [];
 
@@ -40,6 +43,7 @@ class AbmUsuarios extends Component
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->usuario_id,
+            'id_rol' => 'required|exists:roles,id',
             'acceso_todos_corralones' => 'boolean',
         ];
 
@@ -61,6 +65,8 @@ class AbmUsuarios extends Component
         'email.required' => 'El email es obligatorio',
         'email.email' => 'Debe ser un email válido',
         'email.unique' => 'Este email ya está registrado',
+        'id_rol.required' => 'Debe seleccionar un rol',
+        'id_rol.exists' => 'El rol seleccionado no es válido',
         'password.required' => 'La contraseña es obligatoria',
         'password.min' => 'La contraseña debe tener al menos 8 caracteres',
         'password.confirmed' => 'Las contraseñas no coinciden',
@@ -83,9 +89,14 @@ class AbmUsuarios extends Component
         $this->resetPage();
     }
 
+    public function updatingFiltroRol()
+    {
+        $this->resetPage();
+    }
+
     public function getUsersProperty()
     {
-        return User::query()
+        return User::with('rol')
             ->when($this->busqueda, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->busqueda . '%')
@@ -107,6 +118,9 @@ class AbmUsuarios extends Component
                       ->orWhereRaw('JSON_CONTAINS(corralones_permitidos, ?)', ['"' . $corralon_id . '"']);
                 });
             })
+            ->when($this->filtro_rol, function ($query) {
+                $query->where('id_rol', $this->filtro_rol);
+            })
             ->orderBy($this->orden_campo, $this->orden_direccion)
             ->paginate(10);
     }
@@ -114,6 +128,11 @@ class AbmUsuarios extends Component
     public function getCorralonesProperty()
     {
         return Corralon::orderBy('descripcion')->get();
+    }
+
+    public function getRolesProperty()
+    {
+        return Rol::orderBy('nombre')->get();
     }
 
     public function ordenarPor($campo)
@@ -136,6 +155,7 @@ class AbmUsuarios extends Component
             $this->usuario_id = $usuario->id;
             $this->name = $usuario->name;
             $this->email = $usuario->email;
+            $this->id_rol = $usuario->id_rol;
             $this->acceso_todos_corralones = $usuario->acceso_todos_corralones;
             $this->corralones_seleccionados = $usuario->corralones_permitidos ?? [];
         }
@@ -156,6 +176,7 @@ class AbmUsuarios extends Component
         $data = [
             'name' => $this->name,
             'email' => $this->email,
+            'id_rol' => $this->id_rol,
             'acceso_todos_corralones' => $this->acceso_todos_corralones,
             'corralones_permitidos' => $this->acceso_todos_corralones ? null : $this->corralones_seleccionados,
         ];
@@ -197,6 +218,7 @@ class AbmUsuarios extends Component
         $this->email = '';
         $this->password = '';
         $this->password_confirmation = '';
+        $this->id_rol = '';
         $this->acceso_todos_corralones = false;
         $this->corralones_seleccionados = [];
         $this->resetValidation();
@@ -207,6 +229,7 @@ class AbmUsuarios extends Component
         $this->busqueda = '';
         $this->filtro_acceso = '';
         $this->filtro_corralon = '';
+        $this->filtro_rol = '';
         $this->resetPage();
     }
 
@@ -215,6 +238,7 @@ class AbmUsuarios extends Component
         return view('livewire.abm-usuarios', [
             'usuarios' => $this->users,
             'corralones' => $this->corralones,
+            'roles' => $this->roles,
         ])->layout('layouts.app', [
             'header' => 'ABM Usuarios'
         ]);

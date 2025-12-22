@@ -24,9 +24,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
                 Filtros
-                @if($filtro_acceso || $filtro_corralon)
+                @if($filtro_acceso || $filtro_corralon || $filtro_rol)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_acceso, $filtro_corralon])->filter()->count() }}
+                        {{ collect([$filtro_acceso, $filtro_corralon, $filtro_rol])->filter()->count() }}
                     </span>
                 @endif
             </button>
@@ -63,7 +63,7 @@
                     </svg>
                     Filtros Avanzados
                 </h3>
-                @if($filtro_acceso || $filtro_corralon)
+                @if($filtro_acceso || $filtro_corralon || $filtro_rol)
                     <button 
                         wire:click="resetearFiltros"
                         class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
@@ -76,7 +76,21 @@
                 @endif
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Filtro Rol -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                    <select 
+                        wire:model.live="filtro_rol"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todos los roles</option>
+                        @foreach($roles as $rol)
+                            <option value="{{ $rol->id }}">{{ $rol->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <!-- Filtro Tipo de Acceso -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Acceso</label>
@@ -158,6 +172,9 @@
                             </div>
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                            Rol
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Acceso
                         </th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -176,6 +193,14 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm text-gray-600">{{ $usuario->email }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full 
+                                    {{ $usuario->rol->nombre === 'Administrador' 
+                                        ? 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border border-purple-200' 
+                                        : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200' }}">
+                                    {{ $usuario->rol->nombre }}
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 @if($usuario->acceso_todos_corralones)
@@ -229,7 +254,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center text-gray-400">
                                     <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -298,6 +323,23 @@
                                     @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
+                                <!-- Rol -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol *</label>
+                                    <select 
+                                        wire:model="id_rol"
+                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @error('id_rol') border-red-300 @enderror"
+                                    >
+                                        <option value="">Seleccione un rol</option>
+                                        @foreach($roles as $rol)
+                                            <option value="{{ $rol->id }}">
+                                                {{ $rol->nombre }} - {{ $rol->descripcion }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('id_rol') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+
                                 <!-- Contraseña -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -321,6 +363,9 @@
                                     >
                                 </div>
 
+                                <!-- Divisor -->
+                                <div class="border-t border-gray-200 my-6"></div>
+
                                 <!-- Acceso a todos los corralones -->
                                 <div class="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
                                     <label class="flex items-center cursor-pointer">
@@ -333,6 +378,9 @@
                                             Acceso a todos los corralones
                                         </span>
                                     </label>
+                                    <p class="ml-7 mt-1 text-xs text-gray-500">
+                                        Si activa esta opción, el usuario tendrá acceso a todos los corralones del sistema
+                                    </p>
                                 </div>
 
                                 <!-- Corralones Permitidos -->
