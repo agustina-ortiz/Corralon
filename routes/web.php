@@ -13,7 +13,9 @@ use App\Livewire\TransferenciasInsumos;
 use App\Livewire\AbmEmpleados;
 use App\Livewire\AbmVehiculos;
 
-Route::view('/', 'welcome');
+Route::get('/', function () {
+    return redirect()->route('dashboard');
+});
 
 Route::get('dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
