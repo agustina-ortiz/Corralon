@@ -5,8 +5,11 @@ namespace App\Livewire;
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
 use App\Models\Deposito;
+use App\Models\TipoMovimiento;
+use App\Models\MovimientoInsumo;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 
 class AbmInsumos extends Component
 {
@@ -28,18 +31,27 @@ class AbmInsumos extends Component
     public $insumo;
     public $id_categoria;
     public $unidad;
-    public $stock_actual;
+    public $stock_inicial; // ✅ NUEVO CAMPO
     public $stock_minimo;
     public $id_deposito;
 
-    protected $rules = [
-        'insumo' => 'required|string|max:100',
-        'id_categoria' => 'required|exists:categorias_insumos,id',
-        'unidad' => 'required|string|max:20',
-        'stock_actual' => 'required|numeric|min:0',
-        'stock_minimo' => 'required|numeric|min:0',
-        'id_deposito' => 'required|exists:depositos,id',
-    ];
+    protected function rules()
+    {
+        $rules = [
+            'insumo' => 'required|string|max:100',
+            'id_categoria' => 'required|exists:categorias_insumos,id',
+            'unidad' => 'required|string|max:20',
+            'stock_minimo' => 'required|numeric|min:0',
+            'id_deposito' => 'required|exists:depositos,id',
+        ];
+
+        // ✅ Solo validar stock_inicial en modo creación
+        if (!$this->editMode) {
+            $rules['stock_inicial'] = 'nullable|numeric|min:0';
+        }
+
+        return $rules;
+    }
 
     public function mount()
     {
@@ -177,7 +189,6 @@ class AbmInsumos extends Component
         $this->insumo = $insumo->insumo;
         $this->id_categoria = $insumo->id_categoria;
         $this->unidad = $insumo->unidad;
-        $this->stock_actual = $insumo->stock_actual;
         $this->stock_minimo = $insumo->stock_minimo;
         $this->id_deposito = $insumo->id_deposito;
         
@@ -229,21 +240,50 @@ class AbmInsumos extends Component
                 'insumo' => $this->insumo,
                 'id_categoria' => $this->id_categoria,
                 'unidad' => $this->unidad,
-                'stock_actual' => $this->stock_actual,
                 'stock_minimo' => $this->stock_minimo,
                 'id_deposito' => $this->id_deposito,
             ]);
+            
+            // Recalcular el stock después de actualizar
+            $insumo->sincronizarStock();
+            
             session()->flash('message', 'Insumo actualizado correctamente.');
         } else {
-            Insumo::create([
+            // CREAR INSUMO NUEVO
+            $insumo = Insumo::create([
                 'insumo' => $this->insumo,
                 'id_categoria' => $this->id_categoria,
                 'unidad' => $this->unidad,
-                'stock_actual' => $this->stock_actual,
+                'stock_actual' => $this->stock_inicial,
                 'stock_minimo' => $this->stock_minimo,
                 'id_deposito' => $this->id_deposito,
             ]);
-            session()->flash('message', 'Insumo creado correctamente.');
+            
+            // Si hay stock inicial, crear movimiento de inventario inicial
+            if ($this->stock_inicial && $this->stock_inicial > 0) {
+                $tipoInventarioInicial = TipoMovimiento::firstOrCreate([
+                    'tipo_movimiento' => 'Inventario Inicial',
+                    'tipo' => 'I'
+                ]);
+                
+                MovimientoInsumo::create([
+                    'id_insumo' => $insumo->id,
+                    'id_tipo_movimiento' => $tipoInventarioInicial->id,
+                    'cantidad' => $this->stock_inicial,
+                    'fecha' => now(),
+                    'id_usuario' => Auth::id(),
+                    'id_deposito_entrada' => $this->id_deposito,
+                    'id_referencia' => 0,
+                    'tipo_referencia' => 'inventario',
+                ]);
+                
+                // Sincronizar el stock
+                $insumo->sincronizarStock();
+                
+                session()->flash('message', "Insumo creado correctamente con stock inicial de {$this->stock_inicial} {$this->unidad}.");
+            } else {
+                session()->flash('message', 'Insumo creado correctamente. El stock inicial es 0. Registra movimientos de entrada para aumentar el stock.');
+            }
         }
 
         $this->showModal = false;
@@ -290,7 +330,7 @@ class AbmInsumos extends Component
         $this->insumo = '';
         $this->id_categoria = '';
         $this->unidad = '';
-        $this->stock_actual = '';
+        $this->stock_inicial = ''; // ✅ RESETEAR
         $this->stock_minimo = '';
         $this->id_deposito = '';
         $this->resetErrorBag();

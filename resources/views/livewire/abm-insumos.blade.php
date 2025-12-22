@@ -324,24 +324,41 @@
                                     @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <!-- Stock Actual y Mínimo -->
+                                <!-- Stock Inicial (solo al crear) y Stock Mínimo -->
                                 <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual *</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            wire:model="stock_actual"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('stock_actual') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
+                                    @if(!$editMode)
+                                        <!-- Stock Inicial - Solo en modo creación -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Inicial</label>
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                min="0"
+                                                wire:model="stock_inicial"
+                                                placeholder="0.00"
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                            >
+                                            <p class="text-xs text-gray-500 mt-1">Cantidad inicial en inventario (opcional)</p>
+                                            @error('stock_inicial') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+                                    @else
+                                        <!-- Stock Actual - Solo en modo edición (solo lectura) -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual (Calculado)</label>
+                                            <div class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
+                                                {{ number_format($insumos->firstWhere('id', $insumo_id)?->stock_actual ?? 0, 2) }}
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-1">El stock se calcula desde los movimientos</p>
+                                        </div>
+                                    @endif
 
+                                    <!-- Stock Mínimo - Siempre visible -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo *</label>
                                         <input 
                                             type="number" 
                                             step="0.01"
+                                            min="0"
                                             wire:model="stock_minimo"
                                             class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                         >

@@ -41,4 +41,62 @@ class MovimientoEncabezado extends Model
     {
         return $this->belongsTo(User::class, 'id_usuario');
     }
+
+    /**
+     * Obtiene solo los movimientos de entrada (cantidad positiva en depósito destino)
+     * Para transferencias, son los movimientos donde id_deposito_entrada coincide con el depósito del insumo
+     */
+    public function movimientosEntrada()
+    {
+        return $this->movimientos()
+            ->whereHas('insumo', function($query) {
+                $query->where('id_deposito', $this->id_deposito_destino);
+            });
+    }
+
+    /**
+     * Obtiene solo los movimientos de salida (desde depósito origen)
+     */
+    public function movimientosSalida()
+    {
+        return $this->movimientos()
+            ->whereHas('insumo', function($query) {
+                $query->where('id_deposito', $this->id_deposito_origen);
+            });
+    }
+
+    /**
+     * Obtiene los insumos únicos transferidos (sin duplicar entrada/salida)
+     */
+    public function getInsumosTransferidosAttribute()
+    {
+        return $this->movimientosEntrada()
+            ->with('insumo.categoriaInsumo')
+            ->get();
+    }
+
+    /**
+     * Cuenta la cantidad de insumos únicos transferidos
+     */
+    public function getCantidadInsumosAttribute()
+    {
+        return $this->movimientosEntrada()->count();
+    }
+
+    /**
+     * Obtiene el resumen de la transferencia
+     */
+    public function getResumenAttribute()
+    {
+        $movimientos = $this->insumosTransferidos;
+        
+        return $movimientos->map(function($mov) {
+            return [
+                'insumo' => $mov->insumo->insumo,
+                'cantidad' => $mov->cantidad,
+                'unidad' => $mov->insumo->unidad,
+                'categoria' => $mov->insumo->categoriaInsumo->nombre,
+            ];
+        });
+    }
 }

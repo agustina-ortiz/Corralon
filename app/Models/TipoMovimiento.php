@@ -3,35 +3,104 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TipoMovimiento extends Model
 {
     protected $table = 'tipo_movimientos';
-    
+
     protected $fillable = [
         'tipo_movimiento',
         'tipo',
     ];
 
-    public function movimientosInsumos(): HasMany
+    /**
+     * Determina si este tipo de movimiento es para insumos
+     */
+    public function esParaInsumos(): bool
     {
-        return $this->hasMany(MovimientoInsumo::class, 'id_tipo_movimiento');
+        return $this->tipo === 'I';
     }
 
-    public function movimientosMaquinaria(): HasMany
+    /**
+     * Determina si este tipo de movimiento es para maquinaria
+     */
+    public function esParaMaquinaria(): bool
     {
-        return $this->hasMany(MovimientoMaquinaria::class, 'id_tipo_movimiento');
+        return $this->tipo === 'M';
     }
 
-    public function categoriasInsumos(): BelongsToMany
+    /**
+     * Determina si este tipo de movimiento es una transferencia
+     */
+    public function esTransferencia(): bool
     {
-        return $this->belongsToMany(
-            CategoriaInsumo::class,
-            'categoria_insumo_movimiento',
-            'id_movimiento',
-            'id_categoria'
-        );
+        return strtolower($this->tipo_movimiento) === 'transferencia';
+    }
+
+    /**
+     * Determina si este tipo de movimiento es una entrada/ingreso
+     * (Para tipos que no son transferencia)
+     */
+    public function esEntrada(): bool
+    {
+        if ($this->esTransferencia()) {
+            // Las transferencias se determinan por contexto
+            return false;
+        }
+        
+        $nombre = strtolower($this->tipo_movimiento);
+        
+        $palabrasEntrada = [
+            'entrada',
+            'ingreso',
+            'compra',
+            'recepción',
+            'recepcion',
+            'devolución',
+            'devolucion',
+            'ajuste positivo',
+            'inventario inicial',
+        ];
+
+        foreach ($palabrasEntrada as $palabra) {
+            if (str_contains($nombre, $palabra)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determina si este tipo de movimiento es una salida
+     * (Para tipos que no son transferencia)
+     */
+    public function esSalida(): bool
+    {
+        if ($this->esTransferencia()) {
+            // Las transferencias se determinan por contexto
+            return false;
+        }
+        
+        $nombre = strtolower($this->tipo_movimiento);
+        
+        $palabrasSalida = [
+            'salida',
+            'egreso',
+            'uso',
+            'consumo',
+            'préstamo',
+            'prestamo',
+            'ajuste negativo',
+            'baja',
+        ];
+
+        foreach ($palabrasSalida as $palabra) {
+            if (str_contains($nombre, $palabra)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
