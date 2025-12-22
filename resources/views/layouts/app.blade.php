@@ -17,7 +17,6 @@
             <!-- Logo/Header -->
             <div class="p-4 border-b border-gray-700">
                 <h1 class="text-2xl font-bold">Corralón</h1>
-                <p class="text-sm text-gray-400">Sistema de Gestión</p>
             </div>
 
             <!-- Navigation -->
