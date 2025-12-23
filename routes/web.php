@@ -49,6 +49,10 @@ Route::get('/transferencias-insumos', TransferenciasInsumos::class)
     ->middleware(['auth'])
     ->name('transferencias-insumos');
 
+Route::get('/transferencias-maquinarias', \App\Livewire\TransferenciasMaquinarias::class)
+    ->middleware(['auth'])
+    ->name('transferencias-maquinarias');
+
 Route::get('/empleados', AbmEmpleados::class)
     ->middleware(['auth'])
     ->name('empleados');
