@@ -400,7 +400,7 @@ class TransferenciasMaquinarias extends Component
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $maquinaria->id_deposito,
                 'id_referencia' => 0,
-                'tipo_referencia' => 'empleado',
+                'tipo_referencia' => 'empleado', // ✅ Usar 'empleado' del ENUM
             ]);
 
             // Cambiar estado a no disponible
@@ -455,7 +455,7 @@ class TransferenciasMaquinarias extends Component
                 'id_usuario' => Auth::id(),
             ]);
 
-            // Movimiento de SALIDA
+            // ✅ Movimiento de SALIDA
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
                 'id_movimiento_encabezado' => $encabezado->id,
@@ -463,12 +463,12 @@ class TransferenciasMaquinarias extends Component
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $maquinaria->id_deposito,
+                'id_deposito_entrada' => $maquinaria->id_deposito, // ✅ Depósito origen
                 'id_referencia' => $this->id_deposito_destino,
-                'tipo_referencia' => 'transferencia',
+                'tipo_referencia' => 'maquina', // ✅ Usar 'maquina' del ENUM
             ]);
 
-            // Movimiento de ENTRADA
+            // ✅ Movimiento de ENTRADA
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
                 'id_movimiento_encabezado' => $encabezado->id,
@@ -476,9 +476,9 @@ class TransferenciasMaquinarias extends Component
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $this->id_deposito_destino,
+                'id_deposito_entrada' => $this->id_deposito_destino, // ✅ Depósito destino
                 'id_referencia' => $maquinaria->id_deposito,
-                'tipo_referencia' => 'transferencia',
+                'tipo_referencia' => 'maquina', // ✅ Usar 'maquina' del ENUM
             ]);
 
             // Actualizar depósito de la maquinaria
@@ -530,7 +530,7 @@ class TransferenciasMaquinarias extends Component
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $maquinaria->id_deposito,
                 'id_referencia' => 0,
-                'tipo_referencia' => 'empleado',
+                'tipo_referencia' => 'empleado', // ✅ Usar 'empleado' del ENUM
             ]);
 
             // Cambiar estado a disponible
@@ -576,7 +576,7 @@ class TransferenciasMaquinarias extends Component
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $maquinaria->id_deposito,
                 'id_referencia' => 0,
-                'tipo_referencia' => 'maquina',
+                'tipo_referencia' => 'maquina', // ✅ Usar 'maquina' del ENUM
             ]);
 
             // Cambiar estado a no disponible
