@@ -166,13 +166,25 @@ class Insumo extends Model
     /**
      * Sincroniza el stock_actual con el valor calculado
      */
-    public function sincronizarStock(): bool
+    public function sincronizarStock()
     {
-        $stockCalculado = $this->calcularStockActual();
+        // Calcular el stock basado en los movimientos
+        $entradas = MovimientoInsumo::where('id_insumo', $this->id)
+            ->whereHas('tipoMovimiento', function($q) {
+                $q->where('tipo', 'I'); // Ingresos
+            })
+            ->sum('cantidad');
         
-        return $this->update([
-            'stock_actual' => $stockCalculado
-        ]);
+        $salidas = MovimientoInsumo::where('id_insumo', $this->id)
+            ->whereHas('tipoMovimiento', function($q) {
+                $q->where('tipo', 'E'); // Egresos
+            })
+            ->sum('cantidad');
+        
+        $this->stock_actual = $entradas - $salidas;
+        $this->save();
+        
+        return $this->stock_actual;
     }
 
     /**
