@@ -1,4 +1,3 @@
-{{-- resources/views/livewire/transferencias-insumos.blade.php --}}
 <div>
     <!-- Header con búsqueda y botones -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
@@ -30,6 +29,19 @@
                     </span>
                 @endif
             </button>
+            
+            {{-- ✅ NUEVO: Botón Nueva Transferencia --}}
+            <button 
+                wire:click="crearTransferencia" 
+                class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Nueva Transferencia
+            </button>
+            
+            {{-- ✅ MODIFICADO: Botón Nuevo Movimiento --}}
             <button 
                 wire:click="crear" 
                 class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
@@ -258,7 +270,269 @@
         {{ $movimientos->links() }}
     </div>
 
-    <!-- Modal -->
+    {{-- ✅ NUEVO: Modal de Transferencia Múltiple --}}
+    @if($showModalTransferencia)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalTransferencia"></div>
+
+                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-visible shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                    <form wire:submit.prevent="guardarTransferencia">
+                        <div class="bg-white px-6 pt-6 pb-4 rounded-xl">
+                            <!-- Header -->
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-purple-100 rounded-lg">
+                                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-semibold text-gray-900">Nueva Transferencia</h3>
+                                        <p class="text-sm text-gray-500 mt-1">Transfiera múltiples insumos entre depósitos</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    wire:click="cerrarModalTransferencia"
+                                    class="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="space-y-5">
+                                <!-- Depósitos -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Origen *</label>
+                                        <select 
+                                            wire:model.live="id_deposito_origen"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                        >
+                                            <option value="">Seleccione depósito origen</option>
+                                            @foreach($depositos as $deposito)
+                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('id_deposito_origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
+                                        <select 
+                                            wire:model="id_deposito_destino"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                            @if(!$id_deposito_origen) disabled @endif
+                                        >
+                                            <option value="">Seleccione depósito destino</option>
+                                            @foreach($depositos->where('id', '!=', $id_deposito_origen) as $deposito)
+                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+
+                                @if($id_deposito_origen)
+                                    <!-- Búsqueda y selección de insumos -->
+                                    <div class="relative">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Agregar Insumos *</label>
+                                        
+                                        <div class="relative">
+                                            <input 
+                                                type="text" 
+                                                wire:model.live="search_insumo_transferencia"
+                                                wire:focus="mostrarListaTransferencia"
+                                                placeholder="Buscar insumo por nombre o categoría..."
+                                                class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                                autocomplete="off"
+                                            >
+                                            
+                                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                            </svg>
+                                        </div>
+
+                                        @if($mostrar_lista_transferencia && $insumos_disponibles_transferencia->count() > 0)
+                                            <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
+                                                <ul class="py-2">
+                                                    @foreach($insumos_disponibles_transferencia as $insumo)
+                                                        @php
+                                                            $yaAgregado = collect($insumos_transferencia)->contains('id', $insumo->id);
+                                                        @endphp
+                                                        <li>
+                                                            <button 
+                                                                type="button"
+                                                                wire:click="agregarInsumoTransferencia({{ $insumo->id }})"
+                                                                class="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0 {{ $yaAgregado ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                                                @if($yaAgregado) disabled @endif
+                                                            >
+                                                                <div class="flex justify-between items-start">
+                                                                    <div class="flex-1">
+                                                                        <div class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                                                            {{ $insumo->insumo }}
+                                                                            @if($yaAgregado)
+                                                                                <span class="text-xs text-purple-600">(agregado)</span>
+                                                                            @endif
+                                                                        </div>
+                                                                        <div class="text-xs text-gray-500 mt-1">
+                                                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{{ $insumo->categoriaInsumo->nombre }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="text-right ml-3">
+                                                                        <div class="text-sm font-semibold text-green-600">
+                                                                            {{ number_format($insumo->stock_actual, 2) }}
+                                                                        </div>
+                                                                        <div class="text-xs text-gray-400">{{ $insumo->unidad }}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endif
+
+                                        @if($mostrar_lista_transferencia && $search_insumo_transferencia && $insumos_disponibles_transferencia->count() == 0)
+                                            <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
+                                                <div class="px-4 py-8 text-center text-gray-400">
+                                                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                                    </svg>
+                                                    <p class="text-sm">No se encontraron insumos con stock disponible</p>
+                                                </div>
+                                            </div>
+                                        @endif
+
+                                        @error('insumos_transferencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <!-- Lista de insumos seleccionados -->
+                                    @if(count($insumos_transferencia) > 0)
+                                        <div class="border border-gray-200 rounded-xl p-4">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                                </svg>
+                                                Insumos a transferir ({{ count($insumos_transferencia) }})
+                                            </h4>
+                                            
+                                            <div class="space-y-3">
+                                                @foreach($insumos_transferencia as $index => $item)
+                                                    <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg
+                                                        @error("insumos_transferencia.{$index}.cantidad") bg-red-50 border border-red-200 @enderror">
+                                                        <div class="flex-1">
+                                                            <div class="text-sm font-medium text-gray-900">{{ $item['nombre'] }}</div>
+                                                            <div class="text-xs text-gray-500 mt-0.5">
+                                                                {{ $item['categoria'] }} • Disponible: 
+                                                                <span class="font-semibold text-green-600">{{ number_format($item['stock_actual'], 2) }} {{ $item['unidad'] }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="w-40">
+                                                            <div class="relative">
+                                                                <input 
+                                                                    type="number" 
+                                                                    step="0.01"
+                                                                    min="0.01"
+                                                                    wire:model.live="insumos_transferencia.{{ $index }}.cantidad"
+                                                                    max="{{ $item['stock_actual'] }}"
+                                                                    placeholder="Cantidad"
+                                                                    class="w-full px-3 py-2 pr-12 text-sm rounded-lg transition-all duration-200
+                                                                        @error("insumos_transferencia.{$index}.cantidad") 
+                                                                            border-2 border-red-300 bg-red-50 text-red-900 placeholder-red-300 focus:ring-2 focus:ring-red-500/20 focus:border-red-500
+                                                                        @else
+                                                                            border border-gray-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500
+                                                                        @enderror"
+                                                                >
+                                                                <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs font-medium
+                                                                    @error("insumos_transferencia.{$index}.cantidad") text-red-600 @else text-gray-500 @enderror">
+                                                                    {{ $item['unidad'] }}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            {{-- ✅ Mensaje de error mejorado --}}
+                                                            @error("insumos_transferencia.{$index}.cantidad") 
+                                                                <div class="flex items-start gap-1.5 mt-2 text-red-600">
+                                                                    <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                                                    </svg>
+                                                                    <span class="text-xs leading-tight">{{ $message }}</span>
+                                                                </div>
+                                                            @enderror
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            wire:click="removerInsumoTransferencia({{ $index }})"
+                                                            class="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors mt-1"
+                                                            title="Eliminar insumo"
+                                                        >
+                                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="text-center py-8 text-gray-400 border border-dashed border-gray-300 rounded-xl">
+                                            <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                            </svg>
+                                            <p class="text-sm font-medium">No hay insumos seleccionados</p>
+                                            <p class="text-xs mt-1">Busque y agregue insumos para transferir</p>
+                                        </div>
+                                    @endif
+
+                                    <!-- Observaciones -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                                        <textarea 
+                                            wire:model="observaciones_transferencia"
+                                            rows="3"
+                                            placeholder="Motivo de la transferencia (opcional)"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                        ></textarea>
+                                        @error('observaciones_transferencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                @else
+                                    <div class="text-center py-12 text-gray-400">
+                                        <svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                        </svg>
+                                        <p class="text-sm font-medium">Seleccione un depósito de origen</p>
+                                        <p class="text-xs mt-1">Para comenzar a agregar insumos</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 rounded-b-xl">
+                            <button 
+                                type="button"
+                                wire:click="cerrarModalTransferencia"
+                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                            >
+                                Cancelar
+                            </button>
+                            
+                            <button 
+                                type="submit"
+                                class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 transition-all duration-200 font-medium"
+                            >
+                                Confirmar Transferencia
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Movimientos Individuales (Carga, Ajustes) --}}
     @if($showModal)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -464,7 +738,7 @@
                                                     type="number" 
                                                     step="0.01"
                                                     wire:model="cantidad"
-                                                    @if(in_array($tipo_movimiento, ['transferencia', 'ajuste_negativo']))
+                                                    @if(in_array($tipo_movimiento, ['ajuste_negativo']))
                                                         max="{{ $insumo_seleccionado->stock_actual }}"
                                                     @endif
                                                     placeholder="0.00"
@@ -476,29 +750,12 @@
                                             </div>
                                             @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             
-                                            @if(in_array($tipo_movimiento, ['transferencia', 'ajuste_negativo']))
+                                            @if(in_array($tipo_movimiento, ['ajuste_negativo']))
                                                 <p class="text-xs text-gray-500 mt-1">
                                                     Máximo disponible: {{ number_format($insumo_seleccionado->stock_actual, 2) }} {{ $insumo_seleccionado->unidad }}
                                                 </p>
                                             @endif
                                         </div>
-
-                                        <!-- Depósito Destino (solo para transferencia) -->
-                                        @if($tipo_movimiento === 'transferencia')
-                                            <div class="mb-5">
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
-                                                <select 
-                                                    wire:model="id_deposito_destino"
-                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                >
-                                                    <option value="">Seleccione un depósito</option>
-                                                    @foreach($depositos_disponibles as $deposito)
-                                                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                            </div>
-                                        @endif
 
                                         <!-- Observaciones -->
                                         <div>
@@ -553,29 +810,6 @@
                         </div>
                     </form>
                 </div>
-            </div>
-        </div>
-    @endif
-
-    <!-- Debug de errores (temporal) -->
-    @if (session()->has('error'))
-        <div class="fixed bottom-4 right-4 z-[9999] max-w-md px-4 py-3 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-lg">
-            <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">Error</p>
-                    <p class="text-sm mt-1">{!! session('error') !!}</p>
-                </div>
-                <button 
-                    onclick="this.parentElement.parentElement.remove()"
-                    class="text-red-500 hover:text-red-700"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
             </div>
         </div>
     @endif

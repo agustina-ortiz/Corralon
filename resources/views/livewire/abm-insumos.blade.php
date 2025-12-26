@@ -182,7 +182,7 @@
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $item->insumo }}</div>
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 w-1/4 text-center">
                                 <span class="px-6 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
                                     {{ $item->categoriaInsumo->nombre }}
                                 </span>
