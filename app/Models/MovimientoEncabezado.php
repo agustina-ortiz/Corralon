@@ -49,9 +49,8 @@ class MovimientoEncabezado extends Model
     public function movimientosEntrada()
     {
         return $this->movimientos()
-            ->whereHas('insumo', function($query) {
-                $query->where('id_deposito', $this->id_deposito_destino);
-            });
+            ->with(['insumo.categoriaInsumo', 'tipoMovimiento'])
+            ->where('id_deposito_entrada', $this->id_deposito_destino);
     }
 
     /**
@@ -86,17 +85,17 @@ class MovimientoEncabezado extends Model
     /**
      * Obtiene el resumen de la transferencia
      */
-    public function getResumenAttribute()
+    public function getResumenTransferenciaAttribute()
     {
-        $movimientos = $this->insumosTransferidos;
+        $movimientos = $this->movimientosEntrada;
         
         return $movimientos->map(function($mov) {
-            return [
-                'insumo' => $mov->insumo->insumo,
-                'cantidad' => $mov->cantidad,
-                'unidad' => $mov->insumo->unidad,
-                'categoria' => $mov->insumo->categoriaInsumo->nombre,
-            ];
-        });
+            return sprintf(
+                '%s %s de %s',
+                number_format($mov->cantidad, 2),
+                $mov->insumo->unidad,
+                $mov->insumo->insumo
+            );
+        })->join(', ');
     }
 }

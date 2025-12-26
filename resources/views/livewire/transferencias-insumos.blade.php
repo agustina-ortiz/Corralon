@@ -204,51 +204,197 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12"></th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Insumo</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Detalles</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
-                @forelse ($movimientos as $movimiento)
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
-                            <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
-                            <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                {{ $movimiento->insumo->deposito->deposito }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            @php
-                                $tipoClasses = [
-                                    'I' => 'bg-green-100 text-green-700',
-                                    'E' => 'bg-red-100 text-red-700',
-                                ];
-                                $clase = $tipoClasses[$movimiento->tipoMovimiento->tipo] ?? 'bg-gray-100 text-gray-700';
-                            @endphp
-                            <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
-                                {{ $movimiento->tipoMovimiento->tipo_movimiento }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }}">
-                                {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">
-                            {{ $movimiento->usuario->name }}
-                        </td>
-                    </tr>
+                @forelse ($movimientos as $item)
+                    @if($item['tipo'] === 'transferencia')
+                        @php
+                            $movimiento = $item['data'];
+                            $movimientosEntrada = $movimiento->movimientosEntrada;
+                            $cantidadInsumos = $movimientosEntrada->count();
+                            $esTransferenciaMultiple = $cantidadInsumos > 1;
+                            $expandido = in_array($movimiento->id, $movimientos_expandidos);
+                        @endphp
+                        
+                        {{-- Fila de Transferencia --}}
+                        <tr class="hover:bg-gray-50 transition-colors {{ $expandido ? 'bg-purple-50' : '' }}">
+                            <td class="px-6 py-4">
+                                @if($esTransferenciaMultiple)
+                                    <button 
+                                        wire:click="toggleMovimiento({{ $movimiento->id }})"
+                                        class="text-gray-400 hover:text-purple-600 transition-colors"
+                                    >
+                                        <svg class="w-5 h-5 transform transition-transform {{ $expandido ? 'rotate-90' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
+                                <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full flex items-center gap-1 w-fit">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    Transferencia
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if($esTransferenciaMultiple)
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-1 text-xs font-semibold bg-purple-600 text-white rounded-full">
+                                            {{ $cantidadInsumos }} insumos
+                                        </span>
+                                        <span class="text-xs text-gray-500 truncate max-w-xs">
+                                            {{ $movimientosEntrada->first()->insumo->insumo }}, ...
+                                        </span>
+                                    </div>
+                                @else
+                                    @php
+                                        $mov = $movimientosEntrada->first();
+                                    @endphp
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
+                                        <div class="text-xs text-gray-500">{{ $mov->insumo->categoriaInsumo->nombre }}</div>
+                                        <div class="text-sm font-semibold text-purple-600 mt-1">
+                                            {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
+                                        </div>
+                                    </div>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                                        <span class="font-medium">Origen:</span>
+                                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">
+                                            {{ $movimiento->depositoOrigen->deposito }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                                        <span class="font-medium">Destino:</span>
+                                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">
+                                            {{ $movimiento->depositoDestino->deposito }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {{ $movimiento->usuario->name }}
+                            </td>
+                        </tr>
+
+                        {{-- Detalle expandible de transferencia --}}
+                        @if($esTransferenciaMultiple && $expandido)
+                            <tr class="bg-gradient-to-r from-purple-50 to-indigo-50">
+                                <td colspan="6" class="px-6 py-4">
+                                    <div class="ml-8">
+                                        <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                            </svg>
+                                            Detalle de Transferencia
+                                        </h4>
+                                        
+                                        @if($movimiento->observaciones)
+                                            <div class="mb-3 p-3 bg-white rounded-lg border border-purple-200">
+                                                <div class="text-xs font-medium text-gray-700 mb-1">Observaciones:</div>
+                                                <div class="text-sm text-gray-600">{{ $movimiento->observaciones }}</div>
+                                            </div>
+                                        @endif
+
+                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            @foreach($movimientosEntrada as $detalle)
+                                                <div class="bg-white rounded-lg border border-purple-200 p-4 hover:shadow-md transition-shadow">
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="flex-1">
+                                                            <div class="text-sm font-semibold text-gray-900">
+                                                                {{ $detalle->insumo->insumo }}
+                                                            </div>
+                                                            <div class="text-xs text-gray-500 mt-1">
+                                                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
+                                                                    {{ $detalle->insumo->categoriaInsumo->nombre }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-right ml-3">
+                                                            <div class="text-lg font-bold text-purple-600">
+                                                                {{ number_format($detalle->cantidad, 2) }}
+                                                            </div>
+                                                            <div class="text-xs text-gray-500">
+                                                                {{ $detalle->insumo->unidad }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div class="mt-3 pt-3 border-t border-gray-100">
+                                                        <div class="flex items-center justify-between text-xs">
+                                                            <span class="text-gray-500">Stock actual:</span>
+                                                            <span class="font-semibold {{ $detalle->insumo->stock_actual > 0 ? 'text-green-600' : 'text-orange-600' }}">
+                                                                {{ number_format($detalle->insumo->stock_actual, 2) }} {{ $detalle->insumo->unidad }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+
+                    @else
+                        @php
+                            $movimiento = $item['data'];
+                            $tipoClasses = [
+                                'I' => 'bg-green-100 text-green-700',
+                                'E' => 'bg-red-100 text-red-700',
+                            ];
+                            $clase = $tipoClasses[$movimiento->tipoMovimiento->tipo] ?? 'bg-gray-100 text-gray-700';
+                        @endphp
+                        
+                        {{-- Fila de Movimiento Individual --}}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                {{-- Sin botón de expansión para movimientos individuales --}}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
+                                <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
+                                    {{ $movimiento->tipoMovimiento->tipo_movimiento }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
+                                    <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
+                                    <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }} mt-1">
+                                        {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                    {{ $movimiento->insumo->deposito->deposito }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {{ $movimiento->usuario->name }}
+                            </td>
+                        </tr>
+                    @endif
                 @empty
                     <tr>
                         <td colspan="6" class="px-6 py-12">
