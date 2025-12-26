@@ -54,12 +54,12 @@ class TransferenciasInsumos extends Component
     public $search_insumo = '';
     public $mostrar_lista = false;
     
-    // ✅ NUEVO: Para transferencias múltiples
+    // Para transferencias múltiples
     public $id_deposito_origen = '';
     public $id_deposito_destino = '';
     public $insumos_transferencia = [];
     public $search_insumo_transferencia = '';
-    public $mostrar_lista_transferencia = false; // ✅ Controlador de visibilidad de la lista
+    public $mostrar_lista_transferencia = false; // Controlador de visibilidad de la lista
     public $observaciones_transferencia = '';
     
     // Para expandir/colapsar movimientos
@@ -68,6 +68,11 @@ class TransferenciasInsumos extends Component
     // Datos auxiliares
     public $depositos_disponibles = [];
     public $tipos_movimiento_disponibles = [];
+
+    public function mount() {
+        $this->filtro_fecha_desde = today()->format('Y-m-d');
+        $this->filtro_fecha_hasta = today()->addMonth()->format('Y-m-d');
+    }
 
     protected function rules()
     {
@@ -94,7 +99,6 @@ class TransferenciasInsumos extends Component
         'cantidad.min' => 'La cantidad debe ser mayor a 0.',
         'id_deposito_origen.required' => 'Debe seleccionar un depósito de origen.',
         'id_deposito_destino.required' => 'Debe seleccionar un depósito destino.',
-        'id_deposito_destino.different' => 'El depósito destino debe ser diferente al de origen.',
         'insumos_transferencia.required' => 'Debe seleccionar al menos un insumo.',
         'insumos_transferencia.min' => 'Debe seleccionar al menos un insumo.',
         'insumos_transferencia.*.cantidad.required' => 'La cantidad es obligatoria.',
@@ -231,10 +235,10 @@ class TransferenciasInsumos extends Component
                 ->get(['id', 'insumo', 'id_categoria', 'id_deposito', 'stock_actual', 'stock_minimo', 'unidad']);
         }
 
-        // ✅ Insumos disponibles para transferencia (basados en depósito origen)
+        // Insumos disponibles para transferencia (basados en depósito origen)
         $insumos_disponibles_transferencia = collect();
         
-        // ✅ MODIFICADO: Mostrar lista cuando está activa O cuando hay búsqueda
+        // Mostrar lista cuando está activa O cuando hay búsqueda
         if ($this->showModalTransferencia && $this->id_deposito_origen && ($this->mostrar_lista_transferencia || $this->search_insumo_transferencia)) {
             $insumos_disponibles_transferencia = Insumo::with(['categoriaInsumo', 'deposito'])
                 ->where('id_deposito', $this->id_deposito_origen)
@@ -305,23 +309,51 @@ class TransferenciasInsumos extends Component
         $this->mostrar_lista = true;
     }
 
-    // ✅ NUEVO: Mostrar lista de transferencia al hacer focus
+    // Mostrar lista de transferencia al hacer focus
     public function mostrarListaTransferencia()
     {
         $this->mostrar_lista_transferencia = true;
+    }
+
+    public function updatedIdDepositoOrigen($value)
+    {
+        // Limpiar los insumos y búsqueda cuando cambia el depósito
+        $this->insumos_transferencia = [];
+        $this->search_insumo_transferencia = '';
+        $this->mostrar_lista_transferencia = false;
+        
+        // Limpiar error de depósito origen
+        $this->resetErrorBag('id_deposito_origen');
+        
+        // Si había seleccionado un depósito destino igual, limpiar ese error también
+        if (!empty($value) && $value == $this->id_deposito_destino) {
+            $this->addError('id_deposito_destino', 'El depósito destino debe ser diferente al de origen');
+        } else {
+            $this->resetErrorBag('id_deposito_destino');
+        }
+    }
+
+    public function updatedIdDepositoDestino($value)
+    {
+        // Limpiar error anterior
+        $this->resetErrorBag('id_deposito_destino');
+        
+        // Validar que no sea vacío
+        if (empty($value)) {
+            // No agregar error aquí, solo cuando intente guardar
+            return;
+        }
+        
+        // Validar que sea diferente al origen
+        if (!empty($this->id_deposito_origen) && $value == $this->id_deposito_origen) {
+            $this->addError('id_deposito_destino', 'El depósito destino debe ser diferente al de origen');
+        }
     }
 
     public function crearTransferencia()
     {
         $this->resetFormTransferencia();
         $this->showModalTransferencia = true;
-    }
-
-    public function updatedIdDepositoOrigen()
-    {
-        $this->insumos_transferencia = [];
-        $this->search_insumo_transferencia = '';
-        $this->mostrar_lista_transferencia = false; // ✅ Resetear visibilidad
     }
 
     public function agregarInsumoTransferencia($insumoId)
@@ -363,7 +395,7 @@ class TransferenciasInsumos extends Component
             $cantidad = floatval($value);
             $stockDisponible = floatval($this->insumos_transferencia[$index]['stock_actual']);
             
-            // ✅ MODIFICADO: No auto-ajustar, solo validar
+            // No auto-ajustar, solo validar
             if ($cantidad > $stockDisponible) {
                 // Agregar error específico para este campo
                 $this->addError(
@@ -375,7 +407,7 @@ class TransferenciasInsumos extends Component
                 $this->resetErrorBag("insumos_transferencia.{$index}.cantidad");
             }
             
-            // ✅ Validar que no sea negativa o cero
+            // Validar que no sea negativa o cero
             if ($cantidad <= 0 && $cantidad != '') {
                 $this->addError(
                     "insumos_transferencia.{$index}.cantidad",
@@ -385,7 +417,7 @@ class TransferenciasInsumos extends Component
         }
     }
 
-    // ✅ MODIFICADO: Activar mostrar_lista_transferencia cuando cambia el search
+    // Activar mostrar_lista_transferencia cuando cambia el search
     public function updatedSearchInsumoTransferencia()
     {
         $this->mostrar_lista_transferencia = true;
@@ -475,7 +507,7 @@ class TransferenciasInsumos extends Component
     public function guardarTransferencia()
     {
         try {
-            // ✅ NUEVO: Validar depósitos antes que nada
+            // Validar depósitos antes que nada
             if (empty($this->id_deposito_origen)) {
                 $this->addError('id_deposito_origen', 'Debe seleccionar un depósito de origen');
                 session()->flash('error', 'Debe seleccionar un depósito de origen');
@@ -494,20 +526,20 @@ class TransferenciasInsumos extends Component
                 return;
             }
 
-            // ✅ Validar que haya insumos seleccionados
+            // Validar que haya insumos seleccionados
             if (empty($this->insumos_transferencia) || count($this->insumos_transferencia) === 0) {
                 $this->addError('insumos_transferencia', 'Debe seleccionar al menos un insumo para transferir');
                 session()->flash('error', 'Debe seleccionar al menos un insumo para transferir');
                 return;
             }
 
-            // ✅ Verificar si hay errores de validación en tiempo real
+            // Verificar si hay errores de validación en tiempo real
             if ($this->getErrorBag()->isNotEmpty()) {
                 session()->flash('error', 'Por favor corrija los errores antes de continuar.');
                 return;
             }
 
-            // ✅ Validación personalizada de cantidades
+            // Validación personalizada de cantidades
             foreach ($this->insumos_transferencia as $index => $item) {
                 if (empty($item['cantidad']) || floatval($item['cantidad']) <= 0) {
                     $this->addError(
@@ -555,7 +587,7 @@ class TransferenciasInsumos extends Component
 
             // Procesar cada insumo
             foreach ($this->insumos_transferencia as $item) {
-                // ✅ Refrescar el insumo desde la base de datos para tener el stock actualizado
+                // Refrescar el insumo desde la base de datos para tener el stock actualizado
                 $insumo = Insumo::find($item['id']);
                 
                 if (!$insumo || $insumo->id_deposito != $this->id_deposito_origen) {
@@ -568,7 +600,7 @@ class TransferenciasInsumos extends Component
                     throw new \Exception("La cantidad para {$item['nombre']} debe ser mayor a 0.");
                 }
 
-                // ✅ Validación crítica: verificar stock actual de la BD
+                // Validación crítica: verificar stock actual de la BD
                 if ($cantidad > $insumo->stock_actual) {
                     throw new \Exception("La cantidad de {$item['nombre']} (" . number_format($cantidad, 2) . " {$insumo->unidad}) excede el stock disponible actual (" . number_format($insumo->stock_actual, 2) . " {$insumo->unidad}). El stock pudo haber cambiado.");
                 }
@@ -819,7 +851,7 @@ class TransferenciasInsumos extends Component
         $this->id_deposito_destino = '';
         $this->insumos_transferencia = [];
         $this->search_insumo_transferencia = '';
-        $this->mostrar_lista_transferencia = false; // ✅ Resetear visibilidad
+        $this->mostrar_lista_transferencia = false;
         $this->observaciones_transferencia = '';
         $this->resetErrorBag();
     }
