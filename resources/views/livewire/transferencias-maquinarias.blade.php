@@ -195,6 +195,7 @@
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Maquinaria</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
@@ -203,19 +204,72 @@
             <tbody class="bg-white divide-y divide-gray-100">
                 @forelse ($movimientos as $movimiento)
                     <tr class="hover:bg-gray-50 transition-colors">
+                        <!-- Fecha -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
                             <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
                         </td>
+                        
+                        <!-- Maquinaria -->
                         <td class="px-6 py-4">
                             <div class="text-sm font-medium text-gray-900">{{ $movimiento->maquinaria->maquinaria }}</div>
                             <div class="text-xs text-gray-500">{{ $movimiento->maquinaria->categoriaMaquinaria->nombre }}</div>
                         </td>
+                        
+                        <!-- Depósito (histórico) -->
                         <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                                {{ $movimiento->maquinaria->deposito->deposito }}
-                            </span>
+                            @if($movimiento->depositoEntrada)
+                                <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                    {{ $movimiento->depositoEntrada->deposito }}
+                                </span>
+                            @else
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
+                                    N/A
+                                </span>
+                            @endif
                         </td>
+
+                        <!-- Cantidad (histórica) -->
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                @php
+                                    $cantidad = $movimiento->cantidad_historica;
+                                @endphp
+                                @if($cantidad > 0)
+                                    <span class="text-sm font-semibold text-green-700">{{ $cantidad }}</span>
+                                @elseif($cantidad == 0)
+                                    <span class="text-sm font-semibold text-orange-700">{{ $cantidad }}</span>
+                                @else
+                                    <span class="text-sm font-semibold text-red-700">{{ $cantidad }}</span>
+                                @endif
+                                <span class="text-xs text-gray-500">
+                                    {{ $cantidad == 1 ? 'unidad' : 'unidades' }}
+                                </span>
+                            </div>
+                            
+                            <!-- ✅ Mostrar cantidad del movimiento específico -->
+                            @if($movimiento->tipoMovimiento->tipo === 'I')
+                                <div class="flex items-center gap-1 mt-1">
+                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                    </svg>
+                                    <span class="text-xs text-green-600">
+                                        +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
+                                    </span>
+                                </div>
+                            @else
+                                <div class="flex items-center gap-1 mt-1">
+                                    <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                    </svg>
+                                    <span class="text-xs text-red-600">
+                                        -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
+                                    </span>
+                                </div>
+                            @endif
+                        </td>
+                        
+                        <!-- Estado ACTUAL de la maquinaria -->
                         <td class="px-6 py-4">
                             @if($movimiento->maquinaria->estado === 'disponible')
                                 <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
@@ -227,6 +281,8 @@
                                 </span>
                             @endif
                         </td>
+                        
+                        <!-- Tipo de Movimiento -->
                         <td class="px-6 py-4">
                             @php
                                 $tipoClasses = [
@@ -239,19 +295,16 @@
                                 {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                             </span>
                         </td>
+                        
+                        <!-- Usuario -->
                         <td class="px-6 py-4 text-sm text-gray-500">
                             {{ $movimiento->usuario->name }}
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12">
-                            <div class="flex flex-col items-center justify-center text-gray-400">
-                                <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                </svg>
-                                <p class="text-sm font-medium">No se encontraron movimientos</p>
-                            </div>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                            No se encontraron movimientos
                         </td>
                     </tr>
                 @endforelse
@@ -348,6 +401,11 @@
                                                                             <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{{ $maquinaria->categoriaMaquinaria->nombre }}</span>
                                                                             <span>•</span>
                                                                             <span>{{ $maquinaria->deposito->deposito }}</span>
+                                                                            <span>•</span>
+                                                                            <!-- ✅ Mostrar cantidad disponible -->
+                                                                            <span class="px-2 py-0.5 {{ $maquinaria->cantidad_disponible > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }} rounded font-medium">
+                                                                                {{ $maquinaria->cantidad_disponible }} {{ $maquinaria->cantidad_disponible == 1 ? 'unidad' : 'unidades' }}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                     <div class="text-right ml-3">
@@ -392,7 +450,7 @@
                                     @endif
                                 @endif
 
-                                <!-- PASO 2: Seleccionar Tipo de Movimiento -->
+                                <!-- PASO 2: Info de la maquinaria seleccionada -->
                                 @if($paso_actual === 2 && $maquinaria_seleccionada)
                                     <div>
                                         <!-- Info de la maquinaria seleccionada -->
@@ -400,8 +458,15 @@
                                             <div class="flex items-start justify-between">
                                                 <div class="flex-1">
                                                     <div class="text-sm font-semibold text-blue-900">{{ $maquinaria_seleccionada->maquinaria }}</div>
-                                                    <div class="text-xs text-blue-700 mt-1">
-                                                        {{ $maquinaria_seleccionada->categoriaMaquinaria->nombre }} • {{ $maquinaria_seleccionada->deposito->deposito }}
+                                                    <div class="text-xs text-blue-700 mt-1 flex items-center gap-2">
+                                                        <span>{{ $maquinaria_seleccionada->categoriaMaquinaria->nombre }}</span>
+                                                        <span>•</span>
+                                                        <span>{{ $maquinaria_seleccionada->deposito->deposito }}</span>
+                                                        <span>•</span>
+                                                        <!-- ✅ Mostrar cantidad -->
+                                                        <span class="px-2 py-0.5 bg-white text-blue-900 rounded font-medium">
+                                                            {{ $maquinaria_seleccionada->cantidad_disponible }} {{ $maquinaria_seleccionada->cantidad_disponible == 1 ? 'unidad' : 'unidades' }}
+                                                        </span>
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
@@ -477,6 +542,62 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- ✅ Cantidad a Transferir (solo para transferencia) -->
+                                        @if($tipo_movimiento === 'transferencia')
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Cantidad a Transferir *
+                                                    <span class="text-xs text-gray-500 font-normal">
+                                                        (Disponible: {{ $maquinaria_seleccionada->cantidad_disponible }})
+                                                    </span>
+                                                </label>
+                                                <div class="flex items-center gap-3">
+                                                    <button 
+                                                        type="button"
+                                                        wire:click="decrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_transferir <= 1 ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                                        </svg>
+                                                    </button>
+                                                    
+                                                    <input 
+                                                        type="number" 
+                                                        wire:model.live="cantidad_a_transferir"
+                                                        min="1"
+                                                        max="{{ $maquinaria_seleccionada->cantidad_disponible }}"
+                                                        class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                    >
+                                                    
+                                                    <button 
+                                                        type="button"
+                                                        wire:click="incrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_transferir >= $maquinaria_seleccionada->cantidad_disponible ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <div class="flex-1">
+                                                        <input 
+                                                            type="range" 
+                                                            wire:model.live="cantidad_a_transferir"
+                                                            min="1"
+                                                            max="{{ $maquinaria_seleccionada->cantidad_disponible }}"
+                                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                        >
+                                                    </div>
+                                                </div>
+                                                @error('cantidad_a_transferir') 
+                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
+                                                @enderror
+                                            </div>
+                                        @endif
 
                                         <!-- Depósito Destino (solo para transferencia) -->
                                         @if($tipo_movimiento === 'transferencia')

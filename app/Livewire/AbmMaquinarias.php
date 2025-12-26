@@ -5,9 +5,13 @@ namespace App\Livewire;
 use App\Models\Maquinaria;
 use App\Models\CategoriaMaquinaria;
 use App\Models\Deposito;
+use App\Models\MovimientoMaquinaria; // ✅ Agregar
+use App\Models\TipoMovimiento; // ✅ Agregar
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB; // ✅ Agregar
+use Illuminate\Support\Facades\Auth; // ✅ Agregar
 
 class AbmMaquinarias extends Component
 {
@@ -29,19 +33,34 @@ class AbmMaquinarias extends Component
     public $id_categoria_maquinaria;
     public $estado;
     public $id_deposito;
+    public $cantidad;
 
-    protected $rules = [
-        'maquinaria' => 'required|string|max:100',
-        'id_categoria_maquinaria' => 'required|exists:categoria_maquinarias,id',
-        'estado' => 'required|in:disponible,no disponible',
-        'id_deposito' => 'required|exists:depositos,id',
+    protected function rules()
+    {
+        $rules = [
+            'maquinaria' => 'required|string|max:100',
+            'id_categoria_maquinaria' => 'required|exists:categoria_maquinarias,id',
+            'estado' => 'required|in:disponible,no disponible',
+            'id_deposito' => 'required|exists:depositos,id',
+        ];
+
+        if (!$this->editMode) {
+            $rules['cantidad'] = 'required|integer|min:1';
+        }
+
+        return $rules;
+    }
+
+    protected $messages = [
+        'cantidad.required' => 'La cantidad es obligatoria.',
+        'cantidad.min' => 'La cantidad debe ser al menos 1.',
     ];
 
     public function render()
     {
         $user = auth()->user();
 
-        $maquinarias = Maquinaria::with(['categoriaMaquinaria', 'deposito'])
+        $maquinarias = Maquinaria::with(['categoriaMaquinaria', 'deposito', 'movimientos.tipoMovimiento']) // ✅ Agregar eager loading
             ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('maquinaria', 'like', '%' . $this->search . '%');
@@ -129,6 +148,7 @@ class AbmMaquinarias extends Component
         $this->id_categoria_maquinaria = $maquinaria->id_categoria_maquinaria;
         $this->estado = $maquinaria->estado;
         $this->id_deposito = $maquinaria->id_deposito;
+        $this->cantidad = $maquinaria->cantidad;
         
         $this->editMode = true;
         $this->showModal = true;
@@ -167,13 +187,47 @@ class AbmMaquinarias extends Component
             ]);
             session()->flash('message', 'Maquinaria actualizada correctamente.');
         } else {
-            Maquinaria::create([
-                'maquinaria' => $this->maquinaria,
-                'id_categoria_maquinaria' => $this->id_categoria_maquinaria,
-                'estado' => $this->estado,
-                'id_deposito' => $this->id_deposito,
-            ]);
-            session()->flash('message', 'Maquinaria creada correctamente.');
+            // ✅ Crear maquinaria con movimiento inicial
+            try {
+                DB::beginTransaction();
+
+                // Crear la maquinaria
+                $maquinaria = Maquinaria::create([
+                    'maquinaria' => $this->maquinaria,
+                    'id_categoria_maquinaria' => $this->id_categoria_maquinaria,
+                    'estado' => $this->estado,
+                    'id_deposito' => $this->id_deposito,
+                    'cantidad' => $this->cantidad,
+                ]);
+
+                // ✅ Crear tipo de movimiento si no existe
+                $tipoMovimiento = TipoMovimiento::firstOrCreate([
+                    'tipo_movimiento' => 'Inventario Inicial Maquinaria',
+                    'tipo' => 'I'
+                ]);
+
+                // ✅ Crear movimiento de entrada inicial
+                MovimientoMaquinaria::create([
+                    'id_maquinaria' => $maquinaria->id,
+                    'cantidad' => $this->cantidad,
+                    'id_tipo_movimiento' => $tipoMovimiento->id,
+                    'fecha' => now(),
+                    'fecha_devolucion' => null,
+                    'id_usuario' => Auth::id(),
+                    'id_deposito_entrada' => $this->id_deposito,
+                    'id_referencia' => 0,
+                    'tipo_referencia' => 'deposito',
+                ]);
+
+                DB::commit();
+                
+                session()->flash('message', 'Maquinaria creada correctamente con inventario inicial de ' . $this->cantidad . ' unidades.');
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                session()->flash('error', 'Error al crear la maquinaria: ' . $e->getMessage());
+                \Log::error('Error al crear maquinaria: ' . $e->getMessage());
+            }
         }
 
         $this->showModal = false;
@@ -210,6 +264,7 @@ class AbmMaquinarias extends Component
         $this->id_categoria_maquinaria = '';
         $this->estado = 'disponible';
         $this->id_deposito = '';
+        $this->cantidad = 1;
         $this->resetErrorBag();
     }
 }

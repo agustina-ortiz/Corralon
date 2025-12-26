@@ -138,6 +138,7 @@
                     <tr>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Maquinaria</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Categoría</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
@@ -154,6 +155,28 @@
                                 <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
                                     {{ $item->categoriaMaquinaria->nombre }}
                                 </span>
+                            </td>
+                             <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    @if($item->cantidad_disponible > 0)
+                                        <span class="text-sm font-semibold text-green-700">{{ $item->cantidad_disponible }}</span>
+                                    @else
+                                        <span class="text-sm font-semibold text-red-700">{{ $item->cantidad_disponible }}</span>
+                                    @endif
+                                    <span class="text-xs text-gray-500">
+                                        @if($item->cantidad_disponible == 1)
+                                            unidad
+                                        @else
+                                            unidades
+                                        @endif
+                                    </span>
+                                </div>
+                                <!-- ✅ Mostrar cantidad inicial como referencia (opcional) -->
+                                @if($item->cantidad != $item->cantidad_disponible)
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        (Inicial: {{ $item->cantidad }})
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 @if($item->estado === 'disponible')
@@ -277,6 +300,32 @@
                                         @endforeach
                                     </select>
                                     @error('id_categoria_maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Cantidad *
+                                        @if($editMode)
+                                            <span class="text-xs text-gray-500 font-normal">(Este campo se calcula automáticamente con los movimientos)</span>
+                                        @endif
+                                    </label>
+                                    <div class="relative">
+                                        <input 
+                                            type="number" 
+                                            wire:model="cantidad"
+                                            min="1"
+                                            @if($editMode) disabled @endif
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if($editMode) bg-gray-100 text-gray-500 cursor-not-allowed @endif"
+                                        >
+                                        @if($editMode)
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                                </svg>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Estado -->
