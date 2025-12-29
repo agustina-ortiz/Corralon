@@ -166,8 +166,8 @@
                     <tr>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Insumo</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Categoría</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unidad</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Actual</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Unidad</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Mínimo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                         <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Corralón</th>
@@ -187,13 +187,13 @@
                                     {{ $item->categoriaInsumo->nombre }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $item->unidad }}
-                            </td>
                             <td class="px-6 py-4">
                                 <span class="text-sm {{ $item->stock_actual < $item->stock_minimo ? 'text-red-600 font-semibold' : 'text-gray-600' }}">
                                     {{ number_format($item->stock_actual, 2) }}
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ $item->unidad }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ number_format($item->stock_minimo, 2) }}

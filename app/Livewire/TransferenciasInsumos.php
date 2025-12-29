@@ -20,6 +20,18 @@ class TransferenciasInsumos extends Component
     use WithPagination;
 
     protected $listeners = ['refreshComponent' => '$refresh'];
+    
+    protected $updatesQueryString = [
+        'search' => ['except' => ''],
+        'filtro_fecha_desde' => ['except' => ''],
+        'filtro_fecha_hasta' => ['except' => ''],
+        'filtro_deposito_origen' => ['except' => ''],
+        'filtro_usuario' => ['except' => ''],
+        'filtro_insumo' => ['except' => ''],
+        'filtro_categoria' => ['except' => ''],
+        'filtro_tipo_movimiento' => ['except' => ''],
+        'page' => ['except' => 1],
+    ];
 
     public $search = '';
     public $showModal = false;
@@ -70,8 +82,48 @@ class TransferenciasInsumos extends Component
     public $tipos_movimiento_disponibles = [];
 
     public function mount() {
-        $this->filtro_fecha_desde = today()->format('Y-m-d');
-        $this->filtro_fecha_hasta = today()->addMonth()->format('Y-m-d');
+        $this->filtro_fecha_desde = today()->subMonth()->format('Y-m-d');
+        $this->filtro_fecha_hasta = today()->format('Y-m-d');
+    }
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroFechaHasta()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroDepositoOrigen()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroUsuario()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroInsumo()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroCategoria()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroTipoMovimiento()
+    {
+        $this->resetPage();
     }
 
     protected function rules()
@@ -168,9 +220,7 @@ class TransferenciasInsumos extends Component
     {
         $depositosAccesibles = $this->getDepositosAccesibles();
 
-        // ✅ CORREGIDO: Obtener tanto encabezados de transferencia como movimientos individuales
-        
-        // 1. Obtener transferencias agrupadas
+        // Obtener transferencias agrupadas
         $transferencias = MovimientoEncabezado::with([
                 'depositoOrigen',
                 'depositoDestino',
@@ -178,11 +228,13 @@ class TransferenciasInsumos extends Component
                 'movimientos.insumo.categoriaInsumo',
                 'movimientos.tipoMovimiento'
             ])
-            ->whereHas('depositoOrigen', function($query) use ($depositosAccesibles) {
-                $query->whereIn('id', $depositosAccesibles);
-            })
-            ->orWhereHas('depositoDestino', function($query) use ($depositosAccesibles) {
-                $query->whereIn('id', $depositosAccesibles);
+            ->where(function($query) use ($depositosAccesibles) {
+                $query->whereHas('depositoOrigen', function($q) use ($depositosAccesibles) {
+                    $q->whereIn('id', $depositosAccesibles);
+                })
+                ->orWhereHas('depositoDestino', function($q) use ($depositosAccesibles) {
+                    $q->whereIn('id', $depositosAccesibles);
+                });
             })
             ->when($this->search, function($query) {
                 $query->where(function($q) {
@@ -226,14 +278,14 @@ class TransferenciasInsumos extends Component
             })
             ->get();
 
-        // 2. Obtener movimientos individuales (sin encabezado)
+        // Obtener movimientos individuales
         $movimientosIndividuales = MovimientoInsumo::with([
                 'insumo.categoriaInsumo',
                 'insumo.deposito',
                 'tipoMovimiento',
                 'usuario'
             ])
-            ->whereNull('id_movimiento_encabezado') // Solo movimientos sin encabezado
+            ->whereNull('id_movimiento_encabezado')
             ->whereHas('insumo', function($query) use ($depositosAccesibles) {
                 $query->whereIn('id_deposito', $depositosAccesibles);
             })
@@ -271,10 +323,9 @@ class TransferenciasInsumos extends Component
             })
             ->get();
 
-        // 3. Combinar y ordenar ambos tipos
+        // Combinar y ordenar
         $movimientosCombinados = collect();
         
-        // Agregar transferencias con metadatos
         foreach ($transferencias as $transferencia) {
             $movimientosCombinados->push([
                 'tipo' => 'transferencia',
@@ -284,7 +335,6 @@ class TransferenciasInsumos extends Component
             ]);
         }
         
-        // Agregar movimientos individuales con metadatos
         foreach ($movimientosIndividuales as $movimiento) {
             $movimientosCombinados->push([
                 'tipo' => 'individual',
@@ -294,28 +344,26 @@ class TransferenciasInsumos extends Component
             ]);
         }
         
-        // Ordenar por fecha y hora descendente
         $movimientosCombinados = $movimientosCombinados->sortByDesc(function($item) {
             return $item['created_at'];
         });
 
-        // ✅ CORREGIDO: Paginar manualmente usando la forma correcta
-        $page = request()->query('page', 1);
+        // ✅ CORREGIDO: Paginación manual mejorada
+        $currentPage = $this->getPage();
         $perPage = 15;
-        $offset = ($page - 1) * $perPage;
         
         $movimientosPaginados = new \Illuminate\Pagination\LengthAwarePaginator(
-            $movimientosCombinados->slice($offset, $perPage)->values(),
+            $movimientosCombinados->forPage($currentPage, $perPage),
             $movimientosCombinados->count(),
             $perPage,
-            $page,
+            $currentPage,
             [
-                'path' => request()->url(),
-                'query' => request()->query(),
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'pageName' => 'page',
             ]
         );
 
-        // Insumos filtrados para el listado (movimientos individuales)
+        // Insumos filtrados para el listado
         $insumos_filtrados = collect();
         
         if ($this->paso_actual === 1 && ($this->mostrar_lista || $this->search_insumo)) {
@@ -377,7 +425,7 @@ class TransferenciasInsumos extends Component
             'header' => 'Movimientos de Insumos'
         ]);
     }
-
+    
     public function toggleMovimiento($id)
     {
         if (in_array($id, $this->movimientos_expandidos)) {

@@ -263,13 +263,20 @@
                                     @php
                                         $mov = $movimientosEntrada->first();
                                     @endphp
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
-                                        <div class="text-xs text-gray-500">{{ $mov->insumo->categoriaInsumo->nombre }}</div>
-                                        <div class="text-sm font-semibold text-purple-600 mt-1">
-                                            {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
+                                    @if($mov && $mov->insumo)
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
+                                            <div class="text-xs text-gray-500">{{ $mov->insumo->categoriaInsumo->nombre }}</div>
+                                            <div class="text-sm font-semibold text-purple-600 mt-1">
+                                                {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
+                                            </div>
                                         </div>
-                                    </div>
+                                    @else
+                                        <div>
+                                            <div class="text-sm font-medium text-red-600">Insumo eliminado</div>
+                                            <div class="text-xs text-gray-500">El insumo ya no existe</div>
+                                        </div>
+                                    @endif
                                 @endif
                             </td>
                             <td class="px-6 py-4">
@@ -386,7 +393,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded font-medium">
                                     {{ $movimiento->insumo->deposito->deposito }}
                                 </span>
                             </td>
