@@ -615,6 +615,9 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => 'deposito',
             ]);
 
+            // ✅ NUEVO: Actualizar el campo cantidad
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
+
             DB::commit();
             
             $deposito = Deposito::find($this->id_deposito_origen);
@@ -650,14 +653,12 @@ class TransferenciasMaquinarias extends Component
                 throw new \Exception('La maquinaria no se encontró.');
             }
 
-            // ✅ Verificar stock disponible en el depósito seleccionado
             $stockDisponible = $maquinaria->getCantidadEnDeposito($this->id_deposito_origen);
             
             if ($stockDisponible < $this->cantidad_a_asignar) {
                 throw new \Exception("Solo hay {$stockDisponible} unidades disponibles en el depósito seleccionado.");
             }
 
-            // ✅ Crear movimiento de salida (asignación)
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
                 'cantidad' => $this->cantidad_a_asignar,
@@ -670,7 +671,8 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => 'empleado',
             ]);
 
-            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
+            // ✅ NUEVO: Actualizar el campo cantidad
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
 
             DB::commit();
             
@@ -711,6 +713,44 @@ class TransferenciasMaquinarias extends Component
 
             DB::beginTransaction();
 
+            $maquinariaOrigen = Maquinaria::where('maquinaria', $maquinaria->maquinaria)
+                ->where('id_deposito', $deposito_origen_id)
+                ->where('id_categoria_maquinaria', $maquinaria->id_categoria_maquinaria)
+                ->first();
+
+            if (!$maquinariaOrigen) {
+                throw new \Exception('No se encontró el registro de origen en la base de datos.');
+            }
+
+            $cantidadActualOrigen = $maquinariaOrigen->getCantidadEnDeposito($deposito_origen_id);
+            
+            if ($this->cantidad_a_transferir > $cantidadActualOrigen) {
+                throw new \Exception("Error de consistencia: solo hay {$cantidadActualOrigen} unidades disponibles.");
+            }
+
+            $maquinariaDestino = Maquinaria::where('maquinaria', $maquinaria->maquinaria)
+                ->where('id_deposito', $deposito_destino_id)
+                ->where('id_categoria_maquinaria', $maquinaria->id_categoria_maquinaria)
+                ->first();
+
+            $esNuevoRegistro = false;
+
+            if (!$maquinariaDestino) {
+                $maquinariaDestino = Maquinaria::create([
+                    'maquinaria' => $maquinaria->maquinaria,
+                    'id_categoria_maquinaria' => $maquinaria->id_categoria_maquinaria,
+                    'id_deposito' => $deposito_destino_id,
+                    'estado' => 'disponible',
+                    'cantidad' => 0, // Se actualizará después del movimiento
+                    'descripcion' => $maquinaria->descripcion,
+                    'modelo' => $maquinaria->modelo,
+                    'numero_serie' => null,
+                    'anio_fabricacion' => $maquinaria->anio_fabricacion,
+                ]);
+
+                $esNuevoRegistro = true;
+            }
+
             $tipoMovimientoSalida = TipoMovimiento::firstOrCreate([
                 'tipo_movimiento' => 'Transferencia Salida Maquinaria',
                 'tipo' => 'E'
@@ -721,29 +761,49 @@ class TransferenciasMaquinarias extends Component
                 'tipo' => 'I'
             ]);
 
+            if ($esNuevoRegistro) {
+                $tipoCargaInicial = TipoMovimiento::firstOrCreate([
+                    'tipo_movimiento' => 'Carga Inicial Maquinaria',
+                    'tipo' => 'I'
+                ]);
+
+                MovimientoMaquinaria::create([
+                    'id_maquinaria' => $maquinariaDestino->id,
+                    'cantidad' => $this->cantidad_a_transferir,
+                    'id_tipo_movimiento' => $tipoCargaInicial->id,
+                    'fecha' => now(),
+                    'id_usuario' => Auth::id(),
+                    'id_deposito_entrada' => $deposito_destino_id,
+                    'id_referencia' => $maquinariaOrigen->id,
+                    'tipo_referencia' => 'deposito',
+                ]);
+            } else {
+                MovimientoMaquinaria::create([
+                    'id_maquinaria' => $maquinariaDestino->id,
+                    'cantidad' => $this->cantidad_a_transferir,
+                    'id_tipo_movimiento' => $tipoMovimientoEntrada->id,
+                    'fecha' => now(),
+                    'id_usuario' => Auth::id(),
+                    'id_deposito_entrada' => $deposito_destino_id,
+                    'id_referencia' => $maquinariaOrigen->id,
+                    'tipo_referencia' => 'deposito',
+                ]);
+            }
+
             MovimientoMaquinaria::create([
-                'id_maquinaria' => $maquinaria->id,
+                'id_maquinaria' => $maquinariaOrigen->id,
                 'cantidad' => $this->cantidad_a_transferir,
                 'id_tipo_movimiento' => $tipoMovimientoSalida->id,
                 'fecha' => now(),
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $deposito_origen_id,
-                'id_referencia' => $deposito_destino_id,
+                'id_referencia' => $maquinariaDestino->id,
                 'tipo_referencia' => 'deposito',
             ]);
 
-            MovimientoMaquinaria::create([
-                'id_maquinaria' => $maquinaria->id,
-                'cantidad' => $this->cantidad_a_transferir,
-                'id_tipo_movimiento' => $tipoMovimientoEntrada->id,
-                'fecha' => now(),
-                'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $deposito_destino_id,
-                'id_referencia' => $deposito_origen_id,
-                'tipo_referencia' => 'deposito',
-            ]);
-
-            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
+            // ✅ NUEVO: Actualizar cantidades de AMBAS maquinarias
+            $this->actualizarCantidadMaquinaria($maquinariaOrigen->id);
+            $this->actualizarCantidadMaquinaria($maquinariaDestino->id);
 
             DB::commit();
 
@@ -845,7 +905,8 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => $tipoReferencia,
             ]);
 
-            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
+            // ✅ NUEVO: Actualizar el campo cantidad
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
 
             DB::commit();
             session()->flash('message', $mensaje);
@@ -888,7 +949,8 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => 'mantenimiento',
             ]);
 
-            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
+            // ✅ NUEVO: Actualizar el campo cantidad
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
 
             DB::commit();
             session()->flash('message', "Maquinaria enviada a mantenimiento exitosamente: {$maquinaria->maquinaria}");
@@ -901,6 +963,23 @@ class TransferenciasMaquinarias extends Component
             $this->cerrarModal();
             \Log::error('Error en guardarMantenimiento: ' . $e->getMessage());
         }
+    }
+
+    private function actualizarCantidadMaquinaria($maquinariaId)
+    {
+        $maquinaria = Maquinaria::find($maquinariaId);
+        
+        if (!$maquinaria) {
+            return;
+        }
+
+        // Calcular la cantidad real basada en movimientos
+        $cantidadCalculada = $maquinaria->getCantidadEnDeposito($maquinaria->id_deposito);
+        
+        // Actualizar el campo cantidad en la base de datos
+        DB::table('maquinarias')
+            ->where('id', $maquinariaId)
+            ->update(['cantidad' => $cantidadCalculada]);
     }
 
     public function cerrarModal()
