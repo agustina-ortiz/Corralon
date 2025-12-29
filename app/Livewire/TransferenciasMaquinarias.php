@@ -45,6 +45,7 @@ class TransferenciasMaquinarias extends Component
     
     // Campos del formulario
     public $id_deposito_destino = '';
+    public $id_deposito_origen = '';
     public $observaciones = '';
     public $fecha_devolucion_esperada = '';
     
@@ -60,6 +61,8 @@ class TransferenciasMaquinarias extends Component
     public $tipos_movimiento_disponibles = [];
 
     public $cantidad_a_transferir = 1;
+    public $cantidad_a_cargar = 1;  
+    public $cantidad_a_asignar = 1; 
 
     protected function rules()
     {
@@ -68,18 +71,51 @@ class TransferenciasMaquinarias extends Component
         ];
 
         if ($this->tipo_movimiento === 'transferencia') {
-            $rules['id_deposito_destino'] = 'required|exists:depositos,id|different:maquinaria_seleccionada.id_deposito';
+            $rules['id_deposito_destino'] = 'required|exists:depositos,id|different:id_deposito_origen';
+
+            $cantidadDisponible = $this->maquinaria_seleccionada 
+                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                : 1;
 
             $rules['cantidad_a_transferir'] = [
                 'required',
                 'integer',
                 'min:1',
-                'max:' . ($this->maquinaria_seleccionada ? $this->maquinaria_seleccionada->cantidad_disponible : 1)
+                'max:' . $cantidadDisponible
             ];
         }
 
-        if (in_array($this->tipo_movimiento, ['asignacion', 'devolucion'])) {
+        // ✅ NUEVO: Validación para carga de stock
+        if ($this->tipo_movimiento === 'carga_stock') {
+            $rules['id_deposito_origen'] = 'required|exists:depositos,id';
+            $rules['cantidad_a_cargar'] = [
+                'required',
+                'integer',
+                'min:1',
+                'max:1000' // Límite razonable
+            ];
+        }
+
+        // Validación para asignaciones
+        if ($this->tipo_movimiento === 'asignacion') {
+            $rules['id_deposito_origen'] = 'required|exists:depositos,id';
+            
+            $cantidadDisponible = $this->maquinaria_seleccionada 
+                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                : 1;
+
+            $rules['cantidad_a_asignar'] = [
+                'required',
+                'integer',
+                'min:1',
+                'max:' . $cantidadDisponible
+            ];
+            
             $rules['fecha_devolucion_esperada'] = 'required|date|after:today';
+        }
+
+        if (in_array($this->tipo_movimiento, ['devolucion'])) {
+            $rules['fecha_devolucion_esperada'] = 'nullable|date|after:today';
         }
 
         return $rules;
@@ -88,11 +124,18 @@ class TransferenciasMaquinarias extends Component
     protected $messages = [
         'id_deposito_destino.required' => 'Debe seleccionar un depósito destino.',
         'id_deposito_destino.different' => 'El depósito destino debe ser diferente al de origen.',
+        'id_deposito_origen.required' => 'Debe seleccionar un depósito de origen.',
         'fecha_devolucion_esperada.required' => 'Debe ingresar una fecha de devolución esperada.',
         'fecha_devolucion_esperada.after' => 'La fecha de devolución debe ser posterior a hoy.',
         'cantidad_a_transferir.required' => 'Debe ingresar la cantidad a transferir.',
         'cantidad_a_transferir.min' => 'La cantidad debe ser al menos 1.',
-        'cantidad_a_transferir.max' => 'No hay suficiente cantidad disponible.',
+        'cantidad_a_transferir.max' => 'No hay suficiente cantidad disponible en el depósito origen.',
+        'cantidad_a_asignar.required' => 'Debe ingresar la cantidad a asignar.',
+        'cantidad_a_asignar.min' => 'La cantidad debe ser al menos 1.',
+        'cantidad_a_asignar.max' => 'No hay suficiente cantidad disponible en el depósito seleccionado.',
+        'cantidad_a_cargar.required' => 'Debe ingresar la cantidad a cargar.',
+        'cantidad_a_cargar.min' => 'La cantidad debe ser al menos 1.',
+        'cantidad_a_cargar.max' => 'La cantidad excede el límite permitido.',
     ];
 
     /**
@@ -120,27 +163,47 @@ class TransferenciasMaquinarias extends Component
             return [];
         }
 
-        $tipos = [
-            [
+        // ✅ Verificar si hay stock en ALGÚN depósito
+        $tieneStock = $this->maquinaria_seleccionada->getCantidadTotalDisponible() > 0;
+
+        $tipos = [];
+
+        // ✅ NUEVO: Carga de Stock - SIEMPRE disponible
+        $tipos[] = [
+            'key' => 'carga_stock',
+            'nombre' => 'Carga de Stock',
+            'descripcion' => 'Agregar unidades al inventario',
+            'icon' => 'M12 4v16m8-8H4',
+            'color' => 'indigo',
+            'disponible' => true
+        ];
+
+        // Asignación - solo si hay stock
+        if ($tieneStock) {
+            $tipos[] = [
                 'key' => 'asignacion',
                 'nombre' => 'Asignación',
                 'descripcion' => 'Asignar maquinaria a un empleado o evento',
                 'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
                 'color' => 'blue',
-                'disponible' => $this->maquinaria_seleccionada->estado === 'disponible'
-            ],
-            [
+                'disponible' => true
+            ];
+        }
+
+        // Mantenimiento - solo si hay stock
+        if ($tieneStock) {
+            $tipos[] = [
                 'key' => 'mantenimiento',
                 'nombre' => 'Enviar a Mantenimiento',
                 'descripcion' => 'Marcar maquinaria como en mantenimiento',
                 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
                 'color' => 'orange',
                 'disponible' => true
-            ],
-        ];
+            ];
+        }
 
-        // Solo si está disponible puede hacer transferencia
-        if ($this->maquinaria_seleccionada->estado === 'disponible') {
+        // Transferencia - solo si hay stock
+        if ($tieneStock) {
             $tipos[] = [
                 'key' => 'transferencia',
                 'nombre' => 'Transferencia',
@@ -151,17 +214,15 @@ class TransferenciasMaquinarias extends Component
             ];
         }
 
-        // Solo si está NO disponible puede hacer devolución
-        if ($this->maquinaria_seleccionada->estado === 'no disponible') {
-            $tipos[] = [
-                'key' => 'devolucion',
-                'nombre' => 'Devolución',
-                'descripcion' => 'Devolver maquinaria al depósito',
-                'icon' => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
-                'color' => 'green',
-                'disponible' => true
-            ];
-        }
+        // Devolución: siempre disponible (puede haber unidades prestadas aunque stock sea 0)
+        $tipos[] = [
+            'key' => 'devolucion',
+            'nombre' => 'Devolución',
+            'descripcion' => 'Devolver maquinaria al depósito',
+            'icon' => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
+            'color' => 'green',
+            'disponible' => true
+        ];
 
         return collect($tipos)->where('disponible', true)->values()->toArray();
     }
@@ -174,6 +235,7 @@ class TransferenciasMaquinarias extends Component
         $movimientos = MovimientoMaquinaria::with([
                 'maquinaria.categoriaMaquinaria',
                 'maquinaria.deposito',
+                'maquinaria.movimientos.tipoMovimiento',
                 'depositoEntrada',
                 'tipoMovimiento',
                 'usuario'
@@ -214,21 +276,27 @@ class TransferenciasMaquinarias extends Component
         ->orderBy('created_at', 'desc')
         ->paginate(15);
 
-        // Usar getCollection() para modificar los items de la paginación
-        $movimientos->getCollection()->transform(function ($movimiento) {
-            $cantidadInicial = $movimiento->maquinaria->cantidad;
-            
+        $movimientos->getCollection()->transform(function ($movimiento) use ($depositosAccesibles) {
+            // ✅ Calcular cantidad histórica en el momento del movimiento
             $entradas = MovimientoMaquinaria::where('id_maquinaria', $movimiento->id_maquinaria)
                 ->where('created_at', '<=', $movimiento->created_at)
                 ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'I'))
-                ->count();
+                ->sum('cantidad');
             
             $salidas = MovimientoMaquinaria::where('id_maquinaria', $movimiento->id_maquinaria)
                 ->where('created_at', '<=', $movimiento->created_at)
                 ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'E'))
-                ->count();
+                ->sum('cantidad');
             
-            $movimiento->cantidad_historica = max(0, $cantidadInicial + $entradas - $salidas);
+            $movimiento->cantidad_historica = max(0, $entradas - $salidas);
+            
+            // ✅ Calcular estado ACTUAL basado en stock total disponible
+            $stockTotal = 0;
+            foreach ($depositosAccesibles as $depositoId) {
+                $stockTotal += $movimiento->maquinaria->getCantidadEnDeposito($depositoId);
+            }
+            
+            $movimiento->estado_calculado = $stockTotal > 0 ? 'disponible' : 'no disponible';
             
             return $movimiento;
         });
@@ -256,7 +324,19 @@ class TransferenciasMaquinarias extends Component
             })
             ->orderBy('maquinaria')
             ->limit(50)
-            ->get();
+            ->get()
+            ->map(function($maquinaria) use ($depositosAccesibles) {
+                // ✅ Calcular cantidad total disponible en todos los depósitos
+                $cantidadTotal = 0;
+                foreach ($depositosAccesibles as $depositoId) {
+                    $cantidadTotal += $maquinaria->getCantidadEnDeposito($depositoId);
+                }
+                
+                // ✅ Agregar la cantidad calculada como atributo
+                $maquinaria->cantidad_disponible = $cantidadTotal;
+                
+                return $maquinaria;
+            });
         }
 
         $depositos = Deposito::whereIn('id', $depositosAccesibles)
@@ -318,20 +398,47 @@ class TransferenciasMaquinarias extends Component
         $this->paso_actual = 1;
     }
 
-    public function incrementarCantidad()
+   public function incrementarCantidad()
     {
-        if ($this->maquinaria_seleccionada && $this->cantidad_a_transferir < $this->maquinaria_seleccionada->cantidad_disponible) {
-            $this->cantidad_a_transferir++;
+        if ($this->tipo_movimiento === 'transferencia') {
+            $maxCantidad = $this->maquinaria_seleccionada 
+                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                : 1;
+            
+            if ($this->cantidad_a_transferir < $maxCantidad) {
+                $this->cantidad_a_transferir++;
+            }
+        } elseif ($this->tipo_movimiento === 'asignacion') {
+            $maxCantidad = $this->maquinaria_seleccionada && $this->id_deposito_origen
+                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                : 1;
+            
+            if ($this->cantidad_a_asignar < $maxCantidad) {
+                $this->cantidad_a_asignar++;
+            }
+        } elseif ($this->tipo_movimiento === 'carga_stock') {
+            if ($this->cantidad_a_cargar < 1000) {
+                $this->cantidad_a_cargar++;
+            }
         }
     }
 
     public function decrementarCantidad()
     {
-        if ($this->cantidad_a_transferir > 1) {
-            $this->cantidad_a_transferir--;
+        if ($this->tipo_movimiento === 'transferencia') {
+            if ($this->cantidad_a_transferir > 1) {
+                $this->cantidad_a_transferir--;
+            }
+        } elseif ($this->tipo_movimiento === 'asignacion') {
+            if ($this->cantidad_a_asignar > 1) {
+                $this->cantidad_a_asignar--;
+            }
+        } elseif ($this->tipo_movimiento === 'carga_stock') {
+            if ($this->cantidad_a_cargar > 1) {
+                $this->cantidad_a_cargar--;
+            }
         }
     }
-
     // PASO 1: Seleccionar maquinaria
     public function seleccionarMaquinaria($maquinariaId)
     {
@@ -357,20 +464,73 @@ class TransferenciasMaquinarias extends Component
     public function seleccionarTipoMovimiento($tipo)
     {
         $this->tipo_movimiento = $tipo;
+        $depositosAccesibles = $this->getDepositosAccesibles();
         
-        // Si es transferencia, cargar depósitos disponibles
+        // Para transferencia
         if ($tipo === 'transferencia') {
-            $depositosAccesibles = $this->getDepositosAccesibles();
+            $depositosConStock = [];
+            foreach ($depositosAccesibles as $depId) {
+                if ($this->maquinaria_seleccionada->getCantidadEnDeposito($depId) > 0) {
+                    $depositosConStock[] = $depId;
+                }
+            }
+            
+            if (count($depositosConStock) === 1) {
+                $this->id_deposito_origen = $depositosConStock[0];
+            }
+            
             $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
-                ->where('id', '!=', $this->maquinaria_seleccionada->id_deposito)
+                ->whereNotIn('id', $depositosConStock)
                 ->orderBy('deposito')
                 ->get();
 
-            // ✅ Resetear cantidad al máximo disponible o 1
-            $this->cantidad_a_transferir = min(1, $this->maquinaria_seleccionada->cantidad_disponible);
+            $cantidadDisponible = $this->id_deposito_origen 
+                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                : $this->maquinaria_seleccionada->cantidad_disponible;
+
+            $this->cantidad_a_transferir = min(1, $cantidadDisponible);
+        }
+        
+        // Para asignación
+        if ($tipo === 'asignacion') {
+            $depositosConStock = [];
+            foreach ($depositosAccesibles as $depId) {
+                if ($this->maquinaria_seleccionada->getCantidadEnDeposito($depId) > 0) {
+                    $depositosConStock[] = $depId;
+                }
+            }
+            
+            $this->depositos_disponibles = Deposito::whereIn('id', $depositosConStock)
+                ->orderBy('deposito')
+                ->get();
+            
+            if (count($depositosConStock) === 1) {
+                $this->id_deposito_origen = $depositosConStock[0];
+                $this->cantidad_a_asignar = min(1, $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen));
+            } else {
+                $this->cantidad_a_asignar = 1;
+            }
+        }
+        
+        // ✅ NUEVO: Para carga de stock
+        if ($tipo === 'carga_stock') {
+            // Cargar TODOS los depósitos accesibles
+            $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
+                ->orderBy('deposito')
+                ->get();
+            
+            $this->cantidad_a_cargar = 1;
         }
         
         $this->paso_actual = 3;
+    }
+
+    public function updatedIdDepositoOrigen()
+    {
+        if ($this->tipo_movimiento === 'asignacion' && $this->maquinaria_seleccionada && $this->id_deposito_origen) {
+            $cantidadDisponible = $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen);
+            $this->cantidad_a_asignar = min(1, $cantidadDisponible);
+        }
     }
 
     // Volver al paso anterior
@@ -403,6 +563,8 @@ class TransferenciasMaquinarias extends Component
             $this->validate();
 
             switch ($this->tipo_movimiento) {
+                case 'carga_stock':
+                    return $this->guardarCargaStock();
                 case 'asignacion':
                     return $this->guardarAsignacion();
                 case 'transferencia':
@@ -424,6 +586,54 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
+    private function guardarCargaStock()
+    {
+        try {
+            DB::beginTransaction();
+
+            $tipoMovimiento = TipoMovimiento::firstOrCreate([
+                'tipo_movimiento' => 'Carga de Stock Maquinaria',
+                'tipo' => 'I'
+            ]);
+
+            $maquinaria = Maquinaria::find($this->maquinaria_id);
+            
+            if (!$maquinaria) {
+                throw new \Exception('La maquinaria no se encontró.');
+            }
+
+            // ✅ Crear movimiento de entrada
+            MovimientoMaquinaria::create([
+                'id_maquinaria' => $maquinaria->id,
+                'cantidad' => $this->cantidad_a_cargar,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha' => now(),
+                'fecha_devolucion' => null,
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $this->id_deposito_origen,
+                'id_referencia' => 0,
+                'tipo_referencia' => 'deposito',
+            ]);
+
+            DB::commit();
+            
+            $deposito = Deposito::find($this->id_deposito_origen);
+            $mensaje = "Carga de stock realizada exitosamente: {$this->cantidad_a_cargar} " . 
+                    ($this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades') . 
+                    " de {$maquinaria->maquinaria} en {$deposito->deposito}";
+            
+            session()->flash('message', $mensaje);
+            \Illuminate\Support\Facades\Cache::flush();
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la carga de stock: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarCargaStock: ' . $e->getMessage());
+        }
+    }
+
     private function guardarAsignacion()
     {
         try {
@@ -436,26 +646,40 @@ class TransferenciasMaquinarias extends Component
 
             $maquinaria = Maquinaria::find($this->maquinaria_id);
             
-            if (!$maquinaria || $maquinaria->estado !== 'disponible') {
-                throw new \Exception('La maquinaria no está disponible para asignación.');
+            if (!$maquinaria) {
+                throw new \Exception('La maquinaria no se encontró.');
             }
 
+            // ✅ Verificar stock disponible en el depósito seleccionado
+            $stockDisponible = $maquinaria->getCantidadEnDeposito($this->id_deposito_origen);
+            
+            if ($stockDisponible < $this->cantidad_a_asignar) {
+                throw new \Exception("Solo hay {$stockDisponible} unidades disponibles en el depósito seleccionado.");
+            }
+
+            // ✅ Crear movimiento de salida (asignación)
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
-                'cantidad' => 1, // ✅ Asignaciones son de 1 unidad
+                'cantidad' => $this->cantidad_a_asignar,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha' => now(),
                 'fecha_devolucion' => $this->fecha_devolucion_esperada,
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $maquinaria->id_deposito,
+                'id_deposito_entrada' => $this->id_deposito_origen,
                 'id_referencia' => 0,
                 'tipo_referencia' => 'empleado',
             ]);
 
-            $maquinaria->update(['estado' => 'no disponible']);
+            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
 
             DB::commit();
-            session()->flash('message', "Asignación realizada exitosamente: {$maquinaria->maquinaria}");
+            
+            $deposito = Deposito::find($this->id_deposito_origen);
+            $mensaje = "Asignación realizada exitosamente: {$this->cantidad_a_asignar} " . 
+                    ($this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades') . 
+                    " de {$maquinaria->maquinaria} desde {$deposito->deposito}";
+            
+            session()->flash('message', $mensaje);
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
@@ -463,6 +687,7 @@ class TransferenciasMaquinarias extends Component
             DB::rollBack();
             session()->flash('error', 'Error al realizar la asignación: ' . $e->getMessage());
             $this->cerrarModal();
+            \Log::error('Error en guardarAsignacion: ' . $e->getMessage());
         }
     }
 
@@ -475,10 +700,9 @@ class TransferenciasMaquinarias extends Component
                 throw new \Exception('No se encontró la maquinaria seleccionada.');
             }
 
-            $deposito_origen_id = $this->maquinaria_seleccionada->id_deposito;
+            $deposito_origen_id = $this->id_deposito_origen;
             $deposito_destino_id = $this->id_deposito_destino;
 
-            // ✅ Validar cantidad disponible EN EL DEPÓSITO ORIGEN
             $cantidadDisponibleOrigen = $maquinaria->getCantidadEnDeposito($deposito_origen_id);
             
             if ($this->cantidad_a_transferir > $cantidadDisponibleOrigen) {
@@ -497,32 +721,29 @@ class TransferenciasMaquinarias extends Component
                 'tipo' => 'I'
             ]);
 
-            // Movimiento de SALIDA del depósito origen
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
                 'cantidad' => $this->cantidad_a_transferir,
                 'id_tipo_movimiento' => $tipoMovimientoSalida->id,
                 'fecha' => now(),
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $deposito_origen_id, // ✅ Depósito ORIGEN
+                'id_deposito_entrada' => $deposito_origen_id,
                 'id_referencia' => $deposito_destino_id,
                 'tipo_referencia' => 'deposito',
             ]);
 
-            // Movimiento de ENTRADA al depósito destino
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
                 'cantidad' => $this->cantidad_a_transferir,
                 'id_tipo_movimiento' => $tipoMovimientoEntrada->id,
                 'fecha' => now(),
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $deposito_destino_id, // ✅ Depósito DESTINO
+                'id_deposito_entrada' => $deposito_destino_id,
                 'id_referencia' => $deposito_origen_id,
                 'tipo_referencia' => 'deposito',
             ]);
 
-            // ✅ NO actualizar id_deposito de la maquinaria
-            // La maquinaria ahora puede estar en múltiples depósitos
+            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
 
             DB::commit();
 
@@ -541,6 +762,7 @@ class TransferenciasMaquinarias extends Component
             DB::rollBack();
             session()->flash('error', 'Error al realizar la transferencia: ' . $e->getMessage());
             $this->cerrarModal();
+            \Log::error('Error en guardarTransferencia: ' . $e->getMessage());
         }
     }
 
@@ -551,8 +773,8 @@ class TransferenciasMaquinarias extends Component
 
             $maquinaria = Maquinaria::find($this->maquinaria_id);
             
-            if (!$maquinaria || $maquinaria->estado !== 'no disponible') {
-                throw new \Exception('La maquinaria no está asignada o en mantenimiento.');
+            if (!$maquinaria) {
+                throw new \Exception('La maquinaria no se encontró.');
             }
 
             $ultimoMovimiento = MovimientoMaquinaria::where('id_maquinaria', $maquinaria->id)
@@ -566,6 +788,8 @@ class TransferenciasMaquinarias extends Component
                     'tipo' => 'I'
                 ]);
                 $tipoReferencia = 'mantenimiento';
+                $cantidadDevolver = 1;
+                $depositoDestino = $ultimoMovimiento->id_deposito_entrada;
                 $mensaje = "Retorno de mantenimiento realizado exitosamente: {$maquinaria->maquinaria}";
             } else {
                 $tipoMovimiento = TipoMovimiento::firstOrCreate([
@@ -573,22 +797,55 @@ class TransferenciasMaquinarias extends Component
                     'tipo' => 'I'
                 ]);
                 $tipoReferencia = 'empleado';
-                $mensaje = "Devolución realizada exitosamente: {$maquinaria->maquinaria}";
+                
+                $cantidadAsignada = MovimientoMaquinaria::where('id_maquinaria', $maquinaria->id)
+                    ->whereHas('tipoMovimiento', function($q) {
+                        $q->where('tipo_movimiento', 'Asignación Maquinaria');
+                    })
+                    ->sum('cantidad');
+                
+                $cantidadDevuelta = MovimientoMaquinaria::where('id_maquinaria', $maquinaria->id)
+                    ->whereHas('tipoMovimiento', function($q) {
+                        $q->where('tipo_movimiento', 'Devolución Maquinaria');
+                    })
+                    ->sum('cantidad');
+                
+                $cantidadPendiente = $cantidadAsignada - $cantidadDevuelta;
+                
+                $cantidadDevolver = 1;
+                
+                if ($cantidadPendiente < $cantidadDevolver) {
+                    throw new \Exception('No hay suficientes unidades asignadas para devolver.');
+                }
+
+                // Devolver al depósito de donde salió la última asignación
+                $ultimaAsignacion = MovimientoMaquinaria::where('id_maquinaria', $maquinaria->id)
+                    ->whereHas('tipoMovimiento', function($q) {
+                        $q->where('tipo_movimiento', 'Asignación Maquinaria');
+                    })
+                    ->latest('fecha')
+                    ->first();
+                
+                $depositoDestino = $ultimaAsignacion ? $ultimaAsignacion->id_deposito_entrada : $maquinaria->id_deposito;
+                
+                $mensaje = "Devolución realizada exitosamente: {$cantidadDevolver} " .
+                        ($cantidadDevolver == 1 ? 'unidad' : 'unidades') .
+                        " de {$maquinaria->maquinaria}";
             }
 
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
-                'cantidad' => 1, // ✅ Devoluciones son de 1 unidad
+                'cantidad' => $cantidadDevolver,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
-                'id_deposito_entrada' => $maquinaria->id_deposito,
+                'id_deposito_entrada' => $depositoDestino,
                 'id_referencia' => 0,
                 'tipo_referencia' => $tipoReferencia,
             ]);
 
-            $maquinaria->update(['estado' => 'disponible']);
+            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
 
             DB::commit();
             session()->flash('message', $mensaje);
@@ -599,6 +856,7 @@ class TransferenciasMaquinarias extends Component
             DB::rollBack();
             session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
             $this->cerrarModal();
+            \Log::error('Error en guardarDevolucion: ' . $e->getMessage());
         }
     }
 
@@ -620,7 +878,7 @@ class TransferenciasMaquinarias extends Component
 
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinaria->id,
-                'cantidad' => 1, // ✅ Mantenimientos son de 1 unidad
+                'cantidad' => 1,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
@@ -630,7 +888,7 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => 'mantenimiento',
             ]);
 
-            $maquinaria->update(['estado' => 'no disponible']);
+            // ✅ NO actualizar el campo estado - se calcula dinámicamente por fila
 
             DB::commit();
             session()->flash('message', "Maquinaria enviada a mantenimiento exitosamente: {$maquinaria->maquinaria}");
@@ -641,6 +899,7 @@ class TransferenciasMaquinarias extends Component
             DB::rollBack();
             session()->flash('error', 'Error al enviar a mantenimiento: ' . $e->getMessage());
             $this->cerrarModal();
+            \Log::error('Error en guardarMantenimiento: ' . $e->getMessage());
         }
     }
 
@@ -657,9 +916,12 @@ class TransferenciasMaquinarias extends Component
         $this->maquinaria_id = null;
         $this->tipo_movimiento = '';
         $this->id_deposito_destino = '';
+        $this->id_deposito_origen = '';
         $this->observaciones = '';
         $this->fecha_devolucion_esperada = '';
         $this->cantidad_a_transferir = 1;
+        $this->cantidad_a_asignar = 1;
+        $this->cantidad_a_cargar = 1; 
         $this->search_maquinaria = '';
         $this->mostrar_lista = false;
         $this->depositos_disponibles = [];

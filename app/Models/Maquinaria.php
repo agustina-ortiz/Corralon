@@ -72,16 +72,44 @@ class Maquinaria extends Model
     // ✅ Método para obtener cantidad en un depósito específico
     public function getCantidadEnDeposito($id_deposito)
     {
-        $entradas = MovimientoMaquinaria::where('id_maquinaria', $this->id)
+        // Verificar si hay algún movimiento de "Inventario Inicial" para este depósito
+        $tieneInventarioInicial = $this->movimientos()
+            ->where('id_deposito_entrada', $id_deposito)
+            ->whereHas('tipoMovimiento', function($q) {
+                $q->where('tipo_movimiento', 'Inventario Inicial Maquinaria')
+                ->orWhere('tipo_movimiento', 'Carga Inicial Maquinaria');
+            })
+            ->exists();
+        
+        // Entradas a este depósito (incluyendo inventario inicial si existe)
+        $entradas = $this->movimientos()
             ->where('id_deposito_entrada', $id_deposito)
             ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'I'))
             ->sum('cantidad');
         
-        $salidas = MovimientoMaquinaria::where('id_maquinaria', $this->id)
+        // Salidas desde este depósito
+        $salidas = $this->movimientos()
             ->where('id_deposito_entrada', $id_deposito)
             ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'E'))
             ->sum('cantidad');
         
         return max(0, $entradas - $salidas);
     }
+
+    public function getCantidadTotalDisponible()
+    {
+        $user = auth()->user();
+        
+        $depositosAccesibles = $user->acceso_todos_corralones 
+            ? \App\Models\Deposito::pluck('id')->toArray()
+            : \App\Models\Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])->pluck('id')->toArray();
+        
+        $total = 0;
+        foreach ($depositosAccesibles as $depositoId) {
+            $total += $this->getCantidadEnDeposito($depositoId);
+        }
+        
+        return $total;
+    }
+
 }
