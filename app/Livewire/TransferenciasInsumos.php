@@ -413,11 +413,25 @@ class TransferenciasInsumos extends Component
         $usuarios = User::orderBy('name')->get();
         $tipos_movimiento = TipoMovimiento::orderBy('tipo_movimiento')->get();
 
+        // ✅ MODIFICADO: Separar depósitos para origen y destino
+        $depositosOrigen = Deposito::whereIn('id', $depositosAccesibles)
+            ->orderBy('deposito')
+            ->get();
+        
+        // Todos los depósitos excepto el seleccionado como origen (para destino)
+        $depositosDestino = Deposito::when($this->id_deposito_origen, function($query) {
+                $query->where('id', '!=', $this->id_deposito_origen);
+            })
+            ->orderBy('deposito')
+            ->get();
+
         return view('livewire.transferencias-insumos', [
             'movimientos' => $movimientosPaginados,
             'insumos_filtrados' => $insumos_filtrados,
             'insumos_disponibles_transferencia' => $insumos_disponibles_transferencia,
-            'depositos' => $depositos,
+            'depositos' => $depositosOrigen, // Para filtros generales
+            'depositosOrigen' => $depositosOrigen, // ✅ NUEVO: Para selector de origen
+            'depositosDestino' => $depositosDestino, // ✅ NUEVO: Para selector de destino
             'categorias' => $categorias,
             'usuarios' => $usuarios,
             'tipos_movimiento' => $tipos_movimiento,
@@ -524,6 +538,8 @@ class TransferenciasInsumos extends Component
                 'unidad' => $insumo->unidad,
                 'cantidad' => '',
             ];
+
+            $this->resetErrorBag('insumos_transferencia');
         }
 
         $this->search_insumo_transferencia = '';

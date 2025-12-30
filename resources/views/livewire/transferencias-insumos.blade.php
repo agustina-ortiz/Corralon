@@ -472,7 +472,8 @@
                                             class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
                                         >
                                             <option value="">Seleccione depósito origen</option>
-                                            @foreach($depositos as $deposito)
+                                            {{-- ✅ MODIFICADO: Usar depositosOrigen (solo depósitos accesibles) --}}
+                                            @foreach($depositosOrigen as $deposito)
                                                 <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
                                             @endforeach
                                         </select>
@@ -487,11 +488,16 @@
                                             @if(!$id_deposito_origen) disabled @endif
                                         >
                                             <option value="">Seleccione depósito destino</option>
-                                            @foreach($depositos->where('id', '!=', $id_deposito_origen) as $deposito)
-                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                                            {{-- (todos los depósitos excepto origen) --}}
+                                            @foreach($depositosDestino as $deposito)
+                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion }}</option>
                                             @endforeach
                                         </select>
                                         @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        
+                                        @if(!$id_deposito_origen)
+                                            <p class="text-xs text-gray-500 mt-1">Primero seleccione un depósito de origen</p>
+                                        @endif
                                     </div>
                                 </div>
 
