@@ -208,8 +208,9 @@
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Detalles</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Origen</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Destino</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
                 </tr>
             </thead>
@@ -269,42 +270,40 @@
                                     @endif
                                 @endif
                             </td>
-                            <td>
-                                @if($mov && $mov->insumo)
-                                    <div class="text-sm font-semibold text-purple-600 mt-1">
+                            <td class="px-6 py-4">
+                                @if(!$esTransferenciaMultiple && $mov && $mov->insumo)
+                                    <div class="text-sm font-semibold text-purple-600">
                                         {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
                                     </div>
                                 @else
-                                    <div>
-                                        <div class="text-sm font-medium text-red-600">Insumo eliminado</div>
-                                        <div class="text-xs text-gray-500">El insumo ya no existe</div>
-                                    </div>
+                                    <span class="text-xs text-gray-500">Ver detalle</span>
                                 @endif
                             </td>
+                            
+                            {{-- COLUMNA ORIGEN --}}
                             <td class="px-6 py-4">
-                                <div class="flex flex-col gap-1">
-                                    <div class="flex items-center gap-1 text-xs text-gray-500">
-                                        <span class="font-medium">Origen:</span>
-                                        <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">
-                                            {{ $movimiento->depositoOrigen->deposito }}
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center gap-1 text-xs text-gray-500">
-                                        <span class="font-medium">Destino:</span>
-                                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded font-medium">
-                                            {{ $movimiento->depositoDestino->deposito }}
-                                        </span>
-                                    </div>
-                                </div>
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
+                                    {{ $movimiento->depositoOrigen->deposito }}
+                                </span>
                             </td>
+                            
+                            {{-- COLUMNA DESTINO --}}
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full flex items-center gap-1 w-fit">
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
+                                    {{ $movimiento->depositoDestino->deposito }}
+                                </span>
+                            </td>
+                            
+                            {{-- COLUMNA TIPO --}}
+                            <td class="px-6 py-4">
+                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-lg flex items-center justify-center gap-1">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                                     </svg>
                                     Transferencia
                                 </span>
                             </td>
+                            
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 {{ $movimiento->usuario->name }}
                             </td>
@@ -313,7 +312,7 @@
                         {{-- Detalle expandible de transferencia --}}
                         @if($esTransferenciaMultiple && $expandido)
                             <tr class="bg-gradient-to-r from-purple-50 to-indigo-50">
-                                <td colspan="6" class="px-6 py-4">
+                                <td colspan="8" class="px-6 py-4">
                                     <div class="ml-8">
                                         <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                                             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,24 +391,51 @@
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
                                     <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
-                        
                                 </div>
                             </td>
-                            <td>
-                                <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }} mt-1">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }}">
                                     {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
                                 </div>
                             </td>
+                            
+                            {{-- COLUMNA ORIGEN - Para movimientos individuales --}}
                             <td class="px-6 py-4">
-                                <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded font-medium">
-                                    {{ $movimiento->insumo->deposito->deposito }}
-                                </span>
+                                @if($movimiento->tipoMovimiento->tipo === 'E')
+                                    {{-- Es una SALIDA - mostrar el depósito de donde sale --}}
+                                    <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
+                                        {{ $movimiento->insumo->deposito->deposito }}
+                                    </span>
+                                @else
+                                    {{-- Es una ENTRADA - no tiene origen relevante --}}
+                                    <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
+                                        —
+                                    </span>
+                                @endif
                             </td>
+                            
+                            {{-- COLUMNA DESTINO - Para movimientos individuales --}}
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
+                                @if($movimiento->tipoMovimiento->tipo === 'I')
+                                    {{-- Es una ENTRADA - mostrar el depósito de destino --}}
+                                    <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
+                                        {{ $movimiento->insumo->deposito->deposito }}
+                                    </span>
+                                @else
+                                    {{-- Es una SALIDA - no tiene destino relevante --}}
+                                    <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
+                                        —
+                                    </span>
+                                @endif
+                            </td>
+                            
+                            {{-- COLUMNA TIPO --}}
+                            <td class="px-6 py-4">
+                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
                                     {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                                 </span>
                             </td>
+                            
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 {{ $movimiento->usuario->name }}
                             </td>
@@ -417,7 +443,7 @@
                     @endif
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12">
+                        <td colspan="8" class="px-6 py-12">
                             <div class="flex flex-col items-center justify-center text-gray-400">
                                 <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>

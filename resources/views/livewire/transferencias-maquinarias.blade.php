@@ -195,9 +195,10 @@
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Maquinaria</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Origen</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Destino</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
                 </tr>
             </thead>
@@ -216,123 +217,141 @@
                             <div class="text-xs text-gray-500">{{ $movimiento->maquinaria->categoriaMaquinaria->nombre }}</div>
                         </td>
                         
-                        
-                        <!-- Cantidad (histórica) -->
+                        <!-- Cantidad -->
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
                                 @php
                                     $cantidad = $movimiento->cantidad_historica;
-                                    @endphp
+                                @endphp
                                 @if($cantidad > 0)
-                                <span class="text-sm font-semibold text-green-700">{{ $cantidad }}</span>
+                                    <span class="text-sm font-semibold text-green-700">{{ $cantidad }}</span>
                                 @elseif($cantidad == 0)
-                                <span class="text-sm font-semibold text-orange-700">{{ $cantidad }}</span>
+                                    <span class="text-sm font-semibold text-orange-700">{{ $cantidad }}</span>
                                 @else
-                                <span class="text-sm font-semibold text-red-700">{{ $cantidad }}</span>
+                                    <span class="text-sm font-semibold text-red-700">{{ $cantidad }}</span>
                                 @endif
                                 <span class="text-xs text-gray-500">
                                     {{ $cantidad == 1 ? 'unidad' : 'unidades' }}
                                 </span>
                             </div>
                             
-                            <!-- ✅ Mostrar cantidad del movimiento específico -->
+                            <!-- Indicador de entrada/salida -->
                             @if($movimiento->tipoMovimiento->tipo === 'I')
-                            <div class="flex items-center gap-1 mt-1">
-                                <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                                </svg>
-                                <span class="text-xs text-green-600">
-                                    +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
-                                </span>
-                            </div>
+                                <div class="flex items-center gap-1 mt-1">
+                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                    </svg>
+                                    <span class="text-xs text-green-600">
+                                        +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
+                                    </span>
+                                </div>
                             @else
-                            <div class="flex items-center gap-1 mt-1">
-                                <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                </svg>
-                                <span class="text-xs text-red-600">
-                                    -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
-                                </span>
-                            </div>
+                                <div class="flex items-center gap-1 mt-1">
+                                    <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                    </svg>
+                                    <span class="text-xs text-red-600">
+                                        -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
+                                    </span>
+                                </div>
                             @endif
                         </td>
                         
-<!-- Depósito Origen/Destino -->
-<td class="px-6 py-4">
-    @php
-        // Detectar si es una transferencia
-        $esTransferencia = str_contains($movimiento->tipoMovimiento->tipo_movimiento, 'Transferencia');
-    @endphp
+                        <!-- COLUMNA ORIGEN -->
+                        <td class="px-6 py-4">
+                            @php
+                                $esTransferencia = str_contains($movimiento->tipoMovimiento->tipo_movimiento, 'Transferencia');
+                                
+                                if ($esTransferencia) {
+                                    $esSalida = $movimiento->tipoMovimiento->tipo === 'E';
+                                    
+                                    if ($esSalida) {
+                                        // Este es el movimiento de SALIDA - el origen está en depositoEntrada
+                                        $depositoOrigen = $movimiento->depositoEntrada;
+                                    } else {
+                                        // Este es el movimiento de ENTRADA - buscar el complementario
+                                        $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
+                                            ->where('id_referencia', $movimiento->id_maquinaria)
+                                            ->whereHas('tipoMovimiento', function($q) {
+                                                $q->where('tipo', 'E')
+                                                ->where('tipo_movimiento', 'like', '%Transferencia%');
+                                            })
+                                            ->whereBetween('created_at', [
+                                                $movimiento->created_at->copy()->subSeconds(5),
+                                                $movimiento->created_at->copy()->addSeconds(5)
+                                            ])
+                                            ->first();
+                                        
+                                        $depositoOrigen = $movimientoSalida ? $movimientoSalida->depositoEntrada : null;
+                                    }
+                                } else {
+                                    // Para movimientos que NO son transferencias
+                                    if ($movimiento->tipoMovimiento->tipo === 'E') {
+                                        // Es una SALIDA - mostrar el depósito de donde sale
+                                        $depositoOrigen = $movimiento->depositoEntrada;
+                                    } else {
+                                        // Es una ENTRADA - no tiene origen relevante
+                                        $depositoOrigen = null;
+                                    }
+                                }
+                            @endphp
+                            
+                            @if($depositoOrigen)
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
+                                    {{ $depositoOrigen->deposito }}
+                                </span>
+                            @else
+                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
+                                    —
+                                </span>
+                            @endif
+                        </td>
 
-    @if($esTransferencia)
-        @php
-            // Para transferencias, buscar el movimiento complementario
-            $esSalida = $movimiento->tipoMovimiento->tipo === 'E';
-            
-            if ($esSalida) {
-                // Este es el movimiento de SALIDA
-                $depositoOrigen = $movimiento->depositoEntrada; // El origen está aquí
-                
-                // Buscar el movimiento de ENTRADA para obtener el destino
-                $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
-                    ->where('id_referencia', $movimiento->id_maquinaria)
-                    ->whereHas('tipoMovimiento', function($q) {
-                        $q->where('tipo', 'I')
-                          ->where('tipo_movimiento', 'like', '%Transferencia%');
-                    })
-                    ->whereBetween('created_at', [
-                        $movimiento->created_at->copy()->subSeconds(5),
-                        $movimiento->created_at->copy()->addSeconds(5)
-                    ])
-                    ->first();
-                
-                $depositoDestino = $movimientoEntrada ? $movimientoEntrada->depositoEntrada : null;
-            } else {
-                // Este es el movimiento de ENTRADA
-                $depositoDestino = $movimiento->depositoEntrada; // El destino está aquí
-                
-                // Buscar el movimiento de SALIDA para obtener el origen
-                $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
-                    ->where('id_referencia', $movimiento->id_maquinaria)
-                    ->whereHas('tipoMovimiento', function($q) {
-                        $q->where('tipo', 'E')
-                          ->where('tipo_movimiento', 'like', '%Transferencia%');
-                    })
-                    ->whereBetween('created_at', [
-                        $movimiento->created_at->copy()->subSeconds(5),
-                        $movimiento->created_at->copy()->addSeconds(5)
-                    ])
-                    ->first();
-                
-                $depositoOrigen = $movimientoSalida ? $movimientoSalida->depositoEntrada : null;
-            }
-        @endphp
-        
-        <!-- Para transferencias, mostrar origen → destino -->
-        <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">
-                {{ $depositoOrigen ? $depositoOrigen->deposito : 'N/A' }}
-            </span>
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-            </svg>
-            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                {{ $depositoDestino ? $depositoDestino->deposito : 'N/A' }}
-            </span>
-        </div>
-    @else
-        <!-- Para otros movimientos, mostrar solo el depósito relevante -->
-        @if($movimiento->depositoEntrada)
-            <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                {{ $movimiento->depositoEntrada->deposito }}
-            </span>
-        @else
-            <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">
-                N/A
-            </span>
-        @endif
-    @endif
-</td>
+                        <!-- COLUMNA DESTINO -->
+                        <td class="px-6 py-4">
+                            @php
+                                if ($esTransferencia) {
+                                    if ($esSalida) {
+                                        // Este es el movimiento de SALIDA - buscar el complementario
+                                        $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
+                                            ->where('id_referencia', $movimiento->id_maquinaria)
+                                            ->whereHas('tipoMovimiento', function($q) {
+                                                $q->where('tipo', 'I')
+                                                ->where('tipo_movimiento', 'like', '%Transferencia%');
+                                            })
+                                            ->whereBetween('created_at', [
+                                                $movimiento->created_at->copy()->subSeconds(5),
+                                                $movimiento->created_at->copy()->addSeconds(5)
+                                            ])
+                                            ->first();
+                                        
+                                        $depositoDestino = $movimientoEntrada ? $movimientoEntrada->depositoEntrada : null;
+                                    } else {
+                                        // Este es el movimiento de ENTRADA - el destino está en depositoEntrada
+                                        $depositoDestino = $movimiento->depositoEntrada;
+                                    }
+                                } else {
+                                    // Para movimientos que NO son transferencias
+                                    if ($movimiento->tipoMovimiento->tipo === 'I') {
+                                        // Es una ENTRADA - mostrar el depósito de destino
+                                        $depositoDestino = $movimiento->depositoEntrada;
+                                    } else {
+                                        // Es una SALIDA - no tiene destino relevante
+                                        $depositoDestino = null;
+                                    }
+                                }
+                            @endphp
+                            
+                            @if($depositoDestino)
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
+                                    {{ $depositoDestino->deposito }}
+                                </span>
+                            @else
+                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
+                                    —
+                                </span>
+                            @endif
+                        </td>
 
                         <!-- Estado ACTUAL de la maquinaria -->
                         <td class="px-6 py-4">
@@ -356,7 +375,7 @@
                                 ];
                                 $clase = $tipoClasses[$movimiento->tipoMovimiento->tipo] ?? 'bg-gray-100 text-gray-700';
                             @endphp
-                            <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
+                            <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
                                 {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                             </span>
                         </td>
@@ -368,7 +387,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
                             No se encontraron movimientos
                         </td>
                     </tr>
