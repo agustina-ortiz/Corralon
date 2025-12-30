@@ -206,9 +206,10 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12"></th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Detalles</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
+                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
                 </tr>
             </thead>
@@ -242,14 +243,6 @@
                                 <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full flex items-center gap-1 w-fit">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                                    </svg>
-                                    Transferencia
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
                                 @if($esTransferenciaMultiple)
                                     <div class="flex items-center gap-2">
                                         <span class="px-2 py-1 text-xs font-semibold bg-purple-600 text-white rounded-full">
@@ -267,9 +260,6 @@
                                         <div>
                                             <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
                                             <div class="text-xs text-gray-500">{{ $mov->insumo->categoriaInsumo->nombre }}</div>
-                                            <div class="text-sm font-semibold text-purple-600 mt-1">
-                                                {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
-                                            </div>
                                         </div>
                                     @else
                                         <div>
@@ -278,6 +268,11 @@
                                         </div>
                                     @endif
                                 @endif
+                            </td>
+                            <td>
+                                <div class="text-sm font-semibold text-purple-600 mt-1">
+                                    {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex flex-col gap-1">
@@ -294,6 +289,14 @@
                                         </span>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-full flex items-center gap-1 w-fit">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                    Transferencia
+                                </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 {{ $movimiento->usuario->name }}
@@ -379,22 +382,25 @@
                                 <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
-                                    {{ $movimiento->tipoMovimiento->tipo_movimiento }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
                                     <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
-                                    <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }} mt-1">
-                                        {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
-                                    </div>
+                        
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }} mt-1">
+                                    {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
                                 </div>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded font-medium">
                                     {{ $movimiento->insumo->deposito->deposito }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 text-xs font-medium {{ $clase }} rounded-full">
+                                    {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
