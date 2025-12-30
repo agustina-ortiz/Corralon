@@ -71,10 +71,10 @@ class TransferenciasMaquinarias extends Component
         ];
 
         if ($this->tipo_movimiento === 'transferencia') {
-            $rules['id_deposito_destino'] = 'required|exists:depositos,id|different:id_deposito_origen';
+            $rules['id_deposito_destino'] = 'required|exists:depositos,id';
 
             $cantidadDisponible = $this->maquinaria_seleccionada 
-                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                ? $this->maquinaria_seleccionada->cantidad_disponible
                 : 1;
 
             $rules['cantidad_a_transferir'] = [
@@ -401,8 +401,9 @@ class TransferenciasMaquinarias extends Component
    public function incrementarCantidad()
     {
         if ($this->tipo_movimiento === 'transferencia') {
+            // ✅ Usar el depósito de la maquinaria seleccionada, no id_deposito_origen
             $maxCantidad = $this->maquinaria_seleccionada 
-                ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
+                ? $this->maquinaria_seleccionada->cantidad_disponible
                 : 1;
             
             if ($this->cantidad_a_transferir < $maxCantidad) {
@@ -439,6 +440,7 @@ class TransferenciasMaquinarias extends Component
             }
         }
     }
+
     // PASO 1: Seleccionar maquinaria
     public function seleccionarMaquinaria($maquinariaId)
     {
@@ -475,12 +477,14 @@ class TransferenciasMaquinarias extends Component
                 }
             }
             
+            // ✅ Si solo hay un depósito con stock, seleccionarlo automáticamente
             if (count($depositosConStock) === 1) {
                 $this->id_deposito_origen = $depositosConStock[0];
             }
             
+            // ✅ CORRECCIÓN: Para depósito DESTINO, mostrar TODOS excepto el origen
+            // No usar whereNotIn con $depositosConStock
             $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
-                ->whereNotIn('id', $depositosConStock)
                 ->orderBy('deposito')
                 ->get();
 
@@ -512,7 +516,7 @@ class TransferenciasMaquinarias extends Component
             }
         }
         
-        // ✅ NUEVO: Para carga de stock
+        // ✅ Para carga de stock
         if ($tipo === 'carga_stock') {
             // Cargar TODOS los depósitos accesibles
             $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
@@ -702,8 +706,12 @@ class TransferenciasMaquinarias extends Component
                 throw new \Exception('No se encontró la maquinaria seleccionada.');
             }
 
-            $deposito_origen_id = $this->id_deposito_origen;
+            $deposito_origen_id = $maquinaria->id_deposito;
             $deposito_destino_id = $this->id_deposito_destino;
+
+            if ($deposito_origen_id == $deposito_destino_id) {
+                throw new \Exception('El depósito destino debe ser diferente al depósito origen.');
+            }
 
             $cantidadDisponibleOrigen = $maquinaria->getCantidadEnDeposito($deposito_origen_id);
             
