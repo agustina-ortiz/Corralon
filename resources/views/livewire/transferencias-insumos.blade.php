@@ -270,9 +270,16 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="text-sm font-semibold text-purple-600 mt-1">
-                                    {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
-                                </div>
+                                @if($mov && $mov->insumo)
+                                    <div class="text-sm font-semibold text-purple-600 mt-1">
+                                        {{ number_format($mov->cantidad, 2) }} {{ $mov->insumo->unidad }}
+                                    </div>
+                                @else
+                                    <div>
+                                        <div class="text-sm font-medium text-red-600">Insumo eliminado</div>
+                                        <div class="text-xs text-gray-500">El insumo ya no existe</div>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex flex-col gap-1">
