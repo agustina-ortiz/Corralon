@@ -741,8 +741,7 @@ class TransferenciasMaquinarias extends Component
                 ->where('id_categoria_maquinaria', $maquinaria->id_categoria_maquinaria)
                 ->first();
 
-            $esNuevoRegistro = false;
-
+            // ✅ CAMBIO PRINCIPAL: Remover la lógica de "Carga Inicial"
             if (!$maquinariaDestino) {
                 $maquinariaDestino = Maquinaria::create([
                     'maquinaria' => $maquinaria->maquinaria,
@@ -755,10 +754,9 @@ class TransferenciasMaquinarias extends Component
                     'numero_serie' => null,
                     'anio_fabricacion' => $maquinaria->anio_fabricacion,
                 ]);
-
-                $esNuevoRegistro = true;
             }
 
+            // ✅ Obtener tipos de movimiento para transferencias
             $tipoMovimientoSalida = TipoMovimiento::firstOrCreate([
                 'tipo_movimiento' => 'Transferencia Salida Maquinaria',
                 'tipo' => 'E'
@@ -769,35 +767,19 @@ class TransferenciasMaquinarias extends Component
                 'tipo' => 'I'
             ]);
 
-            if ($esNuevoRegistro) {
-                $tipoCargaInicial = TipoMovimiento::firstOrCreate([
-                    'tipo_movimiento' => 'Carga Inicial Maquinaria',
-                    'tipo' => 'I'
-                ]);
+            // ✅ SIEMPRE crear movimiento de ENTRADA (sin importar si es nuevo o existente)
+            MovimientoMaquinaria::create([
+                'id_maquinaria' => $maquinariaDestino->id,
+                'cantidad' => $this->cantidad_a_transferir,
+                'id_tipo_movimiento' => $tipoMovimientoEntrada->id,
+                'fecha' => now(),
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $deposito_destino_id,
+                'id_referencia' => $maquinariaOrigen->id,
+                'tipo_referencia' => 'deposito',
+            ]);
 
-                MovimientoMaquinaria::create([
-                    'id_maquinaria' => $maquinariaDestino->id,
-                    'cantidad' => $this->cantidad_a_transferir,
-                    'id_tipo_movimiento' => $tipoCargaInicial->id,
-                    'fecha' => now(),
-                    'id_usuario' => Auth::id(),
-                    'id_deposito_entrada' => $deposito_destino_id,
-                    'id_referencia' => $maquinariaOrigen->id,
-                    'tipo_referencia' => 'deposito',
-                ]);
-            } else {
-                MovimientoMaquinaria::create([
-                    'id_maquinaria' => $maquinariaDestino->id,
-                    'cantidad' => $this->cantidad_a_transferir,
-                    'id_tipo_movimiento' => $tipoMovimientoEntrada->id,
-                    'fecha' => now(),
-                    'id_usuario' => Auth::id(),
-                    'id_deposito_entrada' => $deposito_destino_id,
-                    'id_referencia' => $maquinariaOrigen->id,
-                    'tipo_referencia' => 'deposito',
-                ]);
-            }
-
+            // ✅ Crear movimiento de SALIDA
             MovimientoMaquinaria::create([
                 'id_maquinaria' => $maquinariaOrigen->id,
                 'cantidad' => $this->cantidad_a_transferir,
@@ -809,7 +791,7 @@ class TransferenciasMaquinarias extends Component
                 'tipo_referencia' => 'deposito',
             ]);
 
-            // ✅ NUEVO: Actualizar cantidades de AMBAS maquinarias
+            // ✅ Actualizar cantidades de AMBAS maquinarias
             $this->actualizarCantidadMaquinaria($maquinariaOrigen->id);
             $this->actualizarCantidadMaquinaria($maquinariaDestino->id);
 
