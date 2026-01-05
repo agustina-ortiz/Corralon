@@ -24,6 +24,12 @@ class AbmCategoriasMaquinarias extends Component
         'descripcion' => 'nullable|string',
     ];
 
+    protected $messages = [
+        'nombre.required' => 'El nombre de la categoría es obligatorio.',
+        'nombre.max' => 'El nombre de la categoría no puede exceder los 100 caracteres.',
+        'descripcion.string' => 'La descripción debe ser una cadena de texto.',
+    ];
+
     public function render()
     {
         $categorias = CategoriaMaquinaria::query()

@@ -52,6 +52,12 @@ class AbmMaquinarias extends Component
     }
 
     protected $messages = [
+        'maquinaria.required' => 'El nombre de la maquinaria es obligatorio.',
+        'maquinaria.max' => 'El nombre de la maquinaria no puede exceder los 100 caracteres.',
+        'id_categoria_maquinaria.required' => 'La categoría es obligatoria.',
+        'id_categoria_maquinaria.exists' => 'La categoría seleccionada no existe.',
+        'estado.required' => 'El estado es obligatorio.',
+        'id_deposito.required' => 'El depósito es obligatorio.',
         'cantidad.required' => 'La cantidad es obligatoria.',
         'cantidad.min' => 'La cantidad debe ser al menos 1.',
     ];

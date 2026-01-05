@@ -31,7 +31,7 @@ class AbmInsumos extends Component
     public $insumo;
     public $id_categoria;
     public $unidad;
-    public $stock_inicial; // ✅ NUEVO CAMPO
+    public $stock_inicial;
     public $stock_minimo;
     public $id_deposito;
 
@@ -52,6 +52,22 @@ class AbmInsumos extends Component
 
         return $rules;
     }
+
+    protected $messages = [
+        'insumo.required' => 'El nombre del insumo es obligatorio',
+        'insumo.max' => 'El nombre del insumo no puede exceder los 100 caracteres',
+        'id_categoria.required' => 'La categoría es obligatoria',
+        'id_categoria.exists' => 'La categoría seleccionada no existe',
+        'unidad.required' => 'La unidad es obligatoria',
+        'unidad.max' => 'La unidad no puede exceder los 20 caracteres',
+        'stock_inicial.numeric' => 'El stock inicial debe ser un número',
+        'stock_inicial.min' => 'El stock inicial no puede ser negativo',
+        'stock_minimo.required' => 'El stock mínimo es obligatorio',
+        'stock_minimo.numeric' => 'El stock mínimo debe ser un número',
+        'stock_minimo.min' => 'El stock mínimo no puede ser negativo',
+        'id_deposito.required' => 'El depósito es obligatorio',
+        'id_deposito.exists' => 'El depósito seleccionado no existe',
+    ];
 
     public function mount()
     {
