@@ -27,6 +27,7 @@ class AbmVehiculos extends Component
     public $filtro_deposito = '';
     
     // Campos del formulario
+    public $nro_movil;
     public $vehiculoId;
     public $vehiculo;
     public $marca;
@@ -51,6 +52,15 @@ class AbmVehiculos extends Component
     protected function rules()
     {
         return [
+            'nro_movil' => [
+                'required',
+                'string',
+                'max:50',
+                // Si está editando, ignorar el ID actual
+                $this->editMode 
+                    ? 'unique:vehiculos,nro_movil,' . $this->vehiculoId 
+                    : 'unique:vehiculos,nro_movil'
+            ],
             'vehiculo' => 'required|string|max:255',
             'marca' => 'required|string|max:255',
             'nro_motor' => 'nullable|string|max:255',
@@ -64,12 +74,12 @@ class AbmVehiculos extends Component
             'vencimiento_vtv' => 'nullable|date',
             'estado' => 'required|in:disponible,en_uso,mantenimiento,fuera_de_servicio',
             'id_deposito' => 'required|exists:depositos,id',
-            'nuevo_documento' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
-            'nueva_descripcion' => 'required_with:nuevo_documento|string|max:255',
         ];
     }
 
     protected $messages = [
+        'nro_movil.required' => 'El número de móvil es obligatorio',
+        'nro_movil.unique' => 'Este número de móvil ya está en uso',
         'vehiculo.required' => 'El nombre del vehículo es obligatorio',
         'marca.required' => 'La marca es obligatoria',
         'estado.required' => 'El estado es obligatorio',
@@ -79,9 +89,6 @@ class AbmVehiculos extends Component
         'vencimiento_oblea.date' => 'Ingrese una fecha válida',
         'vencimiento_poliza.date' => 'Ingrese una fecha válida',
         'vencimiento_vtv.date' => 'Ingrese una fecha válida',
-        'nuevo_documento.mimes' => 'El documento debe ser PDF, JPG, JPEG o PNG',
-        'nuevo_documento.max' => 'El documento no debe superar 10MB',
-        'nueva_descripcion.required_with' => 'La descripción es obligatoria al cargar un documento',
     ];
 
     public function updatedTipoCombustible()
@@ -133,7 +140,8 @@ class AbmVehiculos extends Component
             ->withCount('documentos')
             ->porCorralonesPermitidos()
             ->where(function($query) {
-                $query->where('vehiculo', 'like', '%' . $this->search . '%')
+                $query->where('nro_movil', 'like', '%' . $this->search . '%')
+                      ->orWhere('vehiculo', 'like', '%' . $this->search . '%')
                       ->orWhere('marca', 'like', '%' . $this->search . '%')
                       ->orWhere('patente', 'like', '%' . $this->search . '%')
                       ->orWhere('modelo', 'like', '%' . $this->search . '%');
@@ -218,6 +226,7 @@ class AbmVehiculos extends Component
         }
             
         $this->vehiculoId = $vehiculo->id;
+        $this->nro_movil = $vehiculo->nro_movil;
         $this->vehiculo = $vehiculo->vehiculo;
         $this->marca = $vehiculo->marca;
         $this->nro_motor = $vehiculo->nro_motor;
@@ -251,6 +260,7 @@ class AbmVehiculos extends Component
         }
 
         $data = [
+            'nro_movil' => $this->nro_movil,
             'vehiculo' => $this->vehiculo,
             'marca' => $this->marca,
             'nro_motor' => $this->nro_motor,
@@ -382,6 +392,7 @@ class AbmVehiculos extends Component
     private function resetForm()
     {
         $this->reset([
+            'nro_movil',
             'vehiculoId',
             'vehiculo',
             'marca',

@@ -9,11 +9,11 @@
                 <input 
                     type="text" 
                     wire:model.live="search" 
-                    placeholder="Buscar vehículos..."
+                    placeholder="Buscar por nro. móvil, vehículo, marca, patente..."
                     class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                 >
             </div>
-        </div>
+        </div>  
         <div class="flex gap-3">
             <button 
                 wire:click="$toggle('showFilters')" 
@@ -162,6 +162,7 @@
             <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
                     <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nro. Móvil</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Marca</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Modelo</th>
@@ -176,6 +177,9 @@
                 <tbody class="bg-white divide-y divide-gray-50">
                     @forelse ($vehiculos as $item)
                         <tr class="hover:bg-gray-50/50 transition-colors duration-150">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">{{ $item->nro_movil ?? '-' }}</div>
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $item->vehiculo }}</div>
                             </td>
@@ -317,6 +321,18 @@
                                         Información Básica
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <!-- Nro. Móvil -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Móvil</label>
+                                            <input 
+                                                type="text" 
+                                                wire:model="nro_movil"
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                placeholder="Ej: 12345"
+                                            >
+                                            @error('nro_movil') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+
                                         <!-- Vehículo -->
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Vehículo *</label>
