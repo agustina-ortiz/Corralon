@@ -12,6 +12,7 @@ use App\Livewire\AbmDepositos;
 use App\Livewire\TransferenciasInsumos;
 use App\Livewire\AbmEmpleados;
 use App\Livewire\AbmVehiculos;
+use App\Livewire\AbmEventos;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -44,6 +45,10 @@ Route::get('/categorias-maquinarias', AbmCategoriasMaquinarias::class)
 Route::get('/depositos', AbmDepositos::class)
     ->middleware(['auth'])
     ->name('depositos');
+
+Route::get('/eventos', AbmEventos::class)
+    ->middleware(['auth'])
+    ->name('eventos');
 
 Route::get('/transferencias-insumos', TransferenciasInsumos::class)
     ->middleware(['auth'])

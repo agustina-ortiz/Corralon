@@ -88,6 +88,12 @@
                                 </svg>
                                 Depósitos
                             </a>
+                            <a href="{{ route('eventos') }}" class="flex items-center px-4 py-2 rounded-lg {{ request()->routeIs('eventos') ? 'bg-blue-600' : 'hover:bg-gray-800' }}">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Eventos
+                            </a>
                             <a href="{{ route('transferencias-insumos') }}" 
                                 wire:navigate
                                class="flex items-center px-4 py-2 rounded-lg {{ request()->routeIs('transferencias-insumos') ? 'bg-blue-600' : 'hover:bg-gray-800' }}">

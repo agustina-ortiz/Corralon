@@ -10,6 +10,17 @@ class Evento extends Model
     
     protected $fillable = [
         'evento',
-        'anio',
+        'fecha',
+        'ubicacion',
     ];
+
+    protected $casts = [
+        'fecha' => 'date',
+    ];
+
+    // Accessor para formato de fecha legible
+    public function getFechaFormateadaAttribute()
+    {
+        return $this->fecha->format('d/m/Y');
+    }
 }
