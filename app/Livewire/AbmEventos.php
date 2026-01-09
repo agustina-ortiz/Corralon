@@ -19,11 +19,13 @@ class AbmEventos extends Component
     public $evento;
     public $fecha;
     public $ubicacion;
+    public $secretaria;
 
     protected $rules = [
         'evento' => 'required|string|max:200',
         'fecha' => 'required|date',
         'ubicacion' => 'required|string|max:200',
+        'secretaria' => 'nullable|string|max:200',
     ];
 
     protected $messages = [
@@ -33,13 +35,15 @@ class AbmEventos extends Component
         'fecha.date' => 'Debe ingresar una fecha válida',
         'ubicacion.required' => 'La ubicación es obligatoria',
         'ubicacion.max' => 'La ubicación no puede exceder 200 caracteres',
+        'secretaria.max' => 'La secretaría no puede exceder 200 caracteres',
     ];
 
     public function render()
     {
         $eventos = Evento::when($this->search, function($query) {
                 $query->where('evento', 'like', '%' . $this->search . '%')
-                      ->orWhere('ubicacion', 'like', '%' . $this->search . '%');
+                      ->orWhere('ubicacion', 'like', '%' . $this->search . '%')
+                      ->orWhere('secretaria', 'like', '%' . $this->search . '%');
             })
             ->orderBy('fecha', 'desc')
             ->paginate(10);
@@ -71,6 +75,7 @@ class AbmEventos extends Component
         $this->evento = $evento->evento;
         $this->fecha = $evento->fecha->format('Y-m-d');
         $this->ubicacion = $evento->ubicacion;
+        $this->secretaria = $evento->secretaria;
         
         $this->editMode = true;
         $this->showModal = true;
@@ -86,6 +91,7 @@ class AbmEventos extends Component
                 'evento' => $this->evento,
                 'fecha' => $this->fecha,
                 'ubicacion' => $this->ubicacion,
+                'secretaria' => $this->secretaria,
             ]);
             session()->flash('message', 'Evento actualizado correctamente.');
         } else {
@@ -93,6 +99,7 @@ class AbmEventos extends Component
                 'evento' => $this->evento,
                 'fecha' => $this->fecha,
                 'ubicacion' => $this->ubicacion,
+                'secretaria' => $this->secretaria,
             ]);
             session()->flash('message', 'Evento creado correctamente.');
         }
@@ -124,6 +131,7 @@ class AbmEventos extends Component
         $this->evento = '';
         $this->fecha = '';
         $this->ubicacion = '';
+        $this->secretaria = '';
         $this->resetErrorBag();
     }
 }
