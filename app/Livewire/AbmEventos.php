@@ -45,7 +45,7 @@ class AbmEventos extends Component
                       ->orWhere('ubicacion', 'like', '%' . $this->search . '%')
                       ->orWhere('secretaria', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('fecha', 'desc')
+            ->orderBy('fecha', 'asc')
             ->paginate(10);
 
         return view('livewire.abm-eventos', [
