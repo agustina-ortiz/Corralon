@@ -34,12 +34,20 @@ class AbmDepositos extends Component
         'id_corralon.exists' => 'El corralón seleccionado no es válido',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function render()
     {
-        $user = auth()->user(); // ← AGREGAR
+        $user = auth()->user();
         
         $depositos = Deposito::with('corralon')
-            ->porCorralonesPermitidos() // ← AGREGAR EL SCOPE
+            ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('deposito', 'like', '%' . $this->search . '%')
                       ->orWhere('sector', 'like', '%' . $this->search . '%');
@@ -56,7 +64,11 @@ class AbmDepositos extends Component
 
         return view('livewire.abm-depositos', [
             'depositos' => $depositos,
-            'corralones' => $corralones
+            'corralones' => $corralones,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearDepositos(),
+            'puedeEditar' => $user->puedeEditarDepositos(),
+            'puedeEliminar' => $user->puedeEliminarDepositos(),
         ])->layout('layouts.app', [
             'header' => 'ABM Depósitos'
         ]);
@@ -69,6 +81,12 @@ class AbmDepositos extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearDepositos()) {
+            session()->flash('error', 'No tienes permisos para crear depósitos.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         
@@ -83,13 +101,19 @@ class AbmDepositos extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarDepositos()) {
+            session()->flash('error', 'No tienes permisos para editar depósitos.');
+            return;
+        }
+        
         $deposito = Deposito::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este depósito
+        // Verificar que el usuario tenga acceso a este depósito por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar este depósito.');
+                session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
                 return;
             }
         }
@@ -105,6 +129,19 @@ class AbmDepositos extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearDepositos()) {
+            session()->flash('error', 'No tienes permisos para crear depósitos.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarDepositos()) {
+            session()->flash('error', 'No tienes permisos para editar depósitos.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
         
         $user = auth()->user();
@@ -120,10 +157,10 @@ class AbmDepositos extends Component
         if ($this->editMode) {
             $deposito = Deposito::findOrFail($this->deposito_id);
             
-            // Verificar acceso al depósito original
+            // Verificar acceso al depósito original por corralón
             if (!$user->acceso_todos_corralones) {
                 if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar este depósito.');
+                    session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
                     return;
                 }
             }
@@ -149,13 +186,19 @@ class AbmDepositos extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarDepositos()) {
+            session()->flash('error', 'No tienes permisos para eliminar depósitos.');
+            return;
+        }
+        
         $deposito = Deposito::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este depósito
+        // Verificar que el usuario tenga acceso a este depósito por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar este depósito.');
+                session()->flash('error', 'No tienes permisos para eliminar depósitos de este corralón.');
                 return;
             }
         }
@@ -176,8 +219,12 @@ class AbmDepositos extends Component
             return;
         }
         
-        $deposito->delete();
-        session()->flash('message', 'Depósito eliminado correctamente.');
+        try {
+            $deposito->delete();
+            session()->flash('message', 'Depósito eliminado correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se puede eliminar el depósito porque tiene movimientos asociados.');
+        }
     }
 
     public function cerrarModal()
