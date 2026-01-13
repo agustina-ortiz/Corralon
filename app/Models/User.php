@@ -155,6 +155,22 @@ class User extends Authenticatable
         return $this->rol && $this->rol->puedeEliminar();
     }
 
+    // Permisos para Depósitos
+    public function puedeCrearDepositos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarDepositos(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarDepositos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
+
     // Permisos para Eventos
     public function puedeCrearEventos(): bool
     {
@@ -171,7 +187,18 @@ class User extends Authenticatable
         return $this->rol && $this->rol->puedeEliminar();
     }
 
-    // Permisos para Transferencias-Maquinarias
+    // Permisos para Transferencias y Movimientos de Insumos
+    public function puedeCrearMovimientosInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeCrearTransferenciasInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }   
+
+    // Permisos para Transferencias y Movimientos de Maquinarias
     public function puedeCrearMovimientosMaquinarias(): bool
     {
         return $this->rol && $this->rol->puedeCrear();
