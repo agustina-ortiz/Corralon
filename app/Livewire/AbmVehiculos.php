@@ -56,7 +56,6 @@ class AbmVehiculos extends Component
                 'required',
                 'string',
                 'max:50',
-                // Si está editando, ignorar el ID actual
                 $this->editMode 
                     ? 'unique:vehiculos,nro_movil,' . $this->vehiculoId 
                     : 'unique:vehiculos,nro_movil'
@@ -95,6 +94,14 @@ class AbmVehiculos extends Component
         'vencimiento_poliza.date' => 'Ingrese una fecha válida',
         'vencimiento_vtv.date' => 'Ingrese una fecha válida',
     ];
+
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
 
     public function updatedTipoCombustible()
     {
@@ -179,7 +186,11 @@ class AbmVehiculos extends Component
             'vehiculos' => $vehiculos,
             'depositos' => $depositos,
             'marcas' => $marcas,
-            'modelos' => $modelos
+            'modelos' => $modelos,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearVehiculos(),
+            'puedeEditar' => $user->puedeEditarVehiculos(),
+            'puedeEliminar' => $user->puedeEliminarVehiculos(),
         ])->layout('layouts.app', [
             'header' => 'ABM Vehículos'
         ]);
@@ -213,12 +224,24 @@ class AbmVehiculos extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearVehiculos()) {
+            session()->flash('error', 'No tienes permisos para crear vehículos.');
+            return;
+        }
+        
         $this->resetForm();
         $this->showModal = true;
     }
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarVehiculos()) {
+            session()->flash('error', 'No tienes permisos para editar vehículos.');
+            return;
+        }
+        
         $vehiculo = Vehiculo::findOrFail($id);
 
         $user = auth()->user();
@@ -252,10 +275,24 @@ class AbmVehiculos extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearVehiculos()) {
+            session()->flash('error', 'No tienes permisos para crear vehículos.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarVehiculos()) {
+            session()->flash('error', 'No tienes permisos para editar vehículos.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
 
         $user = auth()->user();
     
+        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
         if (!$user->acceso_todos_corralones) {
             $deposito = Deposito::find($this->id_deposito);
             if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
@@ -285,6 +322,7 @@ class AbmVehiculos extends Component
         if ($this->editMode) {
             $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
 
+            // Verificar acceso al vehículo original por corralón
             if (!$user->acceso_todos_corralones) {
                 $corralonId = $vehiculo->deposito->id_corralon;
                 if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
@@ -305,6 +343,12 @@ class AbmVehiculos extends Component
 
     public function agregarDocumento()
     {
+        // Verificar permiso de edición (agregar documento es una forma de edición)
+        if (!auth()->user()->puedeEditarVehiculos()) {
+            session()->flash('error', 'No tienes permisos para agregar documentos.');
+            return;
+        }
+        
         $this->validate([
             'nuevo_documento' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'nueva_descripcion' => 'required|string|max:255',
@@ -345,6 +389,12 @@ class AbmVehiculos extends Component
 
     public function eliminarDocumento($documentoId)
     {
+        // Verificar permiso de edición (eliminar documento es una forma de edición)
+        if (!auth()->user()->puedeEditarVehiculos()) {
+            session()->flash('error', 'No tienes permisos para eliminar documentos.');
+            return;
+        }
+        
         $documento = DocumentoVehiculo::findOrFail($documentoId);
         
         $user = auth()->user();
@@ -367,6 +417,12 @@ class AbmVehiculos extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarVehiculos()) {
+            session()->flash('error', 'No tienes permisos para eliminar vehículos.');
+            return;
+        }
+        
         $vehiculo = Vehiculo::with('documentos')->findOrFail($id);
         
         $user = auth()->user();

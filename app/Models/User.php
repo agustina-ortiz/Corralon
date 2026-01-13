@@ -89,4 +89,19 @@ class User extends Authenticatable
     {
         return $this->rol && $this->rol->puedeEliminar();
     }
+
+    public function puedeCrearVehiculos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarVehiculos(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarVehiculos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
 }

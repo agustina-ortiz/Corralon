@@ -1,5 +1,5 @@
 <div>
-    <!-- Header con búsqueda y botón crear -->
+   <!-- Header con búsqueda y botón crear -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
@@ -29,6 +29,9 @@
                     </span>
                 @endif
             </button>
+            
+            {{-- Botón Nuevo solo si tiene permisos --}}
+            @if($puedeCrear)
             <button 
                 wire:click="crear" 
                 class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
@@ -38,6 +41,7 @@
                 </svg>
                 Nuevo Vehículo
             </button>
+            @endif
         </div>
     </div>
 
@@ -171,7 +175,9 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Documentos</th>
-                        <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+                        @if($puedeEditar || $puedeEliminar)
+                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-50">
@@ -239,8 +245,10 @@
                                     </button>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right">
+                           <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    {{-- Botón Editar solo si tiene permisos --}}
+                                    @if($puedeEditar)
                                     <button 
                                         wire:click="editar({{ $item->id }})"
                                         class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
@@ -250,6 +258,10 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
+                                    @endif
+                                    
+                                    {{-- Botón Eliminar solo si tiene permisos --}}
+                                    @if($puedeEliminar)
                                     <button 
                                         wire:click="eliminar({{ $item->id }})"
                                         onclick="return confirm('¿Está seguro de eliminar este vehículo?')"
@@ -260,6 +272,7 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                         </svg>
                                     </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -587,6 +600,7 @@
                         </div>
 
                         <!-- Agregar nuevo documento -->
+                        @if($puedeEditar)
                         <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                                 <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,6 +650,7 @@
                                 </button>
                             </div>
                         </div>
+                        @endif
 
                         <!-- Lista de documentos existentes -->
                         <div class="max-h-96 overflow-y-auto">
@@ -681,6 +696,8 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                 </a>
+                                                {{-- Botón Eliminar solo si tiene permisos --}}
+                                                @if($puedeEditar)
                                                 <button 
                                                     type="button"
                                                     wire:click="eliminarDocumento({{ $doc['id'] }})"
@@ -692,6 +709,7 @@
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                     </svg>
                                                 </button>
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach
