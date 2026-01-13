@@ -64,7 +64,7 @@ class Dashboard extends Component
 
         // Vehículos en uso
         $vehiculosEnUso = Vehiculo::with(['deposito.corralon'])
-            ->where('estado', 'en_uso')
+            ->where('estado', 'en uso')
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
@@ -95,7 +95,7 @@ class Dashboard extends Component
             })
             ->count();
 
-        $countVehiculosEnUso = Vehiculo::where('estado', 'en_uso')
+        $countVehiculosEnUso = Vehiculo::where('estado', 'en uso')
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);

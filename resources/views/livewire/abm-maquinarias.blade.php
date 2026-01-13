@@ -158,10 +158,10 @@
                             </td>
                              <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
-                                    @if($item->cantidad_disponible > 0)
-                                        <span class="text-sm font-semibold text-green-700">{{ $item->cantidad_disponible }}</span>
+                                    @if($item->cantidad > 0)
+                                        <span class="text-sm font-semibold text-green-700">{{ $item->cantidad }}</span>
                                     @else
-                                        <span class="text-sm font-semibold text-red-700">{{ $item->cantidad_disponible }}</span>
+                                        <span class="text-sm font-semibold text-red-700">{{ $item->cantidad }}</span>
                                     @endif
                                     <span class="text-xs text-gray-500">
                                         @if($item->cantidad_disponible == 1)

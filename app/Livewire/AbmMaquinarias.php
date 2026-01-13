@@ -139,7 +139,7 @@ class AbmMaquinarias extends Component
                         'maquinaria' => $maquinaria->maquinaria,
                         'id_categoria_maquinaria' => $maquinaria->id_categoria_maquinaria,
                         'categoriaMaquinaria' => $maquinaria->categoriaMaquinaria,
-                        'estado' => $estadoFila, // ✅ Estado calculado por fila
+                        'estado' => $maquinaria->estado,
                         'cantidad' => $maquinaria->cantidad,
                         'cantidad_disponible' => $cantidadEnDeposito,
                         'id_deposito' => $depositoId,

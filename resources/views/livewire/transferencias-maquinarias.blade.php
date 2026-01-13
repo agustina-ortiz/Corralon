@@ -486,14 +486,14 @@
                                                                             <span>•</span>
                                                                             <span>{{ $maquinaria->deposito->deposito }}</span>
                                                                             <span>•</span>
-                                                                            <span class="px-2 py-0.5 {{ $maquinaria->cantidad_disponible > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }} rounded font-medium">
-                                                                                {{ $maquinaria->cantidad_disponible }} {{ $maquinaria->cantidad_disponible == 1 ? 'unidad' : 'unidades' }}
+                                                                            <span class="px-2 py-0.5 {{ $maquinaria->cantidad > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }} rounded font-medium">
+                                                                                {{ $maquinaria->cantidad }} {{ $maquinaria->cantidad == 1 ? 'unidad' : 'unidades' }}
                                                                             </span>
                                                                         </div>
                                                                     </div>
                                                                     <div class="text-right ml-3">
                                                                         @php
-                                                                            $tieneStock = $maquinaria->getCantidadTotalDisponible() > 0;
+                                                                            $tieneStock = $maquinaria->cantidad > 0;
                                                                         @endphp
                                                                         @if($tieneStock)
                                                                             <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
@@ -551,7 +551,7 @@
                                                         <span>•</span>
                                                         <!-- ✅ Mostrar cantidad -->
                                                         <span class="px-2 py-0.5 bg-white text-blue-900 rounded font-medium">
-                                                            {{ $maquinaria_seleccionada->cantidad_disponible }} {{ $maquinaria_seleccionada->cantidad_disponible == 1 ? 'unidad' : 'unidades' }}
+                                                            {{ $maquinaria_seleccionada->cantidad }} {{ $maquinaria_seleccionada->cantidad == 1 ? 'unidad' : 'unidades' }}
                                                         </span>
                                                     </div>
                                                 </div>
