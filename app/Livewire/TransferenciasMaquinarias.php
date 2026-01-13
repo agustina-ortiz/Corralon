@@ -138,6 +138,14 @@ class TransferenciasMaquinarias extends Component
         'cantidad_a_cargar.max' => 'La cantidad excede el límite permitido.',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     /**
      * Obtiene los IDs de depósitos accesibles por el usuario actual
      */
@@ -229,6 +237,7 @@ class TransferenciasMaquinarias extends Component
 
     public function render()
     {
+        $user = auth()->user();
         $depositosAccesibles = $this->getDepositosAccesibles();
 
         // Obtener movimientos con filtros
@@ -354,6 +363,8 @@ class TransferenciasMaquinarias extends Component
             'categorias' => $categorias,
             'usuarios' => $usuarios,
             'tipos_movimiento' => $tipos_movimiento,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearMovimientosMaquinarias(),
         ])->layout('layouts.app', [
             'header' => 'Movimientos de Maquinarias'
         ]);
@@ -393,6 +404,12 @@ class TransferenciasMaquinarias extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos de maquinarias.');
+            return;
+        }
+        
         $this->resetForm();
         $this->showModal = true;
         $this->paso_actual = 1;
@@ -563,6 +580,13 @@ class TransferenciasMaquinarias extends Component
     // PASO 3: Guardar movimiento
     public function guardar()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos de maquinarias.');
+            $this->showModal = false;
+            return;
+        }
+        
         try {
             $this->validate();
 

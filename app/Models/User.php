@@ -154,4 +154,36 @@ class User extends Authenticatable
     {
         return $this->rol && $this->rol->puedeEliminar();
     }
+
+    // Permisos para Eventos
+    public function puedeCrearEventos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarEventos(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarEventos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
+
+    // Permisos para Transferencias-Maquinarias
+    public function puedeCrearMovimientosMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarMovimientosMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarMovimientosMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
 }

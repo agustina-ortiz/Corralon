@@ -30,6 +30,9 @@
                     </span>
                 @endif
             </button>
+            
+            {{-- Botón Nuevo Movimiento solo si tiene permisos --}}
+            @if($puedeCrear)
             <button 
                 wire:click="crear" 
                 class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
@@ -39,6 +42,7 @@
                 </svg>
                 Nuevo Movimiento
             </button>
+            @endif
         </div>
     </div>
 

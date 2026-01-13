@@ -38,8 +38,18 @@ class AbmEventos extends Component
         'secretaria.max' => 'La secretaría no puede exceder 200 caracteres',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function render()
     {
+        $user = auth()->user();
+        
         $eventos = Evento::when($this->search, function($query) {
                 $query->where('evento', 'like', '%' . $this->search . '%')
                       ->orWhere('ubicacion', 'like', '%' . $this->search . '%')
@@ -49,7 +59,11 @@ class AbmEventos extends Component
             ->paginate(10);
 
         return view('livewire.abm-eventos', [
-            'eventos' => $eventos
+            'eventos' => $eventos,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearEventos(),
+            'puedeEditar' => $user->puedeEditarEventos(),
+            'puedeEliminar' => $user->puedeEliminarEventos(),
         ])->layout('layouts.app', [
             'header' => 'ABM Eventos'
         ]);
@@ -62,6 +76,12 @@ class AbmEventos extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearEventos()) {
+            session()->flash('error', 'No tienes permisos para crear eventos.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
@@ -69,6 +89,12 @@ class AbmEventos extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarEventos()) {
+            session()->flash('error', 'No tienes permisos para editar eventos.');
+            return;
+        }
+        
         $evento = Evento::findOrFail($id);
         
         $this->evento_id = $evento->id;
@@ -83,6 +109,19 @@ class AbmEventos extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearEventos()) {
+            session()->flash('error', 'No tienes permisos para crear eventos.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarEventos()) {
+            session()->flash('error', 'No tienes permisos para editar eventos.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
 
         if ($this->editMode) {
@@ -110,6 +149,12 @@ class AbmEventos extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarEventos()) {
+            session()->flash('error', 'No tienes permisos para eliminar eventos.');
+            return;
+        }
+        
         $evento = Evento::findOrFail($id);
         
         // Aquí puedes agregar validaciones adicionales si el evento tiene relaciones
