@@ -29,8 +29,18 @@ class AbmCategoriasInsumos extends Component
         'descripcion.string' => 'La descripción debe ser una cadena de texto.',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function render()
     {
+        $user = auth()->user();
+        
         $categorias = CategoriaInsumo::when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->search . '%');
@@ -39,7 +49,11 @@ class AbmCategoriasInsumos extends Component
             ->paginate(10);
 
         return view('livewire.abm-categorias-insumos', [
-            'categorias' => $categorias
+            'categorias' => $categorias,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearCategoriasInsumos(),
+            'puedeEditar' => $user->puedeEditarCategoriasInsumos(),
+            'puedeEliminar' => $user->puedeEliminarCategoriasInsumos(),
         ])->layout('layouts.app', [
             'header' => 'ABM Categorías de Insumos'
         ]);
@@ -52,6 +66,12 @@ class AbmCategoriasInsumos extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearCategoriasInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear categorías de insumos.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
@@ -59,6 +79,12 @@ class AbmCategoriasInsumos extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarCategoriasInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar categorías de insumos.');
+            return;
+        }
+        
         $categoria = CategoriaInsumo::findOrFail($id);
 
         $this->categoria_id = $categoria->id;
@@ -71,6 +97,19 @@ class AbmCategoriasInsumos extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearCategoriasInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear categorías de insumos.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarCategoriasInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar categorías de insumos.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
 
         CategoriaInsumo::updateOrCreate(
@@ -93,8 +132,18 @@ class AbmCategoriasInsumos extends Component
 
     public function eliminar($id)
     {
-        CategoriaInsumo::findOrFail($id)->delete();
-        session()->flash('message', 'Categoría eliminada correctamente.');
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarCategoriasInsumos()) {
+            session()->flash('error', 'No tienes permisos para eliminar categorías de insumos.');
+            return;
+        }
+        
+        try {
+            CategoriaInsumo::findOrFail($id)->delete();
+            session()->flash('message', 'Categoría eliminada correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se puede eliminar la categoría porque tiene insumos asociados.');
+        }
     }
 
     public function cerrarModal()

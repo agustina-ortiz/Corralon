@@ -62,6 +62,16 @@ class AbmMaquinarias extends Component
         'cantidad.min' => 'La cantidad debe ser al menos 1.',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+        
+        $this->limpiarFiltros();
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -81,7 +91,11 @@ class AbmMaquinarias extends Component
         return view('livewire.abm-maquinarias', [
             'maquinarias' => $maquinarias,
             'categorias' => $categorias,
-            'depositos' => $depositos
+            'depositos' => $depositos,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearMaquinarias(),
+            'puedeEditar' => $user->puedeEditarMaquinarias(),
+            'puedeEliminar' => $user->puedeEliminarMaquinarias(),
         ])->layout('layouts.app', [
             'header' => 'ABM Maquinarias'
         ]);
@@ -168,7 +182,6 @@ class AbmMaquinarias extends Component
         );
     }
 
-
     public function updatingSearch()
     {
         $this->resetPage();
@@ -199,6 +212,12 @@ class AbmMaquinarias extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear maquinarias.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
@@ -206,13 +225,20 @@ class AbmMaquinarias extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar maquinarias.');
+            return;
+        }
+        
         $maquinaria = Maquinaria::findOrFail($id);
 
+        // Verificar que el usuario tenga acceso a esta maquinaria por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             $corralonId = $maquinaria->deposito->id_corralon;
             if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar esta maquinaria.');
+                session()->flash('error', 'No tienes permisos para editar maquinarias de este corralón.');
                 return;
             }
         }
@@ -230,10 +256,24 @@ class AbmMaquinarias extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear maquinarias.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar maquinarias.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
 
         $user = auth()->user();
     
+        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
         if (!$user->acceso_todos_corralones) {
             $deposito = Deposito::find($this->id_deposito);
             if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
@@ -245,10 +285,11 @@ class AbmMaquinarias extends Component
         if ($this->editMode) {
             $maquinaria = Maquinaria::findOrFail($this->maquinaria_id);
 
+            // Verificar acceso a la maquinaria original por corralón
             if (!$user->acceso_todos_corralones) {
                 $corralonId = $maquinaria->deposito->id_corralon;
                 if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar esta maquinaria.');
+                    session()->flash('error', 'No tienes permisos para editar maquinarias de este corralón.');
                     return;
                 }
             }
@@ -259,6 +300,7 @@ class AbmMaquinarias extends Component
                 'estado' => $this->estado,
                 'id_deposito' => $this->id_deposito,
             ]);
+            
             session()->flash('message', 'Maquinaria actualizada correctamente.');
         } else {
             // ✅ Crear maquinaria con movimiento inicial
@@ -310,19 +352,30 @@ class AbmMaquinarias extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para eliminar maquinarias.');
+            return;
+        }
+        
         $maquinaria = Maquinaria::findOrFail($id);
         
+        // Verificar que el usuario tenga acceso a esta maquinaria por corralón
         $user = auth()->user();
         if (!$user->acceso_todos_corralones) {
             $corralonId = $maquinaria->deposito->id_corralon;
             if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar esta maquinaria.');
+                session()->flash('error', 'No tienes permisos para eliminar maquinarias de este corralón.');
                 return;
             }
         }
         
-        $maquinaria->delete();
-        session()->flash('message', 'Maquinaria eliminada correctamente.');
+        try {
+            $maquinaria->delete();
+            session()->flash('message', 'Maquinaria eliminada correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se puede eliminar la maquinaria porque tiene movimientos asociados.');
+        }
     }
 
     public function cerrarModal()

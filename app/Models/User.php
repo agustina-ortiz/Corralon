@@ -75,6 +75,7 @@ class User extends Authenticatable
         return $this->rol && $this->rol->nombre === 'Administrador';
     }
 
+    // Permisos para Insumos
     public function puedeCrearInsumos(): bool
     {
         return $this->rol && $this->rol->puedeCrear();
@@ -86,6 +87,54 @@ class User extends Authenticatable
     }
 
     public function puedeEliminarInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
+
+    // Permisos para Categorías de Insumos
+    public function puedeCrearCategoriasInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarCategoriasInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarCategoriasInsumos(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
+
+    // Permisos para Maquinarias
+    public function puedeCrearMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeEliminar();
+    }
+
+    // Permisos para Categorías de Maquinarias
+    public function puedeCrearCategoriasMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeCrear();
+    }
+
+    public function puedeEditarCategoriasMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->puedeEditar();
+    }
+
+    public function puedeEliminarCategoriasMaquinarias(): bool
     {
         return $this->rol && $this->rol->puedeEliminar();
     }
