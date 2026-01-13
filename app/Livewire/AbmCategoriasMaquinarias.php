@@ -30,8 +30,18 @@ class AbmCategoriasMaquinarias extends Component
         'descripcion.string' => 'La descripción debe ser una cadena de texto.',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function render()
     {
+        $user = auth()->user();
+        
         $categorias = CategoriaMaquinaria::query()
             ->when($this->search, function($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
@@ -41,7 +51,11 @@ class AbmCategoriasMaquinarias extends Component
             ->paginate(10);
 
         return view('livewire.abm-categorias-maquinarias', [
-            'categorias' => $categorias
+            'categorias' => $categorias,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearCategoriasMaquinarias(),
+            'puedeEditar' => $user->puedeEditarCategoriasMaquinarias(),
+            'puedeEliminar' => $user->puedeEliminarCategoriasMaquinarias(),
         ])->layout('layouts.app', [
             'header' => 'ABM Categorías de Maquinarias'
         ]);
@@ -54,6 +68,12 @@ class AbmCategoriasMaquinarias extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación por rol
+        if (!auth()->user()->puedeCrearCategoriasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear categorías de maquinarias.');
+            return;
+        }
+        
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
@@ -61,6 +81,12 @@ class AbmCategoriasMaquinarias extends Component
 
     public function editar($id)
     {
+        // Verificar permiso de edición por rol
+        if (!auth()->user()->puedeEditarCategoriasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar categorías de maquinarias.');
+            return;
+        }
+        
         $categoria = CategoriaMaquinaria::findOrFail($id);
         $this->categoria_id = $categoria->id;
         $this->nombre = $categoria->nombre;
@@ -72,6 +98,19 @@ class AbmCategoriasMaquinarias extends Component
 
     public function guardar()
     {
+        // Verificar permisos por rol
+        if (!$this->editMode && !auth()->user()->puedeCrearCategoriasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear categorías de maquinarias.');
+            $this->showModal = false;
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarCategoriasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar categorías de maquinarias.');
+            $this->showModal = false;
+            return;
+        }
+        
         $this->validate();
 
         if ($this->editMode) {
@@ -95,8 +134,18 @@ class AbmCategoriasMaquinarias extends Component
 
     public function eliminar($id)
     {
-        CategoriaMaquinaria::findOrFail($id)->delete();
-        session()->flash('message', 'Categoría eliminada correctamente.');
+        // Verificar permiso de eliminación por rol
+        if (!auth()->user()->puedeEliminarCategoriasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para eliminar categorías de maquinarias.');
+            return;
+        }
+        
+        try {
+            CategoriaMaquinaria::findOrFail($id)->delete();
+            session()->flash('message', 'Categoría eliminada correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se puede eliminar la categoría porque tiene maquinarias asociadas.');
+        }
     }
 
     public function cerrarModal()
