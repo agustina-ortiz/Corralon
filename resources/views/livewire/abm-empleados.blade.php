@@ -84,7 +84,7 @@
                                     </button>
                                     <button 
                                         wire:click="eliminar({{ $empleado->id }})"
-                                        onclick="return confirm('¿Está seguro de eliminar este empleado?')"
+                                        wire:confirm="¿Está seguro de eliminar este empleado?"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >

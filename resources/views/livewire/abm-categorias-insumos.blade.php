@@ -83,7 +83,7 @@
                                     @if($puedeEliminar)
                                     <button
                                         wire:click="eliminar({{ $categoria->id }})"
-                                        onclick="return confirm('¿Eliminar categoría?')"
++                                       wire:confirm="¿Está seguro de eliminar esta categoría?"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
