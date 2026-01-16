@@ -173,7 +173,8 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vencimiento VTV</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Documentos</th>
                         @if($puedeEditar || $puedeEliminar)
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
@@ -225,6 +226,12 @@
                                     {{ $item->deposito?->corralon?->descripcion ?? 'Sin corralón' }}
                                 </span>
                             </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                @if($item->vencimiento_vtv)
+                                    {{ \Carbon\Carbon::parse($item->vencimiento_vtv)->format('d/m/Y') }}
+                                @else
+                                    -
+                                @endif
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-center">
                                     <button 
