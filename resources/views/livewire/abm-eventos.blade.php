@@ -59,6 +59,7 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ubicación</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Secretaría</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Anual</th>
                         @if ($puedeEditar || $puedeEliminar)
                             <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                         @endif
@@ -92,7 +93,23 @@
                                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
-                                    {{ $item->secretaria ?? 'N/A' }}
+                                    {{ $item->secretaria->secretaria ?? 'N/A' }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex justify-center">
+                                    @if($item->evento_anual)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Sí
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            No
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                             @if ($puedeEditar || $puedeEliminar)
@@ -130,7 +147,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
+                            <td colspan="6" class="px-6 py-12 text-center">
                                 <div class="flex flex-col items-center justify-center text-gray-400">
                                     <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -212,16 +229,32 @@
                                     @error('ubicacion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <!-- Secretaría -->
+                                <!-- Secretaría (Select) -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="secretaria"
+                                    <select 
+                                        wire:model="secretaria_id"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        placeholder="Nombre de la secretaría"
                                     >
-                                    @error('secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        <option value="">Seleccione una secretaría</option>
+                                        @foreach($secretarias as $sec)
+                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('secretaria_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+
+                                <!-- Evento Anual (Checkbox) -->
+                                <div>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            wire:model="evento_anual"
+                                            class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                                        >
+                                        <span class="text-sm font-medium text-gray-700">Evento Anual</span>
+                                    </label>
+                                    @error('evento_anual') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
                         </div>

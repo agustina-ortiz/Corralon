@@ -12,12 +12,20 @@ class Evento extends Model
         'evento',
         'fecha',
         'ubicacion',
-        'secretaria',
+        'secretaria_id',
+        'evento_anual',
     ];
 
     protected $casts = [
         'fecha' => 'date',
+        'evento_anual' => 'boolean',
     ];
+
+    // Relación con Secretaria
+    public function secretaria()
+    {
+        return $this->belongsTo(Secretaria::class, 'secretaria_id');
+    }
 
     // Accessor para formato de fecha legible
     public function getFechaFormateadaAttribute()

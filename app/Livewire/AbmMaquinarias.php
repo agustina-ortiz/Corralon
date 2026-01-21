@@ -165,21 +165,6 @@ class AbmMaquinarias extends Component
                 }
             }
         }
-
-        // ✅ Paginar manualmente
-        $perPage = 10;
-        $currentPage = request()->get('page', 1);
-        $offset = ($currentPage - 1) * $perPage;
-
-        $items = $maquinariasExpandidas->slice($offset, $perPage)->values();
-        
-        return new \Illuminate\Pagination\LengthAwarePaginator(
-            $items,
-            $maquinariasExpandidas->count(),
-            $perPage,
-            $currentPage,
-            ['path' => request()->url(), 'query' => request()->query()]
-        );
     }
 
     public function updatingSearch()

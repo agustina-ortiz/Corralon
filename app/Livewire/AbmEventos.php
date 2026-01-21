@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Evento;
+use App\Models\Secretaria;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -19,13 +20,15 @@ class AbmEventos extends Component
     public $evento;
     public $fecha;
     public $ubicacion;
-    public $secretaria;
+    public $secretaria_id;
+    public $evento_anual = false;
 
     protected $rules = [
         'evento' => 'required|string|max:200',
         'fecha' => 'required|date',
         'ubicacion' => 'required|string|max:200',
-        'secretaria' => 'nullable|string|max:200',
+        'secretaria_id' => 'nullable|exists:secretarias,id',
+        'evento_anual' => 'boolean',
     ];
 
     protected $messages = [
@@ -35,7 +38,7 @@ class AbmEventos extends Component
         'fecha.date' => 'Debe ingresar una fecha válida',
         'ubicacion.required' => 'La ubicación es obligatoria',
         'ubicacion.max' => 'La ubicación no puede exceder 200 caracteres',
-        'secretaria.max' => 'La secretaría no puede exceder 200 caracteres',
+        'secretaria_id.exists' => 'La secretaría seleccionada no es válida',
     ];
 
     public function mount()
@@ -50,16 +53,22 @@ class AbmEventos extends Component
     {
         $user = auth()->user();
         
-        $eventos = Evento::when($this->search, function($query) {
+        $eventos = Evento::with('secretaria')
+            ->when($this->search, function($query) {
                 $query->where('evento', 'like', '%' . $this->search . '%')
                       ->orWhere('ubicacion', 'like', '%' . $this->search . '%')
-                      ->orWhere('secretaria', 'like', '%' . $this->search . '%');
+                      ->orWhereHas('secretaria', function($q) {
+                          $q->where('secretaria', 'like', '%' . $this->search . '%');
+                      });
             })
             ->orderBy('fecha', 'asc')
             ->paginate(10);
 
+        $secretarias = Secretaria::orderBy('secretaria')->get();
+
         return view('livewire.abm-eventos', [
             'eventos' => $eventos,
+            'secretarias' => $secretarias,
             // Pasar permisos a la vista
             'puedeCrear' => $user->puedeCrearEventos(),
             'puedeEditar' => $user->puedeEditarEventos(),
@@ -101,7 +110,8 @@ class AbmEventos extends Component
         $this->evento = $evento->evento;
         $this->fecha = $evento->fecha->format('Y-m-d');
         $this->ubicacion = $evento->ubicacion;
-        $this->secretaria = $evento->secretaria;
+        $this->secretaria_id = $evento->secretaria_id;
+        $this->evento_anual = $evento->evento_anual;
         
         $this->editMode = true;
         $this->showModal = true;
@@ -124,22 +134,20 @@ class AbmEventos extends Component
         
         $this->validate();
 
+        $data = [
+            'evento' => $this->evento,
+            'fecha' => $this->fecha,
+            'ubicacion' => $this->ubicacion,
+            'secretaria_id' => $this->secretaria_id,
+            'evento_anual' => $this->evento_anual,
+        ];
+
         if ($this->editMode) {
             $evento = Evento::findOrFail($this->evento_id);
-            $evento->update([
-                'evento' => $this->evento,
-                'fecha' => $this->fecha,
-                'ubicacion' => $this->ubicacion,
-                'secretaria' => $this->secretaria,
-            ]);
+            $evento->update($data);
             session()->flash('message', 'Evento actualizado correctamente.');
         } else {
-            Evento::create([
-                'evento' => $this->evento,
-                'fecha' => $this->fecha,
-                'ubicacion' => $this->ubicacion,
-                'secretaria' => $this->secretaria,
-            ]);
+            Evento::create($data);
             session()->flash('message', 'Evento creado correctamente.');
         }
 
@@ -156,10 +164,6 @@ class AbmEventos extends Component
         }
         
         $evento = Evento::findOrFail($id);
-        
-        // Aquí puedes agregar validaciones adicionales si el evento tiene relaciones
-        // Por ejemplo: if ($evento->algunaRelacion()->count() > 0) { ... }
-        
         $evento->delete();
         session()->flash('message', 'Evento eliminado correctamente.');
     }
@@ -176,7 +180,8 @@ class AbmEventos extends Component
         $this->evento = '';
         $this->fecha = '';
         $this->ubicacion = '';
-        $this->secretaria = '';
+        $this->secretaria_id = null;
+        $this->evento_anual = false;
         $this->resetErrorBag();
     }
 }
