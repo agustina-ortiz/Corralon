@@ -53,8 +53,8 @@
             <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
                     <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ID</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Sector</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ubicación</th>
                         @if($puedeEditar || $puedeEliminar)
@@ -66,12 +66,10 @@
                     @forelse ($depositos as $item)
                         <tr class="hover:bg-gray-50/50 transition-colors duration-150">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->deposito }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $item->id }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
-                                    {{ $item->sector }}
-                                </span>
+                                <div class="text-sm font-medium text-gray-900">{{ $item->deposito }}</div>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $item->corralon->descripcion }}
@@ -168,17 +166,6 @@
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
                                     @error('deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Sector -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Sector *</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="sector"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('sector') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Corralón -->

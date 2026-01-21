@@ -74,6 +74,14 @@ class AbmUsuarios extends Component
         'corralones_seleccionados.min' => 'Debe seleccionar al menos un corralón',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function updatingBusqueda()
     {
         $this->resetPage();
@@ -147,6 +155,17 @@ class AbmUsuarios extends Component
 
     public function abrirModal($modo = 'crear', $id = null)
     {
+        // Verificar permisos
+        if ($modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
+            session()->flash('error', 'No tienes permisos para crear usuarios.');
+            return;
+        }
+
+        if ($modo === 'editar' && !auth()->user()->puedeEditarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para editar usuarios.');
+            return;
+        }
+
         $this->resetearFormulario();
         $this->modo = $modo;
 
@@ -171,6 +190,19 @@ class AbmUsuarios extends Component
 
     public function guardar()
     {
+        // Verificar permisos antes de guardar
+        if ($this->modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
+            session()->flash('error', 'No tienes permisos para crear usuarios.');
+            $this->cerrarModal();
+            return;
+        }
+
+        if ($this->modo === 'editar' && !auth()->user()->puedeEditarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para editar usuarios.');
+            $this->cerrarModal();
+            return;
+        }
+
         $this->validate();
 
         $data = [
@@ -199,6 +231,12 @@ class AbmUsuarios extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación
+        if (!auth()->user()->puedeEliminarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para eliminar usuarios.');
+            return;
+        }
+
         $usuario = User::findOrFail($id);
         
         // No permitir eliminar al usuario actual
@@ -235,10 +273,16 @@ class AbmUsuarios extends Component
 
     public function render()
     {
+        $user = auth()->user();
+
         return view('livewire.abm-usuarios', [
             'usuarios' => $this->users,
             'corralones' => $this->corralones,
             'roles' => $this->roles,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearUsuarios(),
+            'puedeEditar' => $user->puedeEditarUsuarios(),
+            'puedeEliminar' => $user->puedeEliminarUsuarios(),
         ])->layout('layouts.app', [
             'header' => 'ABM Usuarios'
         ]);

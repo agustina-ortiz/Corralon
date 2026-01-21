@@ -30,6 +30,9 @@
                     </span>
                 @endif
             </button>
+            
+            {{-- Botón Nuevo Usuario solo si tiene permisos --}}
+            @if($puedeCrear)
             <button 
                 wire:click="abrirModal('crear')" 
                 class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
@@ -39,6 +42,7 @@
                 </svg>
                 Nuevo Usuario
             </button>
+            @endif
         </div>
     </div>
 
@@ -180,9 +184,11 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Corralones
                         </th>
+                        @if($puedeEditar || $puedeEliminar)
                         <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                             Acciones
                         </th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-50">
@@ -226,8 +232,10 @@
                                     </div>
                                 @endif
                             </td>
+                            @if($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
+                                    @if($puedeEditar)
                                     <button 
                                         wire:click="abrirModal('editar', {{ $usuario->id }})"
                                         class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
@@ -237,20 +245,23 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </button>
-                                    @if($usuario->id !== auth()->id())
-                                        <button 
-                                            wire:click="eliminar({{ $usuario->id }})"
-                                            onclick="return confirm('¿Está seguro de eliminar este usuario?')"
-                                            class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                            title="Eliminar"
-                                        >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                        </button>
+                                    @endif
+                                    
+                                    @if($puedeEliminar && $usuario->id !== auth()->id())
+                                    <button 
+                                        wire:click="eliminar({{ $usuario->id }})"
+                                        wire:confirm="¿Está seguro de eliminar este usuario?"
+                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
+                                        title="Eliminar"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
                                     @endif
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
@@ -274,7 +285,7 @@
         </div>
     </div>
 
-    {{-- Modal --}}
+    {{-- Modal (sin cambios) --}}
     @if($modalAbierto)
         <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -333,7 +344,7 @@
                                         <option value="">Seleccione un rol</option>
                                         @foreach($roles as $rol)
                                             <option value="{{ $rol->id }}">
-                                                {{ $rol->nombre }} - {{ $rol->descripcion }}
+                                                {{ $rol->nombre }}{{ $rol->descripcion ? ' - ' . $rol->descripcion : '' }}
                                             </option>
                                         @endforeach
                                     </select>

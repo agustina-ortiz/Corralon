@@ -168,8 +168,6 @@
                     <tr>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nro. Móvil</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Marca</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Modelo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
@@ -189,12 +187,6 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $item->vehiculo }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900">{{ $item->marca }}</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $item->modelo ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $item->patente ?? '-' }}
@@ -252,7 +244,8 @@
                                     </button>
                                 </div>
                             </td>
-                           <td class="px-6 py-4 text-right">
+                            @if($puedeEditar || $puedeEliminar)
+                            <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     {{-- Botón Editar solo si tiene permisos --}}
                                     @if($puedeEditar)
@@ -282,6 +275,7 @@
                                     @endif
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>

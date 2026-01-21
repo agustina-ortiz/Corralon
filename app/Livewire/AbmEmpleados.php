@@ -33,6 +33,14 @@ class AbmEmpleados extends Component
         'legajo.unique' => 'Este legajo ya está registrado',
     ];
 
+    public function mount()
+    {
+        // Verificar que el usuario esté autenticado
+        if (!auth()->check()) {
+            return redirect()->route('login');
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -40,6 +48,8 @@ class AbmEmpleados extends Component
 
     public function render()
     {
+        $user = auth()->user();
+
         $empleados = Empleado::where(function($query) {
             $query->where('nombre', 'like', '%' . $this->search . '%')
                   ->orWhere('apellido', 'like', '%' . $this->search . '%')
@@ -50,7 +60,11 @@ class AbmEmpleados extends Component
         ->paginate(10);
 
         return view('livewire.abm-empleados', [
-            'empleados' => $empleados
+            'empleados' => $empleados,
+            // Pasar permisos a la vista
+            'puedeCrear' => $user->puedeCrearEmpleados(),
+            'puedeEditar' => $user->puedeEditarEmpleados(),
+            'puedeEliminar' => $user->puedeEliminarEmpleados(),
         ])->layout('layouts.app', [
             'header' => 'Empleados'
         ]);
@@ -58,12 +72,24 @@ class AbmEmpleados extends Component
 
     public function crear()
     {
+        // Verificar permiso de creación
+        if (!auth()->user()->puedeCrearEmpleados()) {
+            session()->flash('error', 'No tienes permisos para crear empleados.');
+            return;
+        }
+
         $this->resetForm();
         $this->showModal = true;
     }
 
     public function editar($id)
     {
+        // Verificar permiso de edición
+        if (!auth()->user()->puedeEditarEmpleados()) {
+            session()->flash('error', 'No tienes permisos para editar empleados.');
+            return;
+        }
+
         $empleado = Empleado::findOrFail($id);
         
         $this->empleadoId = $empleado->id;
@@ -77,6 +103,19 @@ class AbmEmpleados extends Component
 
     public function guardar()
     {
+        // Verificar permisos antes de guardar
+        if (!$this->editMode && !auth()->user()->puedeCrearEmpleados()) {
+            session()->flash('error', 'No tienes permisos para crear empleados.');
+            $this->cerrarModal();
+            return;
+        }
+
+        if ($this->editMode && !auth()->user()->puedeEditarEmpleados()) {
+            session()->flash('error', 'No tienes permisos para editar empleados.');
+            $this->cerrarModal();
+            return;
+        }
+
         if ($this->editMode) {
             $this->rules['legajo'] = 'required|string|max:50|unique:empleados,legajo,' . $this->empleadoId;
         }
@@ -107,6 +146,12 @@ class AbmEmpleados extends Component
 
     public function eliminar($id)
     {
+        // Verificar permiso de eliminación
+        if (!auth()->user()->puedeEliminarEmpleados()) {
+            session()->flash('error', 'No tienes permisos para eliminar empleados.');
+            return;
+        }
+
         try {
             $empleado = Empleado::findOrFail($id);
             $empleado->delete();

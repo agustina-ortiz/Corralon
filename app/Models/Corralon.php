@@ -12,11 +12,17 @@ class Corralon extends Model
     protected $fillable = [
         'descripcion',
         'ubicacion',
+        'secretaria_id',
     ];
 
     public function getNombreAttribute()
     {
         return $this->descripcion;
+    }
+
+    public function secretaria()
+    {
+        return $this->belongsTo(Secretaria::class);
     }
 
     public function depositos(): HasMany

@@ -95,6 +95,7 @@
                                     {{ $item->secretaria ?? 'N/A' }}
                                 </div>
                             </td>
+                            @if ($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     {{-- Botón Editar solo si tiene permisos --}}
@@ -125,6 +126,7 @@
                                     @endif
                                 </div>
                             </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
