@@ -8,6 +8,7 @@ use App\Models\Maquinaria;
 use App\Models\Vehiculo;
 use App\Models\Evento;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class Dashboard extends Component
 {
@@ -51,20 +52,22 @@ class Dashboard extends Component
             ->orderBy('stock_actual', 'asc')
             ->get();
 
-        // Maquinaria no disponible (estado != 'Disponible')
-        $maquinariaNoDisponible = Maquinaria::with(['categoriaMaquinaria', 'deposito.corralon'])
-            ->where('estado', '!=', 'Disponible')
+        // VTVs próximas a vencer (dentro de los próximos 30 días o vencidas)
+        $fechaLimite = Carbon::now()->addDays(30)->endOfDay();
+        $vtvProximasVencer = Vehiculo::with(['deposito.corralon'])
+            ->whereNotNull('vencimiento_vtv')
+            ->where('vencimiento_vtv', '<=', $fechaLimite)
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
                 });
             })
-            ->orderBy('estado', 'asc')
+            ->orderBy('vencimiento_vtv', 'asc')
             ->get();
 
         // Vehículos en uso
         $vehiculosEnUso = Vehiculo::with(['deposito.corralon'])
-            ->where('estado', 'en uso')
+            ->where('estado', 'en_uso')
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
@@ -87,7 +90,8 @@ class Dashboard extends Component
             })
             ->count();
 
-        $countMaquinariaNoDisponible = Maquinaria::where('estado', '!=', 'Disponible')
+        $countVtvProximasVencer = Vehiculo::whereNotNull('vencimiento_vtv')
+            ->where('vencimiento_vtv', '<=', $fechaLimite)
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
@@ -95,7 +99,7 @@ class Dashboard extends Component
             })
             ->count();
 
-        $countVehiculosEnUso = Vehiculo::where('estado', 'en uso')
+        $countVehiculosEnUso = Vehiculo::where('estado', 'en_uso')
             ->when(!$user->acceso_todos_corralones, function($query) use ($user) {
                 $query->whereHas('deposito', function($q) use ($user) {
                     $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
@@ -113,13 +117,13 @@ class Dashboard extends Component
             
             // Estadísticas detalladas
             'insumosBajoMinimo' => $insumosBajoMinimo,
-            'maquinariaNoDisponible' => $maquinariaNoDisponible,
+            'vtvProximasVencer' => $vtvProximasVencer,
             'vehiculosEnUso' => $vehiculosEnUso,
             'proximosEventos' => $proximosEventos,
             
             // Contadores
             'countInsumosBajoMinimo' => $countInsumosBajoMinimo,
-            'countMaquinariaNoDisponible' => $countMaquinariaNoDisponible,
+            'countVtvProximasVencer' => $countVtvProximasVencer,
             'countVehiculosEnUso' => $countVehiculosEnUso,
             'countProximosEventos' => $countProximosEventos,
         ]);

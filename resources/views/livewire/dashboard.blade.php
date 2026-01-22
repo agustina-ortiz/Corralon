@@ -122,43 +122,86 @@
             </div>
         </div>
     
-        <!-- Cuadrante 2: Maquinaria No Disponible -->
+        <!-- Cuadrante 2: VTVs Próximas a Vencer -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 flex items-center justify-between border-b border-amber-200">
                 <div class="flex items-center">
                     <svg class="w-6 h-6 text-amber-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
-                    <h3 class="text-lg font-semibold text-gray-800">Maquinaria No Disponible</h3>
+                    <h3 class="text-lg font-semibold text-gray-800">VTVs Próximas a Vencer</h3>
                 </div>
                 <span class="bg-amber-200 text-amber-800 font-bold px-3 py-1 rounded-full text-sm">
-                    {{ $countMaquinariaNoDisponible }}
+                    {{ $countVtvProximasVencer }}
                 </span>
             </div>
             <div class="p-6">
-                @if($maquinariaNoDisponible->count() > 0)
+                @if($vtvProximasVencer->count() > 0)
                     <div class="space-y-3 max-h-96 overflow-y-auto">
-                        @foreach($maquinariaNoDisponible as $maquina)
-                            <div class="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-100 hover:border-amber-200 hover:bg-amber-100 transition-colors">
+                        @foreach($vtvProximasVencer as $vehiculo)
+                            @php
+                                $vencimiento = \Carbon\Carbon::parse($vehiculo->vencimiento_vtv);
+                                $hoy = \Carbon\Carbon::today();
+                                $diasRestantes = (int) $hoy->diffInDays($vencimiento, false);
+                                $estaVencida = $diasRestantes < 0;
+                                $vencePronto = $diasRestantes >= 0 && $diasRestantes <= 7;
+                            @endphp
+                            <div class="flex items-center justify-between p-3 
+                                @if($estaVencida) bg-red-50 border border-red-200 hover:border-red-300 hover:bg-red-100
+                                @elseif($vencePronto) bg-orange-50 border border-orange-200 hover:border-orange-300 hover:bg-orange-100
+                                @else bg-amber-50 border border-amber-100 hover:border-amber-200 hover:bg-amber-100
+                                @endif
+                                rounded-lg transition-colors">
                                 <div class="flex-1">
-                                    <p class="font-semibold text-gray-800">{{ $maquina->maquinaria }}</p>
-                                    <p class="text-sm text-gray-600">
-                                        {{ $maquina->categoriaMaquinaria->categoria ?? 'Sin categoría' }}
+                                    <div class="flex items-center space-x-2">
+                                        @if($vehiculo->nro_movil)
+                                            <span class="
+                                                @if($estaVencida) bg-red-600 text-white
+                                                @elseif($vencePronto) bg-orange-600 text-white
+                                                @else bg-amber-600 text-white
+                                                @endif
+                                                px-2 py-1 rounded text-xs font-bold">
+                                                {{ $vehiculo->nro_movil }}
+                                            </span>
+                                        @endif
+                                        <p class="font-semibold text-gray-800">{{ $vehiculo->vehiculo }}</p>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        @if($vehiculo->marca){{ $vehiculo->marca }}@endif
+                                        @if($vehiculo->marca && $vehiculo->modelo) - @endif
+                                        @if($vehiculo->modelo){{ $vehiculo->modelo }}@endif
                                     </p>
-                                    <p class="text-xs text-gray-500 mt-1">
-                                        {{ $maquina->deposito->deposito ?? 'Sin depósito' }} • 
-                                        {{ $maquina->deposito->corralon->descripcion ?? 'Sin corralón' }}
+                                    @if($vehiculo->patente)
+                                        <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
+                                    @endif
+                                    <p class="text-xs text-gray-500">
+                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} • 
+                                        {{ $vehiculo->deposito->corralon->descripcion ?? 'Sin corralón' }}
                                     </p>
                                 </div>
                                 <div class="text-right ml-4">
-                                    <span class="px-3 py-1 rounded-full text-xs font-semibold
-                                        @if($maquina->estado === 'En uso') bg-orange-100 text-orange-700
-                                        @elseif($maquina->estado === 'En mantenimiento') bg-blue-100 text-blue-700
-                                        @elseif($maquina->estado === 'Averiada') bg-red-100 text-red-700
-                                        @else bg-gray-100 text-gray-700
+                                    <div class="text-sm font-semibold
+                                        @if($estaVencida) text-red-700
+                                        @elseif($vencePronto) text-orange-700
+                                        @else text-amber-700
                                         @endif">
-                                        {{ $maquina->estado }}
-                                    </span>
+                                        {{ $vencimiento->format('d/m/Y') }}
+                                    </div>
+                                    <p class="text-xs font-medium mt-1
+                                        @if($estaVencida) text-red-600
+                                        @elseif($vencePronto) text-orange-600
+                                        @else text-amber-600
+                                        @endif">
+                                        @if($estaVencida)
+                                            Vencida hace {{ abs($diasRestantes) }} día{{ abs($diasRestantes) != 1 ? 's' : '' }}
+                                        @elseif($diasRestantes == 0)
+                                            Vence hoy
+                                        @elseif($diasRestantes == 1)
+                                            Vence mañana
+                                        @else
+                                            Vence en {{ $diasRestantes }} días
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                         @endforeach
@@ -168,7 +211,8 @@
                         <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        <p class="font-medium">Toda la maquinaria está disponible</p>
+                        <p class="font-medium">Todas las VTVs están al día</p>
+                        <p class="text-xs text-gray-400 mt-1">No hay vehículos con VTV próxima a vencer (30 días)</p>
                     </div>
                 @endif
             </div>
