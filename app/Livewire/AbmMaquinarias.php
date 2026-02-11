@@ -106,7 +106,7 @@ class AbmMaquinarias extends Component
         $user = auth()->user();
 
         // Obtener todas las maquinarias con sus movimientos
-        $maquinariasQuery = Maquinaria::with(['categoriaMaquinaria', 'deposito', 'movimientos.tipoMovimiento'])
+        $maquinariasQuery = Maquinaria::with(['categoriaMaquinaria', 'deposito.corralon', 'movimientos.tipoMovimiento'])
             ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('maquinaria', 'like', '%' . $this->search . '%');
@@ -114,57 +114,21 @@ class AbmMaquinarias extends Component
             ->when($this->filtro_categoria, function($query) {
                 $query->where('id_categoria_maquinaria', $this->filtro_categoria);
             })
-            ->orderBy('maquinaria')
-            ->get();
-
-        // ✅ Expandir cada maquinaria en múltiples filas según su distribución
-        $maquinariasExpandidas = collect();
-
-        foreach ($maquinariasQuery as $maquinaria) {
-            // Obtener depósitos accesibles
-            $depositosAccesibles = $user->acceso_todos_corralones 
-                ? Deposito::pluck('id')->toArray()
-                : Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])->pluck('id')->toArray();
-
-            // Calcular cantidad por depósito
-            foreach ($depositosAccesibles as $depositoId) {
-                $cantidadEnDeposito = $maquinaria->getCantidadEnDeposito($depositoId);
-
-                // Solo mostrar si hay cantidad en este depósito O si es el depósito original
-                // (para mostrar depósitos en 0 también)
-                $mostrarFila = $cantidadEnDeposito > 0 || $maquinaria->id_deposito == $depositoId;
-                
-                if ($mostrarFila) {
-                    // ✅ Estado calculado POR DEPÓSITO
-                    $estadoFila = $cantidadEnDeposito > 0 ? 'disponible' : 'no disponible';
-
-                    // Aplicar filtros
-                    if ($this->filtro_deposito && $depositoId != $this->filtro_deposito) {
-                        continue;
-                    }
-
-                    if ($this->filtro_estado && $estadoFila != $this->filtro_estado) {
-                        continue;
-                    }
-
-                    // Crear objeto virtual para esta fila
-                    $fila = (object)[
-                        'id' => $maquinaria->id,
-                        'maquinaria' => $maquinaria->maquinaria,
-                        'id_categoria_maquinaria' => $maquinaria->id_categoria_maquinaria,
-                        'categoriaMaquinaria' => $maquinaria->categoriaMaquinaria,
-                        'estado' => $maquinaria->estado,
-                        'cantidad' => $maquinaria->cantidad,
-                        'cantidad_disponible' => $cantidadEnDeposito,
-                        'id_deposito' => $depositoId,
-                        'deposito' => Deposito::with('corralon')->find($depositoId),
-                        'row_id' => $maquinaria->id . '_' . $depositoId,
-                    ];
-
-                    $maquinariasExpandidas->push($fila);
+            ->when($this->filtro_deposito, function($query) {
+                $query->where('id_deposito', $this->filtro_deposito);
+            })
+            ->when($this->filtro_estado, function($query) {
+                // Filtrar por estado basado en cantidad disponible
+                if ($this->filtro_estado === 'disponible') {
+                    $query->where('cantidad', '>', 0);
+                } else {
+                    $query->where('cantidad', '<=', 0);
                 }
-            }
-        }
+            })
+            ->orderBy('maquinaria')
+            ->paginate(15);
+
+        return $maquinariasQuery;
     }
 
     public function updatingSearch()

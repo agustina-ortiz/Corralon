@@ -160,7 +160,7 @@
                                     {{ $item->categoriaMaquinaria->nombre }}
                                 </span>
                             </td>
-                             <td class="px-6 py-4">
+                            <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     @if($item->cantidad > 0)
                                         <span class="text-sm font-semibold text-green-700">{{ $item->cantidad }}</span>
@@ -168,19 +168,9 @@
                                         <span class="text-sm font-semibold text-red-700">{{ $item->cantidad }}</span>
                                     @endif
                                     <span class="text-xs text-gray-500">
-                                        @if($item->cantidad_disponible == 1)
-                                            unidad
-                                        @else
-                                            unidades
-                                        @endif
+                                        {{ $item->cantidad == 1 ? 'unidad' : 'unidades' }}
                                     </span>
                                 </div>
-                                <!-- ✅ Mostrar cantidad inicial como referencia (opcional) -->
-                                @if($item->cantidad != $item->cantidad_disponible)
-                                    <div class="text-xs text-gray-400 mt-1">
-                                        (Inicial: {{ $item->cantidad }})
-                                    </div>
-                                @endif
                             </td>
                             <td class="px-6 py-4">
                                 @if($item->estado === 'disponible')
