@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corralón - Sistema de Gestión</title>
+    <title>Gestión de Stock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -69,7 +69,7 @@
                     <!-- Logo - Ajusta la ruta según tu estructura -->
                     <img src="{{ asset('images/logo-municipalidad.png') }}" alt="Logo" class="h-12 w-12">
                     <div>
-                        <h1 class="text-lg font-bold text-white">CORRALÓN</h1>
+                        <h1 class="text-lg font-bold text-white">Gestión de Stock</h1>
                         <p class="text-xs text-gray-400">Municipalidad de Mercedes</p>
                     </div>
                 </div>

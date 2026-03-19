@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             // 1. Primero los corralones (no tienen dependencias)
+            CorralonesSeeder::class,
             
             // 2. Luego los depósitos (dependen de corralones)
             DepositosSeeder::class,

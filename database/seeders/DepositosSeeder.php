@@ -17,7 +17,6 @@ class DepositosSeeder extends Seeder
             // Depósitos del Corralón Municipal (id_corralon: 1)
             [
                 'id' => 1,
-                'sector' => 'A',
                 'deposito' => 'Depósito General',
                 'id_corralon' => 1,
                 'created_at' => now(),
@@ -25,7 +24,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 2,
-                'sector' => 'B',
                 'deposito' => 'Depósito de Herramientas',
                 'id_corralon' => 1,
                 'created_at' => now(),
@@ -33,7 +31,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 3,
-                'sector' => 'C',
                 'deposito' => 'Depósito de Materiales de Construcción',
                 'id_corralon' => 1,
                 'created_at' => now(),
@@ -41,7 +38,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 4,
-                'sector' => 'D',
                 'deposito' => 'Depósito de Pinturas y Químicos',
                 'id_corralon' => 1,
                 'created_at' => now(),
@@ -51,7 +47,6 @@ class DepositosSeeder extends Seeder
             // Depósitos del Corralón Municipal II (id_corralon: 2)
             [
                 'id' => 5,
-                'sector' => 'A',
                 'deposito' => 'Depósito Central',
                 'id_corralon' => 2,
                 'created_at' => now(),
@@ -59,7 +54,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 6,
-                'sector' => 'B',
                 'deposito' => 'Depósito de Maquinaria Pesada',
                 'id_corralon' => 2,
                 'created_at' => now(),
@@ -67,7 +61,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 7,
-                'sector' => 'C',
                 'deposito' => 'Depósito de Repuestos',
                 'id_corralon' => 2,
                 'created_at' => now(),
@@ -77,7 +70,6 @@ class DepositosSeeder extends Seeder
             // Depósitos de Seguridad (id_corralon: 3)
             [
                 'id' => 8,
-                'sector' => 'A',
                 'deposito' => 'Depósito de Seguridad',
                 'id_corralon' => 3,
                 'created_at' => now(),
@@ -85,7 +77,6 @@ class DepositosSeeder extends Seeder
             ],
             [
                 'id' => 9,
-                'sector' => 'B',
                 'deposito' => 'Depósito de Equipamiento',
                 'id_corralon' => 3,
                 'created_at' => now(),
