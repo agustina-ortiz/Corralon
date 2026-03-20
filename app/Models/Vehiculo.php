@@ -49,4 +49,9 @@ class Vehiculo extends Model
     {
         return $this->hasMany(DocumentoVehiculo::class, 'id_vehiculo');
     }
+
+    public function choferes()
+    {
+        return $this->belongsToMany(Chofer::class, 'choferes_vehiculos', 'vehiculo_id', 'chofer_id');
+    }
 }

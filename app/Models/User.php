@@ -203,6 +203,22 @@ class User extends Authenticatable
         return $this->rol && $this->rol->lEmpleadosABM;
     }
 
+    // ========== PERMISOS PARA CHOFERES ==========
+    public function puedeCrearChoferes(): bool
+    {
+        return $this->rol && $this->rol->lChoferesABM;
+    }
+
+    public function puedeEditarChoferes(): bool
+    {
+        return $this->rol && $this->rol->lChoferesABM;
+    }
+
+    public function puedeEliminarChoferes(): bool
+    {
+        return $this->rol && $this->rol->lChoferesABM;
+    }
+
     // ========== PERMISOS PARA USUARIOS ==========
     public function puedeCrearUsuarios(): bool
     {
