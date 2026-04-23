@@ -67,6 +67,8 @@ class TransferenciasInsumos extends Component
     public $mostrar_lista = false;
     
     // Para transferencias múltiples
+    public $id_corralon_origen = '';
+    public $id_corralon_destino = '';
     public $id_deposito_origen = '';
     public $id_deposito_destino = '';
     public $insumos_transferencia = [];
@@ -414,28 +416,59 @@ class TransferenciasInsumos extends Component
         $depositos = Deposito::whereIn('id', $depositosAccesibles)
             ->orderBy('deposito')
             ->get();
-            
+
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
         $usuarios = User::orderBy('name')->get();
-        $tipos_movimiento = TipoMovimiento::orderBy('tipo_movimiento')->get();
+        $tipos_movimiento = TipoMovimiento::whereIn('tipo', ['I', 'IM'])->orderBy('tipo_movimiento')->get();
 
-        $depositosOrigen = Deposito::whereIn('id', $depositosAccesibles)
-            ->orderBy('deposito')
-            ->get();
-        
-        $depositosDestino = Deposito::when($this->id_deposito_origen, function($query) {
-                $query->where('id', '!=', $this->id_deposito_origen);
-            })
-            ->orderBy('deposito')
-            ->get();
+        // Determinar si el usuario tiene acceso a múltiples corralones
+        $corralonesPermitidosIds = $user->getCorralonesPermitidosIds();
+        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+
+        $corralones = collect();
+        if ($tieneMultiplesCorralones) {
+            $corralones = $user->acceso_todos_corralones
+                ? \App\Models\Corralon::orderBy('descripcion')->get()
+                : \App\Models\Corralon::whereIn('id', $corralonesPermitidosIds)->orderBy('descripcion')->get();
+        }
+
+        // Depósitos Origen: filtrar por corralón seleccionado si el usuario tiene múltiples
+        if ($tieneMultiplesCorralones && $this->id_corralon_origen) {
+            $depositosOrigen = Deposito::whereIn('id', $depositosAccesibles)
+                ->where('id_corralon', $this->id_corralon_origen)
+                ->orderBy('deposito')
+                ->get();
+        } else {
+            $depositosOrigen = Deposito::whereIn('id', $depositosAccesibles)
+                ->orderBy('deposito')
+                ->get();
+        }
+
+        // Depósitos Destino: filtrar por corralón destino seleccionado si aplica
+        if ($tieneMultiplesCorralones && $this->id_corralon_destino) {
+            $depositosDestino = Deposito::where('id_corralon', $this->id_corralon_destino)
+                ->when($this->id_deposito_origen, function($query) {
+                    $query->where('id', '!=', $this->id_deposito_origen);
+                })
+                ->orderBy('deposito')
+                ->get();
+        } else {
+            $depositosDestino = Deposito::when($this->id_deposito_origen, function($query) {
+                    $query->where('id', '!=', $this->id_deposito_origen);
+                })
+                ->orderBy('deposito')
+                ->get();
+        }
 
         return view('livewire.transferencias-insumos', [
             'movimientos' => $movimientosPaginados,
             'insumos_filtrados' => $insumos_filtrados,
             'insumos_disponibles_transferencia' => $insumos_disponibles_transferencia,
-            'depositos' => $depositosOrigen,
+            'depositos' => $depositos,
             'depositosOrigen' => $depositosOrigen,
             'depositosDestino' => $depositosDestino,
+            'corralones' => $corralones,
+            'tieneMultiplesCorralones' => $tieneMultiplesCorralones,
             'categorias' => $categorias,
             'usuarios' => $usuarios,
             'tipos_movimiento' => $tipos_movimiento,
@@ -484,13 +517,30 @@ class TransferenciasInsumos extends Component
         $this->mostrar_lista_transferencia = true;
     }
 
+    public function updatedIdCorralonOrigen($value)
+    {
+        $this->id_deposito_origen = '';
+        $this->insumos_transferencia = [];
+        $this->search_insumo_transferencia = '';
+        $this->mostrar_lista_transferencia = false;
+        $this->resetErrorBag('id_corralon_origen');
+        $this->resetErrorBag('id_deposito_origen');
+    }
+
+    public function updatedIdCorralonDestino($value)
+    {
+        $this->id_deposito_destino = '';
+        $this->resetErrorBag('id_corralon_destino');
+        $this->resetErrorBag('id_deposito_destino');
+    }
+
     public function updatedIdDepositoOrigen($value)
     {
         $this->insumos_transferencia = [];
         $this->search_insumo_transferencia = '';
         $this->mostrar_lista_transferencia = false;
         $this->resetErrorBag('id_deposito_origen');
-        
+
         if (!empty($value) && $value == $this->id_deposito_destino) {
             $this->addError('id_deposito_destino', 'El depósito destino debe ser diferente al de origen');
         } else {
@@ -1019,6 +1069,8 @@ class TransferenciasInsumos extends Component
 
     private function resetFormTransferencia()
     {
+        $this->id_corralon_origen = '';
+        $this->id_corralon_destino = '';
         $this->id_deposito_origen = '';
         $this->id_deposito_destino = '';
         $this->insumos_transferencia = [];

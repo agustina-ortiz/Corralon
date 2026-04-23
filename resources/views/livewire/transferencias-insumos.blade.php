@@ -500,39 +500,76 @@
                             </div>
 
                             <div class="space-y-5">
+                                {{-- Corralones (solo si el usuario tiene acceso a múltiples) --}}
+                                @if($tieneMultiplesCorralones)
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Corralón Origen *</label>
+                                        <select
+                                            wire:model.live="id_corralon_origen"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                        >
+                                            <option value="">Seleccione corralón origen</option>
+                                            @foreach($corralones as $corralon)
+                                                <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('id_corralon_origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Corralón Destino *</label>
+                                        <select
+                                            wire:model.live="id_corralon_destino"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                        >
+                                            <option value="">Seleccione corralón destino</option>
+                                            @foreach($corralones as $corralon)
+                                                <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('id_corralon_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                </div>
+                                @endif
+
                                 <!-- Depósitos -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Origen *</label>
-                                        <select 
+                                        <select
                                             wire:model.live="id_deposito_origen"
                                             class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
+                                            @if($tieneMultiplesCorralones && !$id_corralon_origen) disabled @endif
                                         >
                                             <option value="">Seleccione depósito origen</option>
-                                            {{-- ✅ MODIFICADO: Usar depositosOrigen (solo depósitos accesibles) --}}
                                             @foreach($depositosOrigen as $deposito)
                                                 <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
                                             @endforeach
                                         </select>
                                         @error('id_deposito_origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        @if($tieneMultiplesCorralones && !$id_corralon_origen)
+                                            <p class="text-xs text-gray-500 mt-1">Primero seleccione un corralón de origen</p>
+                                        @endif
                                     </div>
 
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
-                                        <select 
+                                        <select
                                             wire:model="id_deposito_destino"
                                             class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all duration-200"
-                                            @if(!$id_deposito_origen) disabled @endif
+                                            @if($tieneMultiplesCorralones ? !$id_corralon_destino : !$id_deposito_origen) disabled @endif
                                         >
                                             <option value="">Seleccione depósito destino</option>
-                                            {{-- (todos los depósitos excepto origen) --}}
                                             @foreach($depositosDestino as $deposito)
-                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion }}</option>
+                                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}{{ !$tieneMultiplesCorralones ? ' - ' . $deposito->corralon->descripcion : '' }}</option>
                                             @endforeach
                                         </select>
                                         @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        
-                                        @if(!$id_deposito_origen)
+
+                                        @if($tieneMultiplesCorralones && !$id_corralon_destino)
+                                            <p class="text-xs text-gray-500 mt-1">Primero seleccione un corralón de destino</p>
+                                        @elseif(!$tieneMultiplesCorralones && !$id_deposito_origen)
                                             <p class="text-xs text-gray-500 mt-1">Primero seleccione un depósito de origen</p>
                                         @endif
                                     </div>
