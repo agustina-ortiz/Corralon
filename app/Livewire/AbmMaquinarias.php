@@ -303,11 +303,8 @@ class AbmMaquinarias extends Component
                     'cantidad' => $this->cantidad,
                 ]);
 
-                // ✅ Crear tipo de movimiento si no existe
-                $tipoMovimiento = TipoMovimiento::firstOrCreate([
-                    'tipo_movimiento' => 'Inventario Inicial Maquinaria',
-                    'tipo' => 'I'
-                ]);
+                // ✅ Buscar tipo de movimiento existente (Inventario Inicial Maquinaria, tipo M)
+                $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Inventario Inicial Maquinaria')->firstOrFail();
 
                 // ✅ Crear movimiento de entrada inicial
                 MovimientoMaquinaria::create([
