@@ -240,7 +240,7 @@
                             </div>
                             
                             <!-- Indicador de entrada/salida -->
-                            @if($movimiento->tipoMovimiento->tipo === 'I')
+                            @if($movimiento->tipoMovimiento->esEntrada())
                                 <div class="flex items-center gap-1 mt-1">
                                     <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
@@ -264,39 +264,31 @@
                         <!-- COLUMNA ORIGEN -->
                         <td class="px-6 py-4">
                             @php
-                                $esTransferencia = str_contains($movimiento->tipoMovimiento->tipo_movimiento, 'Transferencia');
-                                
+                                $nombreTipo = $movimiento->tipoMovimiento->tipo_movimiento;
+                                $esSalidaTransferencia = $nombreTipo === 'Transferencia Salida' || $nombreTipo === 'Transferencia Salida Maquinaria';
+                                $esEntradaTransferencia = $nombreTipo === 'Transferencia Entrada' || $nombreTipo === 'Transferencia Entrada Maquinaria';
+                                $esTransferencia = $esSalidaTransferencia || $esEntradaTransferencia;
+
                                 if ($esTransferencia) {
-                                    $esSalida = $movimiento->tipoMovimiento->tipo === 'E';
-                                    
-                                    if ($esSalida) {
-                                        // Este es el movimiento de SALIDA - el origen está en depositoEntrada
+                                    if ($esSalidaTransferencia) {
+                                        // Movimiento de SALIDA — el origen es el depósito del movimiento
                                         $depositoOrigen = $movimiento->depositoEntrada;
                                     } else {
-                                        // Este es el movimiento de ENTRADA - buscar el complementario
-                                        $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
-                                            ->where('id_referencia', $movimiento->id_maquinaria)
-                                            ->whereHas('tipoMovimiento', function($q) {
-                                                $q->where('tipo', 'E')
-                                                ->where('tipo_movimiento', 'like', '%Transferencia%');
-                                            })
+                                        // Movimiento de ENTRADA — buscar el complementario de salida
+                                        $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
+                                            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Salida%'))
                                             ->whereBetween('created_at', [
                                                 $movimiento->created_at->copy()->subSeconds(5),
-                                                $movimiento->created_at->copy()->addSeconds(5)
+                                                $movimiento->created_at->copy()->addSeconds(5),
                                             ])
                                             ->first();
-                                        
-                                        $depositoOrigen = $movimientoSalida ? $movimientoSalida->depositoEntrada : null;
+                                        $depositoOrigen = $movimientoSalida?->depositoEntrada;
                                     }
                                 } else {
-                                    // Para movimientos que NO son transferencias
-                                    if ($movimiento->tipoMovimiento->tipo === 'E') {
-                                        // Es una SALIDA - mostrar el depósito de donde sale
-                                        $depositoOrigen = $movimiento->depositoEntrada;
-                                    } else {
-                                        // Es una ENTRADA - no tiene origen relevante
-                                        $depositoOrigen = null;
-                                    }
+                                    // No es transferencia — origen solo aplica a salidas
+                                    $depositoOrigen = $movimiento->tipoMovimiento->esSalida()
+                                        ? $movimiento->depositoEntrada
+                                        : null;
                                 }
                             @endphp
                             
@@ -315,34 +307,25 @@
                         <td class="px-6 py-4">
                             @php
                                 if ($esTransferencia) {
-                                    if ($esSalida) {
-                                        // Este es el movimiento de SALIDA - buscar el complementario
-                                        $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_maquinaria', '!=', $movimiento->id_maquinaria)
-                                            ->where('id_referencia', $movimiento->id_maquinaria)
-                                            ->whereHas('tipoMovimiento', function($q) {
-                                                $q->where('tipo', 'I')
-                                                ->where('tipo_movimiento', 'like', '%Transferencia%');
-                                            })
+                                    if ($esSalidaTransferencia) {
+                                        // Movimiento de SALIDA — buscar el complementario de entrada
+                                        $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
+                                            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Entrada%'))
                                             ->whereBetween('created_at', [
                                                 $movimiento->created_at->copy()->subSeconds(5),
-                                                $movimiento->created_at->copy()->addSeconds(5)
+                                                $movimiento->created_at->copy()->addSeconds(5),
                                             ])
                                             ->first();
-                                        
-                                        $depositoDestino = $movimientoEntrada ? $movimientoEntrada->depositoEntrada : null;
+                                        $depositoDestino = $movimientoEntrada?->depositoEntrada;
                                     } else {
-                                        // Este es el movimiento de ENTRADA - el destino está en depositoEntrada
+                                        // Movimiento de ENTRADA — el destino es el depósito del movimiento
                                         $depositoDestino = $movimiento->depositoEntrada;
                                     }
                                 } else {
-                                    // Para movimientos que NO son transferencias
-                                    if ($movimiento->tipoMovimiento->tipo === 'I') {
-                                        // Es una ENTRADA - mostrar el depósito de destino
-                                        $depositoDestino = $movimiento->depositoEntrada;
-                                    } else {
-                                        // Es una SALIDA - no tiene destino relevante
-                                        $depositoDestino = null;
-                                    }
+                                    // No es transferencia — destino solo aplica a entradas
+                                    $depositoDestino = $movimiento->tipoMovimiento->esEntrada()
+                                        ? $movimiento->depositoEntrada
+                                        : null;
                                 }
                             @endphp
                             
@@ -373,11 +356,9 @@
                         <!-- Tipo de Movimiento -->
                         <td class="px-6 py-4">
                             @php
-                                $tipoClasses = [
-                                    'I' => 'bg-green-100 text-green-700',
-                                    'E' => 'bg-red-100 text-red-700',
-                                ];
-                                $clase = $tipoClasses[$movimiento->tipoMovimiento->tipo] ?? 'bg-gray-100 text-gray-700';
+                                $clase = $movimiento->tipoMovimiento->esEntrada()
+                                    ? 'bg-green-100 text-green-700'
+                                    : ($movimiento->tipoMovimiento->esSalida() ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
                             @endphp
                             <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
                                 {{ $movimiento->tipoMovimiento->tipo_movimiento }}
@@ -634,85 +615,76 @@
                                         </div>
 
                                         @if($tipo_movimiento === 'asignacion')
-                                            <div class="mb-5">
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito de Origen *</label>
-                                                <select 
-                                                    wire:model.live="id_deposito_origen"
-                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                >
-                                                    <option value="">Seleccione un depósito</option>
-                                                    @foreach($depositos_disponibles as $deposito)
-                                                        @php
-                                                            $cantidadEnDeposito = $maquinaria_seleccionada->getCantidadEnDeposito($deposito->id);
-                                                        @endphp
-                                                        <option value="{{ $deposito->id }}">
-                                                            {{ $deposito->deposito }} ({{ $cantidadEnDeposito }} {{ $cantidadEnDeposito == 1 ? 'unidad' : 'unidades' }})
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_deposito_origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            {{-- Depósito auto-determinado por la maquinaria seleccionada --}}
+                                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                                                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                                <span class="text-blue-800">
+                                                    Depósito de origen: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
+                                                    &nbsp;—&nbsp;
+                                                    @php $dispAsig = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
+                                                    {{ $dispAsig }} {{ $dispAsig == 1 ? 'unidad disponible' : 'unidades disponibles' }}
+                                                </span>
                                             </div>
 
-                                            @if($id_deposito_origen)
-                                                <div class="mb-5">
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                        Cantidad a Asignar *
-                                                        <span class="text-xs text-gray-500 font-normal">
-                                                            (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($id_deposito_origen) }})
-                                                        </span>
-                                                    </label>
-                                                    <div class="flex items-center gap-3">
-                                                        <button 
-                                                            type="button"
-                                                            wire:click="decrementarCantidad"
-                                                            class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                            {{ $cantidad_a_asignar <= 1 ? 'disabled' : '' }}
-                                                        >
-                                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                                            </svg>
-                                                        </button>
-                                                        
-                                                        <input 
-                                                            type="number" 
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Cantidad a Asignar *
+                                                    <span class="text-xs text-gray-500 font-normal">
+                                                        (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
+                                                    </span>
+                                                </label>
+                                                <div class="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="decrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_asignar <= 1 ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <input
+                                                        type="number"
+                                                        wire:model.live="cantidad_a_asignar"
+                                                        min="1"
+                                                        max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                                        class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                    >
+
+                                                    <button
+                                                        type="button"
+                                                        wire:click="incrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_asignar >= $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <div class="flex-1">
+                                                        <input
+                                                            type="range"
                                                             wire:model.live="cantidad_a_asignar"
                                                             min="1"
-                                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($id_deposito_origen) }}"
-                                                            class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                                         >
-                                                        
-                                                        <button 
-                                                            type="button"
-                                                            wire:click="incrementarCantidad"
-                                                            class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                            {{ $cantidad_a_asignar >= $maquinaria_seleccionada->getCantidadEnDeposito($id_deposito_origen) ? 'disabled' : '' }}
-                                                        >
-                                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                                            </svg>
-                                                        </button>
-
-                                                        <div class="flex-1">
-                                                            <input 
-                                                                type="range" 
-                                                                wire:model.live="cantidad_a_asignar"
-                                                                min="1"
-                                                                max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($id_deposito_origen) }}"
-                                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                                            >
-                                                        </div>
                                                     </div>
-                                                    @error('cantidad_a_asignar') 
-                                                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
-                                                    @enderror
                                                 </div>
-                                            @endif
+                                                @error('cantidad_a_asignar')
+                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                                @enderror
+                                            </div>
 
-                                            <!-- Fecha de Devolución para asignación -->
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Devolución Esperada *</label>
-                                                <input 
-                                                    type="date" 
+                                                <input
+                                                    type="date"
                                                     wire:model="fecha_devolucion_esperada"
                                                     min="{{ date('Y-m-d', strtotime('+1 day')) }}"
                                                     class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
@@ -722,92 +694,109 @@
                                         @endif
 
                                         @if($tipo_movimiento === 'carga_stock')
-                                            <div class="mb-5">
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
-                                                <select 
-                                                    wire:model.live="id_deposito_origen"
-                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                >
-                                                    <option value="">Seleccione un depósito</option>
-                                                    @foreach($depositos_disponibles as $deposito)
-                                                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('id_deposito_origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            {{-- Depósito auto-determinado por la maquinaria seleccionada --}}
+                                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
+                                                <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                                <span class="text-indigo-800">
+                                                    Depósito destino: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
+                                                </span>
                                             </div>
 
-                                            @if($id_deposito_origen)
-                                                <div class="mb-5">
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                        Cantidad a Cargar *
-                                                        <span class="text-xs text-gray-500 font-normal">(Máximo: 1000 unidades)</span>
-                                                    </label>
-                                                    <div class="flex items-center gap-3">
-                                                        <button 
-                                                            type="button"
-                                                            wire:click="decrementarCantidad"
-                                                            class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                            {{ $cantidad_a_cargar <= 1 ? 'disabled' : '' }}
-                                                        >
-                                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                                            </svg>
-                                                        </button>
-                                                        
-                                                        <input 
-                                                            type="number" 
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Cantidad a Cargar *
+                                                    <span class="text-xs text-gray-500 font-normal">(Máximo: 1000 unidades)</span>
+                                                </label>
+                                                <div class="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="decrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_cargar <= 1 ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <input
+                                                        type="number"
+                                                        wire:model.live="cantidad_a_cargar"
+                                                        min="1"
+                                                        max="1000"
+                                                        class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                    >
+
+                                                    <button
+                                                        type="button"
+                                                        wire:click="incrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_cargar >= 1000 ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <div class="flex-1">
+                                                        <input
+                                                            type="range"
                                                             wire:model.live="cantidad_a_cargar"
                                                             min="1"
-                                                            max="1000"
-                                                            class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            max="100"
+                                                            step="1"
+                                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                                         >
-                                                        
-                                                        <button 
-                                                            type="button"
-                                                            wire:click="incrementarCantidad"
-                                                            class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                            {{ $cantidad_a_cargar >= 1000 ? 'disabled' : '' }}
-                                                        >
-                                                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                                            </svg>
-                                                        </button>
-
-                                                        <div class="flex-1">
-                                                            <input 
-                                                                type="range" 
-                                                                wire:model.live="cantidad_a_cargar"
-                                                                min="1"
-                                                                max="100"
-                                                                step="1"
-                                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                                            >
-                                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                                                <span>1</span>
-                                                                <span>100</span>
-                                                            </div>
+                                                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                            <span>1</span>
+                                                            <span>100</span>
                                                         </div>
                                                     </div>
-                                                    @error('cantidad_a_cargar') 
-                                                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
-                                                    @enderror
                                                 </div>
-                                            @endif
+                                                @error('cantidad_a_cargar')
+                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                                @enderror
+                                            </div>
                                         @endif
 
                                         <!-- Transferencia -->
                                         @if($tipo_movimiento === 'transferencia')
+                                            {{-- Origen auto-determinado, destino a elegir --}}
+                                            <div class="mb-5 grid grid-cols-2 gap-3">
+                                                <div class="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+                                                    <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="text-xs text-red-600 font-medium">Origen</div>
+                                                        <div class="text-red-900 font-semibold">{{ $maquinaria_seleccionada->deposito->deposito }}</div>
+                                                        @php $dispTrans = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
+                                                        <div class="text-xs text-red-600">{{ $dispTrans }} {{ $dispTrans == 1 ? 'unidad' : 'unidades' }} disponibles</div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm">
+                                                    <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18m-6 4v1a3 3 0 003 3h1a3 3 0 003-3V7a3 3 0 00-3-3h-1a3 3 0 00-3 3v1"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="text-xs text-green-600 font-medium">Destino</div>
+                                                        <div class="text-green-900 font-semibold">{{ $id_deposito_destino ? $depositos_disponibles->firstWhere('id', $id_deposito_destino)?->deposito ?? '—' : 'Seleccionar' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             <!-- Cantidad a Transferir -->
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     Cantidad a Transferir *
                                                     <span class="text-xs text-gray-500 font-normal">
-                                                        (Disponible: {{ $maquinaria_seleccionada->cantidad_disponible }})
+                                                        (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
                                                     </span>
                                                 </label>
                                                 <div class="flex items-center gap-3">
-                                                    <button 
+                                                    <button
                                                         type="button"
                                                         wire:click="decrementarCantidad"
                                                         class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -817,20 +806,20 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
                                                         </svg>
                                                     </button>
-                                                    
-                                                    <input 
-                                                        type="number" 
+
+                                                    <input
+                                                        type="number"
                                                         wire:model.live="cantidad_a_transferir"
                                                         min="1"
-                                                        max="{{ $maquinaria_seleccionada->cantidad_disponible }}"
+                                                        max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
                                                         class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                                     >
-                                                    
-                                                    <button 
+
+                                                    <button
                                                         type="button"
                                                         wire:click="incrementarCantidad"
                                                         class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                        {{ $cantidad_a_transferir >= $maquinaria_seleccionada->cantidad_disponible ? 'disabled' : '' }}
+                                                        {{ $cantidad_a_transferir >= $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) ? 'disabled' : '' }}
                                                     >
                                                         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -838,42 +827,40 @@
                                                     </button>
 
                                                     <div class="flex-1">
-                                                        <input 
-                                                            type="range" 
+                                                        <input
+                                                            type="range"
                                                             wire:model.live="cantidad_a_transferir"
                                                             min="1"
-                                                            max="{{ $maquinaria_seleccionada->cantidad_disponible }}"
+                                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
                                                             class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                                         >
                                                     </div>
                                                 </div>
-                                                @error('cantidad_a_transferir') 
-                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> 
+                                                @error('cantidad_a_transferir')
+                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                                                 @enderror
                                             </div>
-                                        @endif
 
-                                        <!-- Depósito Destino (solo para transferencia) -->
-                                        @if($tipo_movimiento === 'transferencia')
+                                            <!-- Depósito Destino -->
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
-                                                <select 
+                                                <select
                                                     wire:model.live="id_deposito_destino"
                                                     class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                                 >
                                                     <option value="">Seleccione un depósito</option>
                                                     @foreach($depositos_disponibles as $deposito)
                                                         @if($deposito->id != $maquinaria_seleccionada->id_deposito)
-                                                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                                                    @endif
+                                                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                                                        @endif
                                                     @endforeach
                                                 </select>
                                                 @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             </div>
                                         @endif
 
-                                        <!-- Fecha de Devolución (solo para asignación y devolución) -->
-                                        @if(in_array($tipo_movimiento, ['asignacion', 'devolucion']))
+                                        <!-- Fecha de Devolución (solo para devolución) -->
+                                        @if($tipo_movimiento === 'devolucion')
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Devolución Esperada</label>
                                                 <input 
