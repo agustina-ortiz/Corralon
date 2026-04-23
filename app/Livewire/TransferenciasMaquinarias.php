@@ -7,6 +7,7 @@ use App\Models\Deposito;
 use App\Models\MovimientoMaquinaria;
 use App\Models\TipoMovimiento;
 use App\Models\CategoriaMaquinaria;
+use App\Models\Corralon;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -62,6 +63,16 @@ class TransferenciasMaquinarias extends Component
     public $cantidad_a_cargar = 1;
     public $cantidad_a_asignar = 1;
 
+    // Para transferencia multi-maquinaria (modal separado)
+    public $showModalTransferencia = false;
+    public $id_corralon_origen = '';
+    public $id_corralon_destino = '';
+    public $id_deposito_origen_tf = '';
+    public $id_deposito_destino_tf = '';
+    public $maquinarias_transferencia = [];
+    public $search_maquinaria_transferencia = '';
+    public $mostrar_lista_transferencia = false;
+
     // Configuración UI por tipo (icons, colores, descripciones)
     // Mapeado al nombre exacto en la tabla tipo_movimientos
     private const UI_CONFIG = [
@@ -99,6 +110,15 @@ class TransferenciasMaquinarias extends Component
 
     protected function rules()
     {
+        if ($this->showModalTransferencia) {
+            return [
+                'id_deposito_origen_tf'               => 'required|exists:depositos,id',
+                'id_deposito_destino_tf'              => 'required|exists:depositos,id|different:id_deposito_origen_tf',
+                'maquinarias_transferencia'            => 'required|array|min:1',
+                'maquinarias_transferencia.*.cantidad' => 'required|integer|min:1',
+            ];
+        }
+
         $rules = [
             'observaciones' => 'nullable|string|max:500',
         ];
@@ -307,19 +327,78 @@ class TransferenciasMaquinarias extends Component
             });
         }
 
-        $depositos       = Deposito::whereIn('id', $depositosAccesibles)->orderBy('deposito')->get();
-        $categorias      = CategoriaMaquinaria::orderBy('nombre')->get();
-        $usuarios        = User::orderBy('name')->get();
+        $depositos        = Deposito::whereIn('id', $depositosAccesibles)->orderBy('deposito')->get();
+        $categorias       = CategoriaMaquinaria::orderBy('nombre')->get();
+        $usuarios         = User::orderBy('name')->get();
         $tipos_movimiento = TipoMovimiento::whereIn('tipo', ['M', 'IM'])->orderBy('tipo_movimiento')->get();
 
+        // Datos para el modal de transferencia multi-maquinaria
+        $corralonesPermitidosIds  = $user->getCorralonesPermitidosIds();
+        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+
+        $corralones = collect();
+        if ($tieneMultiplesCorralones) {
+            $corralones = $user->acceso_todos_corralones
+                ? Corralon::orderBy('descripcion')->get()
+                : Corralon::whereIn('id', $corralonesPermitidosIds)->orderBy('descripcion')->get();
+        }
+
+        // Depósitos origen para el modal de transferencia (filtrados por corralón si aplica)
+        if ($tieneMultiplesCorralones && $this->id_corralon_origen) {
+            $depositosOrigenTf = Deposito::whereIn('id', $depositosAccesibles)
+                ->where('id_corralon', $this->id_corralon_origen)
+                ->orderBy('deposito')->get();
+        } else {
+            $depositosOrigenTf = Deposito::whereIn('id', $depositosAccesibles)->orderBy('deposito')->get();
+        }
+
+        // Depósitos destino para el modal de transferencia
+        if ($tieneMultiplesCorralones && $this->id_corralon_destino) {
+            $depositosDestinoTf = Deposito::where('id_corralon', $this->id_corralon_destino)
+                ->when($this->id_deposito_origen_tf, fn($q) => $q->where('id', '!=', $this->id_deposito_origen_tf))
+                ->orderBy('deposito')->get();
+        } else {
+            $depositosDestinoTf = Deposito::when($this->id_deposito_origen_tf, fn($q) => $q->where('id', '!=', $this->id_deposito_origen_tf))
+                ->orderBy('deposito')->get();
+        }
+
+        // Maquinarias disponibles en el depósito origen para transferir
+        $maquinarias_disponibles_transferencia = collect();
+        if ($this->showModalTransferencia && $this->id_deposito_origen_tf
+            && ($this->mostrar_lista_transferencia || $this->search_maquinaria_transferencia)) {
+            $maquinarias_disponibles_transferencia = Maquinaria::with(['categoriaMaquinaria'])
+                ->where('id_deposito', $this->id_deposito_origen_tf)
+                ->when($this->search_maquinaria_transferencia, function ($q) {
+                    $q->where(function ($inner) {
+                        $inner->where('maquinaria', 'like', '%' . $this->search_maquinaria_transferencia . '%')
+                            ->orWhereHas('categoriaMaquinaria', fn($cat) => $cat->where('nombre', 'like', '%' . $this->search_maquinaria_transferencia . '%'));
+                    });
+                })
+                ->orderBy('maquinaria')
+                ->limit(50)
+                ->get()
+                ->map(function ($m) {
+                    $m->cantidad_disponible = $m->getCantidadEnDeposito($m->id_deposito);
+                    return $m;
+                })
+                ->filter(fn($m) => $m->cantidad_disponible > 0)
+                ->values();
+        }
+
         return view('livewire.transferencias-maquinarias', [
-            'movimientos'          => $movimientos,
-            'maquinarias_filtradas'=> $maquinarias_filtradas,
-            'depositos'            => $depositos,
-            'categorias'           => $categorias,
-            'usuarios'             => $usuarios,
-            'tipos_movimiento'     => $tipos_movimiento,
-            'puedeCrear'           => $user->puedeCrearMovimientosMaquinarias(),
+            'movimientos'                          => $movimientos,
+            'maquinarias_filtradas'                => $maquinarias_filtradas,
+            'depositos'                            => $depositos,
+            'categorias'                           => $categorias,
+            'usuarios'                             => $usuarios,
+            'tipos_movimiento'                     => $tipos_movimiento,
+            'puedeCrear'                           => $user->puedeCrearMovimientosMaquinarias(),
+            'puedeCrearTransferencias'             => $user->puedeCrearTransferenciasMaquinarias(),
+            'tieneMultiplesCorralones'             => $tieneMultiplesCorralones,
+            'corralones'                           => $corralones,
+            'depositosOrigenTf'                    => $depositosOrigenTf,
+            'depositosDestinoTf'                   => $depositosDestinoTf,
+            'maquinarias_disponibles_transferencia'=> $maquinarias_disponibles_transferencia,
         ])->layout('layouts.app', ['header' => 'Movimientos de Maquinarias']);
     }
 
@@ -496,7 +575,7 @@ class TransferenciasMaquinarias extends Component
             switch ($this->tipo_movimiento) {
                 case 'carga_stock':   return $this->guardarCargaStock();
                 case 'asignacion':    return $this->guardarAsignacion();
-                case 'transferencia': return $this->guardarTransferencia();
+                case 'transferencia': return $this->ejecutarTransferencia();
                 case 'devolucion':    return $this->guardarDevolucion();
                 case 'mantenimiento': return $this->guardarMantenimiento();
                 default:
@@ -589,7 +668,7 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
-    private function guardarTransferencia()
+    private function ejecutarTransferencia()
     {
         DB::beginTransaction();
         try {
@@ -784,6 +863,262 @@ class TransferenciasMaquinarias extends Component
 
         $cantidad = $maquinaria->getCantidadEnDeposito($maquinaria->id_deposito);
         DB::table('maquinarias')->where('id', $maquinariaId)->update(['cantidad' => $cantidad]);
+    }
+
+    // =========================================================
+    // TRANSFERENCIA MULTI-MAQUINARIA (modal separado)
+    // =========================================================
+
+    public function crearTransferencia()
+    {
+        if (!auth()->user()->puedeCrearTransferenciasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            return;
+        }
+        $this->resetFormTransferencia();
+        $this->showModalTransferencia = true;
+    }
+
+    public function cerrarModalTransferencia()
+    {
+        $this->showModalTransferencia = false;
+        $this->resetFormTransferencia();
+    }
+
+    private function resetFormTransferencia()
+    {
+        $this->id_corralon_origen              = '';
+        $this->id_corralon_destino             = '';
+        $this->id_deposito_origen_tf           = '';
+        $this->id_deposito_destino_tf          = '';
+        $this->maquinarias_transferencia       = [];
+        $this->search_maquinaria_transferencia = '';
+        $this->mostrar_lista_transferencia     = false;
+        $this->resetErrorBag();
+    }
+
+    public function updatedIdCorralonOrigen()
+    {
+        $this->id_deposito_origen_tf           = '';
+        $this->maquinarias_transferencia       = [];
+        $this->search_maquinaria_transferencia = '';
+        $this->mostrar_lista_transferencia     = false;
+        $this->resetErrorBag('id_deposito_origen_tf');
+    }
+
+    public function updatedIdCorralonDestino()
+    {
+        $this->id_deposito_destino_tf = '';
+        $this->resetErrorBag('id_deposito_destino_tf');
+    }
+
+    public function updatedIdDepositoOrigenTf()
+    {
+        $this->maquinarias_transferencia       = [];
+        $this->search_maquinaria_transferencia = '';
+        $this->mostrar_lista_transferencia     = false;
+        $this->resetErrorBag('id_deposito_origen_tf');
+
+        if (!empty($this->id_deposito_origen_tf) && $this->id_deposito_origen_tf == $this->id_deposito_destino_tf) {
+            $this->addError('id_deposito_destino_tf', 'El depósito destino debe ser diferente al de origen.');
+        } else {
+            $this->resetErrorBag('id_deposito_destino_tf');
+        }
+    }
+
+    public function updatedIdDepositoDestinoTf()
+    {
+        $this->resetErrorBag('id_deposito_destino_tf');
+
+        if (!empty($this->id_deposito_destino_tf) && !empty($this->id_deposito_origen_tf)
+            && $this->id_deposito_destino_tf == $this->id_deposito_origen_tf) {
+            $this->addError('id_deposito_destino_tf', 'El depósito destino debe ser diferente al de origen.');
+        }
+    }
+
+    public function mostrarListaTransferencia()
+    {
+        $this->mostrar_lista_transferencia = true;
+    }
+
+    public function updatedSearchMaquinariaTransferencia()
+    {
+        $this->mostrar_lista_transferencia = true;
+    }
+
+    public function agregarMaquinariaTransferencia($maquinariaId)
+    {
+        $maquinaria = Maquinaria::with(['categoriaMaquinaria'])->find($maquinariaId);
+
+        if (!$maquinaria || $maquinaria->id_deposito != $this->id_deposito_origen_tf) {
+            return;
+        }
+
+        $existe = collect($this->maquinarias_transferencia)->contains('id', $maquinariaId);
+        if (!$existe) {
+            $cantidadDisponible = $maquinaria->getCantidadEnDeposito($this->id_deposito_origen_tf);
+            $this->maquinarias_transferencia[] = [
+                'id'                  => $maquinaria->id,
+                'nombre'              => $maquinaria->maquinaria,
+                'categoria'           => $maquinaria->categoriaMaquinaria->nombre,
+                'cantidad_disponible' => $cantidadDisponible,
+                'cantidad'            => '',
+            ];
+            $this->resetErrorBag('maquinarias_transferencia');
+        }
+
+        $this->search_maquinaria_transferencia = '';
+        $this->mostrar_lista_transferencia     = false;
+    }
+
+    public function removerMaquinariaTransferencia($index)
+    {
+        unset($this->maquinarias_transferencia[$index]);
+        $this->maquinarias_transferencia = array_values($this->maquinarias_transferencia);
+    }
+
+    public function updatedMaquinariasTransferencia($value, $key)
+    {
+        if (str_contains($key, '.cantidad')) {
+            $index      = explode('.', $key)[0];
+            $cantidad   = intval($value);
+            $disponible = intval($this->maquinarias_transferencia[$index]['cantidad_disponible'] ?? 0);
+
+            if ($cantidad > $disponible) {
+                $this->addError(
+                    "maquinarias_transferencia.{$index}.cantidad",
+                    "No puede transferir más de {$disponible} unidades disponibles"
+                );
+            } else {
+                $this->resetErrorBag("maquinarias_transferencia.{$index}.cantidad");
+            }
+
+            if ($cantidad < 1 && $value !== '') {
+                $this->addError(
+                    "maquinarias_transferencia.{$index}.cantidad",
+                    "La cantidad debe ser al menos 1"
+                );
+            }
+        }
+    }
+
+    public function guardarTransferencia()
+    {
+        if (!auth()->user()->puedeCrearTransferenciasMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->cerrarModalTransferencia();
+            return;
+        }
+
+        try {
+            if (empty($this->id_deposito_origen_tf)) {
+                $this->addError('id_deposito_origen_tf', 'Debe seleccionar un depósito de origen.');
+                return;
+            }
+            if (empty($this->id_deposito_destino_tf)) {
+                $this->addError('id_deposito_destino_tf', 'Debe seleccionar un depósito de destino.');
+                return;
+            }
+            if ($this->id_deposito_origen_tf == $this->id_deposito_destino_tf) {
+                $this->addError('id_deposito_destino_tf', 'El depósito destino debe ser diferente al de origen.');
+                return;
+            }
+            if (empty($this->maquinarias_transferencia)) {
+                $this->addError('maquinarias_transferencia', 'Debe seleccionar al menos una maquinaria para transferir.');
+                return;
+            }
+
+            foreach ($this->maquinarias_transferencia as $index => $item) {
+                if (empty($item['cantidad']) || intval($item['cantidad']) < 1) {
+                    $this->addError("maquinarias_transferencia.{$index}.cantidad", 'Debe ingresar una cantidad válida.');
+                    session()->flash('error', "Debe ingresar una cantidad válida para {$item['nombre']}.");
+                    return;
+                }
+                if (intval($item['cantidad']) > intval($item['cantidad_disponible'])) {
+                    $this->addError("maquinarias_transferencia.{$index}.cantidad", "No puede transferir más de {$item['cantidad_disponible']} unidades disponibles.");
+                    session()->flash('error', "La cantidad de {$item['nombre']} excede las unidades disponibles.");
+                    return;
+                }
+            }
+
+            DB::beginTransaction();
+
+            $tipoEntrada = $this->resolverTipo('Transferencia Entrada');
+            $tipoSalida  = $this->resolverTipo('Transferencia Salida');
+            $total       = 0;
+
+            foreach ($this->maquinarias_transferencia as $item) {
+                $maquinariaOrigen = Maquinaria::findOrFail($item['id']);
+                $cantidad         = intval($item['cantidad']);
+
+                $cantidadDisponible = $maquinariaOrigen->getCantidadEnDeposito($this->id_deposito_origen_tf);
+                if ($cantidad > $cantidadDisponible) {
+                    throw new \Exception("Solo hay {$cantidadDisponible} unidades disponibles de {$maquinariaOrigen->maquinaria} en el depósito origen.");
+                }
+
+                $maquinariaDestino = Maquinaria::where('maquinaria', $maquinariaOrigen->maquinaria)
+                    ->where('id_deposito', $this->id_deposito_destino_tf)
+                    ->where('id_categoria_maquinaria', $maquinariaOrigen->id_categoria_maquinaria)
+                    ->first();
+
+                if (!$maquinariaDestino) {
+                    $maquinariaDestino = Maquinaria::create([
+                        'maquinaria'              => $maquinariaOrigen->maquinaria,
+                        'id_categoria_maquinaria' => $maquinariaOrigen->id_categoria_maquinaria,
+                        'id_deposito'             => $this->id_deposito_destino_tf,
+                        'estado'                  => 'disponible',
+                        'cantidad'                => 0,
+                        'descripcion'             => $maquinariaOrigen->descripcion,
+                        'modelo'                  => $maquinariaOrigen->modelo,
+                        'numero_serie'            => null,
+                        'anio_fabricacion'        => $maquinariaOrigen->anio_fabricacion,
+                    ]);
+                }
+
+                MovimientoMaquinaria::create([
+                    'id_maquinaria'       => $maquinariaDestino->id,
+                    'cantidad'            => $cantidad,
+                    'id_tipo_movimiento'  => $tipoEntrada->id,
+                    'fecha'               => now(),
+                    'id_usuario'          => Auth::id(),
+                    'id_deposito_entrada' => $this->id_deposito_destino_tf,
+                    'id_referencia'       => $maquinariaOrigen->id,
+                    'tipo_referencia'     => 'deposito',
+                ]);
+
+                MovimientoMaquinaria::create([
+                    'id_maquinaria'       => $maquinariaOrigen->id,
+                    'cantidad'            => $cantidad,
+                    'id_tipo_movimiento'  => $tipoSalida->id,
+                    'fecha'               => now(),
+                    'id_usuario'          => Auth::id(),
+                    'id_deposito_entrada' => $this->id_deposito_origen_tf,
+                    'id_referencia'       => $maquinariaDestino->id,
+                    'tipo_referencia'     => 'deposito',
+                ]);
+
+                $this->actualizarCantidadMaquinaria($maquinariaOrigen->id);
+                $this->actualizarCantidadMaquinaria($maquinariaDestino->id);
+                $total++;
+            }
+
+            DB::commit();
+            \Illuminate\Support\Facades\Cache::flush();
+
+            $depOrigen  = Deposito::find($this->id_deposito_origen_tf);
+            $depDestino = Deposito::find($this->id_deposito_destino_tf);
+
+            session()->flash('message', "Transferencia realizada: {$total} maquinaria(s) desde {$depOrigen->deposito} hacia {$depDestino->deposito}.");
+            $this->cerrarModalTransferencia();
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            throw $e;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la transferencia: ' . $e->getMessage());
+            \Log::error('Error en guardarTransferencia maquinarias: ' . $e->getMessage());
+        }
     }
 
     public function cerrarModal()

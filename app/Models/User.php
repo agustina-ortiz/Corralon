@@ -261,4 +261,9 @@ class User extends Authenticatable
     {
         return $this->rol && $this->rol->lMovimientosMaquinarias;
     }
+
+    public function puedeCrearTransferenciasMaquinarias(): bool
+    {
+        return $this->rol && $this->rol->lMovimientosMaquinarias;
+    }
 }
