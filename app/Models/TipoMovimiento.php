@@ -13,94 +13,72 @@ class TipoMovimiento extends Model
         'tipo',
     ];
 
+    // Tipos de movimiento considerados entradas (aumentan stock)
+    const NOMBRES_ENTRADA = [
+        'Ajuste Positivo',
+        'Carga de Stock',
+        'Carga de Stock Maquinaria',
+        'Devolución',
+        'Inventario Inicial',
+        'Inventario Inicial Maquinaria',
+        'Transferencia Entrada',
+        'Transferencia Entrada Maquinaria',
+    ];
+
+    // Tipos de movimiento considerados salidas (reducen stock)
+    const NOMBRES_SALIDA = [
+        'Ajuste Negativo',
+        'Asignación Maquinaria',
+        'Mantenimiento Maquinaria',
+        'Transferencia Salida',
+        'Transferencia Salida Maquinaria',
+    ];
+
     /**
-     * Determina si este tipo de movimiento es para insumos
+     * Determina si aplica a Insumos (tipo I o IM)
      */
     public function esParaInsumos(): bool
     {
-        return $this->tipo === 'I';
+        return in_array($this->tipo, ['I', 'IM']);
     }
 
     /**
-     * Determina si este tipo de movimiento es para maquinaria
+     * Determina si aplica a Maquinarias (tipo M o IM)
      */
     public function esParaMaquinaria(): bool
     {
-        return $this->tipo === 'M';
+        return in_array($this->tipo, ['M', 'IM']);
     }
 
     /**
-     * Determina si este tipo de movimiento es una transferencia
-     */
-    public function esTransferencia(): bool
-    {
-        return strtolower($this->tipo_movimiento) === 'transferencia';
-    }
-
-    /**
-     * Determina si este tipo de movimiento es una entrada/ingreso
-     * (Para tipos que no son transferencia)
+     * Determina si este tipo representa una entrada de stock
      */
     public function esEntrada(): bool
     {
-        if ($this->esTransferencia()) {
-            // Las transferencias se determinan por contexto
-            return false;
-        }
-        
-        $nombre = strtolower($this->tipo_movimiento);
-        
-        $palabrasEntrada = [
-            'entrada',
-            'ingreso',
-            'compra',
-            'recepción',
-            'recepcion',
-            'devolución',
-            'devolucion',
-            'ajuste positivo',
-            'inventario inicial',
-        ];
-
-        foreach ($palabrasEntrada as $palabra) {
-            if (str_contains($nombre, $palabra)) {
-                return true;
-            }
-        }
-
-        return false;
+        return in_array($this->tipo_movimiento, self::NOMBRES_ENTRADA);
     }
 
     /**
-     * Determina si este tipo de movimiento es una salida
-     * (Para tipos que no son transferencia)
+     * Determina si este tipo representa una salida de stock
      */
     public function esSalida(): bool
     {
-        if ($this->esTransferencia()) {
-            // Las transferencias se determinan por contexto
-            return false;
-        }
-        
-        $nombre = strtolower($this->tipo_movimiento);
-        
-        $palabrasSalida = [
-            'salida',
-            'egreso',
-            'uso',
-            'consumo',
-            'préstamo',
-            'prestamo',
-            'ajuste negativo',
-            'baja',
-        ];
+        return in_array($this->tipo_movimiento, self::NOMBRES_SALIDA);
+    }
 
-        foreach ($palabrasSalida as $palabra) {
-            if (str_contains($nombre, $palabra)) {
-                return true;
-            }
-        }
+    /**
+     * Scope para filtrar solo entradas
+     */
+    public function scopeEntradas($query)
+    {
+        return $query->whereIn('tipo_movimiento', self::NOMBRES_ENTRADA);
+    }
 
-        return false;
+    /**
+     * Scope para filtrar solo salidas
+     */
+    public function scopeSalidas($query)
+    {
+        return $query->whereIn('tipo_movimiento', self::NOMBRES_SALIDA);
     }
 }

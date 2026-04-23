@@ -49,26 +49,23 @@ class MovimientoMaquinaria extends Model
         return $this->belongsTo(Deposito::class, 'id_deposito_entrada');
     }
 
-    // ✅ Accessor corregido - calcula cantidad en el depósito específico
+    // Calcula el stock acumulado en el depósito específico hasta este movimiento
     public function getCantidadHistoricaAttribute()
     {
         $deposito = $this->id_deposito_entrada;
-        
-        // Sumar entradas en ESTE DEPÓSITO hasta ESTE movimiento
+
         $entradas = MovimientoMaquinaria::where('id_maquinaria', $this->id_maquinaria)
             ->where('id_deposito_entrada', $deposito)
             ->where('id', '<=', $this->id)
-            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'I'))
+            ->whereHas('tipoMovimiento', fn($q) => $q->whereIn('tipo_movimiento', TipoMovimiento::NOMBRES_ENTRADA))
             ->sum('cantidad');
-        
-        // Sumar salidas desde ESTE DEPÓSITO hasta ESTE movimiento
+
         $salidas = MovimientoMaquinaria::where('id_maquinaria', $this->id_maquinaria)
             ->where('id_deposito_entrada', $deposito)
             ->where('id', '<=', $this->id)
-            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo', 'E'))
+            ->whereHas('tipoMovimiento', fn($q) => $q->whereIn('tipo_movimiento', TipoMovimiento::NOMBRES_SALIDA))
             ->sum('cantidad');
-        
-        // Calcular solo basado en movimientos (no sumar cantidad inicial)
+
         return max(0, $entradas - $salidas);
     }
 }

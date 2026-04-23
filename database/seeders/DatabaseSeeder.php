@@ -16,7 +16,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // 1. Primero los corralones (no tienen dependencias)
+            // 1. Tipos de movimiento (sin dependencias, necesarios para los demás seeders)
+            TipoMovimientoSeeder::class,
+
+            // 2. Primero los corralones (no tienen dependencias)
             CorralonesSeeder::class,
             
             // 2. Luego los depósitos (dependen de corralones)
