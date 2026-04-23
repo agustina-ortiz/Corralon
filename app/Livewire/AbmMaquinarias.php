@@ -4,14 +4,15 @@ namespace App\Livewire;
 
 use App\Models\Maquinaria;
 use App\Models\CategoriaMaquinaria;
+use App\Models\Corralon;
 use App\Models\Deposito;
-use App\Models\MovimientoMaquinaria; 
+use App\Models\MovimientoMaquinaria;
 use App\Models\TipoMovimiento;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB; 
-use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class AbmMaquinarias extends Component
 {
@@ -32,6 +33,7 @@ class AbmMaquinarias extends Component
     public $maquinaria;
     public $id_categoria_maquinaria;
     public $estado;
+    public $id_corralon = '';
     public $id_deposito;
     public $cantidad;
 
@@ -41,6 +43,7 @@ class AbmMaquinarias extends Component
             'maquinaria' => 'required|string|max:100',
             'id_categoria_maquinaria' => 'required|exists:categoria_maquinarias,id',
             'estado' => 'required|in:disponible,no disponible',
+            'id_corralon' => 'required|exists:corralones,id',
             'id_deposito' => 'required|exists:depositos,id',
         ];
 
@@ -57,6 +60,8 @@ class AbmMaquinarias extends Component
         'id_categoria_maquinaria.required' => 'La categoría es obligatoria.',
         'id_categoria_maquinaria.exists' => 'La categoría seleccionada no existe.',
         'estado.required' => 'El estado es obligatorio.',
+        'id_corralon.required' => 'El corralón es obligatorio.',
+        'id_corralon.exists' => 'El corralón seleccionado no existe.',
         'id_deposito.required' => 'El depósito es obligatorio.',
         'cantidad.required' => 'La cantidad es obligatoria.',
         'cantidad.min' => 'La cantidad debe ser al menos 1.',
@@ -79,19 +84,39 @@ class AbmMaquinarias extends Component
         // ✅ Obtener distribución de maquinarias por depósito
         $maquinarias = $this->getMaquinariasDistribuidas();
 
-        // Filtrar depósitos
+        // Filtrar depósitos para los filtros de la tabla
         $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
         if (!$user->acceso_todos_corralones) {
             $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
         }
-        
         $depositos = $depositosQuery->get();
+
+        // Corralones permitidos para el modal
+        $corralonesQuery = Corralon::orderBy('descripcion');
+        if (!$user->acceso_todos_corralones) {
+            $corralonesQuery->whereIn('id', $user->corralones_permitidos ?? []);
+        }
+        $corralones = $corralonesQuery->get();
+
+        // Depósitos del modal filtrados por corralón seleccionado
+        $depositosModalQuery = Deposito::orderBy('deposito');
+        if ($this->id_corralon) {
+            $depositosModalQuery->where('id_corralon', $this->id_corralon);
+        } elseif (!$user->acceso_todos_corralones) {
+            $depositosModalQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
+        } else {
+            $depositosModalQuery->whereRaw('1 = 0'); // sin corralón elegido, no mostrar nada
+        }
+        $depositosModal = $depositosModalQuery->get();
+
         $categorias = CategoriaMaquinaria::orderBy('nombre')->get();
 
         return view('livewire.abm-maquinarias', [
             'maquinarias' => $maquinarias,
             'categorias' => $categorias,
             'depositos' => $depositos,
+            'corralones' => $corralones,
+            'depositosModal' => $depositosModal,
             // Pasar permisos a la vista
             'puedeCrear' => $user->puedeCrearMaquinarias(),
             'puedeEditar' => $user->puedeEditarMaquinarias(),
@@ -99,6 +124,11 @@ class AbmMaquinarias extends Component
         ])->layout('layouts.app', [
             'header' => 'ABM Maquinarias'
         ]);
+    }
+
+    public function updatedIdCorralon()
+    {
+        $this->id_deposito = '';
     }
 
     private function getMaquinariasDistribuidas()
@@ -169,6 +199,13 @@ class AbmMaquinarias extends Component
         
         $this->resetForm();
         $this->editMode = false;
+
+        // Si el usuario solo tiene acceso a un corralón, preseleccionarlo
+        $user = auth()->user();
+        if (!$user->acceso_todos_corralones && count($user->corralones_permitidos ?? []) === 1) {
+            $this->id_corralon = $user->corralones_permitidos[0];
+        }
+
         $this->showModal = true;
     }
 
@@ -196,9 +233,10 @@ class AbmMaquinarias extends Component
         $this->maquinaria = $maquinaria->maquinaria;
         $this->id_categoria_maquinaria = $maquinaria->id_categoria_maquinaria;
         $this->estado = $maquinaria->estado;
+        $this->id_corralon = $maquinaria->deposito->id_corralon;
         $this->id_deposito = $maquinaria->id_deposito;
         $this->cantidad = $maquinaria->cantidad;
-        
+
         $this->editMode = true;
         $this->showModal = true;
     }
@@ -339,6 +377,7 @@ class AbmMaquinarias extends Component
         $this->maquinaria = '';
         $this->id_categoria_maquinaria = '';
         $this->estado = 'disponible';
+        $this->id_corralon = '';
         $this->id_deposito = '';
         $this->cantidad = 1;
         $this->resetErrorBag();

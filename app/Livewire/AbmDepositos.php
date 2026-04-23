@@ -12,6 +12,7 @@ class AbmDepositos extends Component
     use WithPagination;
 
     public $search = '';
+    public $filtro_corralon = '';
     public $showModal = false;
     public $editMode = false;
     
@@ -43,11 +44,18 @@ class AbmDepositos extends Component
     {
         $user = auth()->user();
         
+        // Determinar si el usuario tiene múltiples corralones
+        $corralonesPermitidosIds = $user->getCorralonesPermitidosIds();
+        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+
         $depositos = Deposito::with('corralon')
             ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('deposito', 'like', '%' . $this->search . '%')
                       ->orWhere('id', 'like', '%' . $this->search . '%');
+            })
+            ->when($this->filtro_corralon, function($query) {
+                $query->where('id_corralon', $this->filtro_corralon);
             })
             ->orderBy('id')
             ->paginate(10);
@@ -62,6 +70,7 @@ class AbmDepositos extends Component
         return view('livewire.abm-depositos', [
             'depositos' => $depositos,
             'corralones' => $corralones,
+            'tieneMultiplesCorralones' => $tieneMultiplesCorralones,
             // Pasar permisos a la vista
             'puedeCrear' => $user->puedeCrearDepositos(),
             'puedeEditar' => $user->puedeEditarDepositos(),
@@ -72,6 +81,11 @@ class AbmDepositos extends Component
     }
 
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroCorralon()
     {
         $this->resetPage();
     }

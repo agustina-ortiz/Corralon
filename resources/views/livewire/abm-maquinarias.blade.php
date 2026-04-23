@@ -303,55 +303,73 @@
                                     @error('id_categoria_maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        Cantidad *
-                                        @if($editMode)
-                                            <span class="text-xs text-gray-500 font-normal">(Este campo se calcula automáticamente con los movimientos)</span>
-                                        @endif
-                                    </label>
-                                    <div class="relative">
-                                        <input 
-                                            type="number" 
-                                            wire:model="cantidad"
-                                            min="1"
-                                            @if($editMode) disabled @endif
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if($editMode) bg-gray-100 text-gray-500 cursor-not-allowed @endif"
-                                        >
-                                        @if($editMode)
-                                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                                </svg>
-                                            </div>
-                                        @endif
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Cantidad -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Cantidad *
+                                            @if($editMode)
+                                                <span class="text-xs text-gray-500 font-normal">(Este campo se calcula automáticamente con los movimientos)</span>
+                                            @endif
+                                        </label>
+                                        <div class="relative">
+                                            <input 
+                                                type="number" 
+                                                wire:model="cantidad"
+                                                min="1"
+                                                @if($editMode) disabled @endif
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if($editMode) bg-gray-100 text-gray-500 cursor-not-allowed @endif"
+                                            >
+                                            @if($editMode)
+                                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                     </div>
-                                    @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+    
+                                    <!-- Estado -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+                                        <select 
+                                            wire:model="estado"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                        >
+                                            <option value="">Seleccione un estado</option>
+                                            <option value="disponible">Disponible</option>
+                                            <option value="no disponible">No Disponible</option>
+                                        </select>
+                                        @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
 
-                                <!-- Estado -->
+                                <!-- Corralón -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
-                                    <select 
-                                        wire:model="estado"
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Corralón *</label>
+                                    <select
+                                        wire:model.live="id_corralon"
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                     >
-                                        <option value="">Seleccione un estado</option>
-                                        <option value="disponible">Disponible</option>
-                                        <option value="no disponible">No Disponible</option>
+                                        <option value="">Seleccione un corralón</option>
+                                        @foreach($corralones as $corralon)
+                                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
+                                        @endforeach
                                     </select>
-                                    @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Depósito -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
-                                    <select 
+                                    <select
                                         wire:model="id_deposito"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                        @if(!$id_corralon) disabled @endif
+                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if(!$id_corralon) bg-gray-100 text-gray-400 cursor-not-allowed @endif"
                                     >
-                                        <option value="">Seleccione un depósito</option>
-                                        @foreach($depositos as $deposito)
+                                        <option value="">{{ $id_corralon ? 'Seleccione un depósito' : 'Primero seleccione un corralón' }}</option>
+                                        @foreach($depositosModal as $deposito)
                                             <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
                                         @endforeach
                                     </select>
