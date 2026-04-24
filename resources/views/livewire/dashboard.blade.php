@@ -1,76 +1,92 @@
 <div>
     <!-- Cards con estadísticas generales -->
-<!-- Cards con estadísticas generales -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <!-- Card: Total Insumos -->
-    <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Insumos</p>
-                <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalInsumos) }}</p>
-            </div>
-            <div class="p-3 rounded-full bg-blue-50">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                </svg>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+        @if(in_array('card_insumos', $cardsActivas))
+        <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Insumos</p>
+                    <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalInsumos) }}</p>
+                </div>
+                <div class="p-3 rounded-full bg-blue-50">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                </div>
             </div>
         </div>
+        @endif
+
+        @if(in_array('card_maquinaria', $cardsActivas))
+        <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Maquinaria</p>
+                    <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalMaquinaria) }}</p>
+                </div>
+                <div class="p-3 rounded-full bg-green-50">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        @if(in_array('card_vehiculos', $cardsActivas))
+        <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Vehículos</p>
+                    <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalVehiculos) }}</p>
+                </div>
+                <div class="p-3 rounded-full bg-orange-50">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        @if(in_array('card_eventos', $cardsActivas))
+        <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Próximos Eventos</p>
+                    <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($countProximosEventos) }}</p>
+                </div>
+                <div class="p-3 rounded-full bg-indigo-50">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        @endif
+
     </div>
 
-    <!-- Card: Maquinaria -->
-    <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Maquinaria</p>
-                <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalMaquinaria) }}</p>
-            </div>
-            <div class="p-3 rounded-full bg-green-50">
-                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card: Vehículos -->
-    <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Vehículos</p>
-                <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalVehiculos) }}</p>
-            </div>
-            <div class="p-3 rounded-full bg-orange-50">
-                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card: Próximos Eventos -->
-    <div class="bg-gradient-to-br from-white to-[#77BF43]/5 border border-gray-200 rounded-lg shadow-sm p-4 transform hover:shadow-xl hover:shadow-[#77BF43]/30 hover:-translate-y-1 transition-all duration-200">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Próximos Eventos</p>
-                <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($countProximosEventos) }}</p>
-            </div>
-            <div class="p-3 rounded-full bg-indigo-50">
-                <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-            </div>
-        </div>
-    </div>
-</div>
-    
     <!-- Sección de Estadísticas de Alerta -->
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">Estadísticas y Alertas</h2>
+    <div class="mb-6 flex items-center justify-between">
+        <h2 class="text-2xl font-bold text-gray-800">Estadísticas y Alertas</h2>
+        <button
+            wire:click="abrirModalPersonalizar"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
+        >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            Personalizar panel
+        </button>
     </div>
-    
+
+    @if($widgetsActivos)
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Cuadrante 1: Insumos con Stock Bajo -->
+
+        @if(in_array('stock_bajo', $widgetsActivos))
+        <!-- Insumos con Stock Bajo -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 flex items-center justify-between border-b border-orange-200">
                 <div class="flex items-center">
@@ -91,7 +107,7 @@
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-800">{{ $insumo->insumo }}</p>
                                     <p class="text-sm text-gray-600">
-                                        {{ $insumo->categoriaInsumo->categoria ?? 'Sin categoría' }} • 
+                                        {{ $insumo->categoriaInsumo->categoria ?? 'Sin categoría' }} •
                                         {{ $insumo->deposito->deposito ?? 'Sin depósito' }}
                                     </p>
                                     <p class="text-xs text-gray-500 mt-1">
@@ -121,8 +137,10 @@
                 @endif
             </div>
         </div>
-    
-        <!-- Cuadrante 2: VTVs Próximas a Vencer -->
+        @endif
+
+        @if(in_array('vtv_vencer', $widgetsActivos))
+        <!-- VTVs Próximas a Vencer -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 flex items-center justify-between border-b border-amber-200">
                 <div class="flex items-center">
@@ -146,7 +164,7 @@
                                 $estaVencida = $diasRestantes < 0;
                                 $vencePronto = $diasRestantes >= 0 && $diasRestantes <= 7;
                             @endphp
-                            <div class="flex items-center justify-between p-3 
+                            <div class="flex items-center justify-between p-3
                                 @if($estaVencida) bg-red-50 border border-red-200 hover:border-red-300 hover:bg-red-100
                                 @elseif($vencePronto) bg-orange-50 border border-orange-200 hover:border-orange-300 hover:bg-orange-100
                                 @else bg-amber-50 border border-amber-100 hover:border-amber-200 hover:bg-amber-100
@@ -175,7 +193,7 @@
                                         <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
                                     @endif
                                     <p class="text-xs text-gray-500">
-                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} • 
+                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} •
                                         {{ $vehiculo->deposito->corralon->descripcion ?? 'Sin corralón' }}
                                     </p>
                                 </div>
@@ -217,8 +235,10 @@
                 @endif
             </div>
         </div>
-    
-        <!-- Cuadrante 3: Vehículos en Uso -->
+        @endif
+
+        @if(in_array('vehiculos_en_uso', $widgetsActivos))
+        <!-- Vehículos en Uso -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-4 flex items-center justify-between border-b border-purple-200">
                 <div class="flex items-center">
@@ -252,7 +272,7 @@
                                         <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
                                     @endif
                                     <p class="text-xs text-gray-500">
-                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} • 
+                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} •
                                         {{ $vehiculo->deposito->corralon->descripcion ?? 'Sin corralón' }}
                                     </p>
                                 </div>
@@ -274,8 +294,10 @@
                 @endif
             </div>
         </div>
-    
-        <!-- Cuadrante 4: Próximos Eventos -->
+        @endif
+
+        @if(in_array('proximos_eventos', $widgetsActivos))
+        <!-- Próximos Eventos -->
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-indigo-50 to-indigo-100 px-6 py-4 flex items-center justify-between border-b border-indigo-200">
                 <div class="flex items-center">
@@ -285,7 +307,7 @@
                     <h3 class="text-lg font-semibold text-gray-800">Próximos Eventos</h3>
                 </div>
                 <span class="bg-indigo-200 text-indigo-800 font-bold px-3 py-1 rounded-full text-sm">
-                    {{ $countProximosEventos }}
+                    {{ $countProximosEventosWidget }}
                 </span>
             </div>
             <div class="p-6">
@@ -303,7 +325,7 @@
                                     <p class="font-semibold text-gray-800">{{ $evento->evento }}</p>
                                     @if($evento->ubicacion)
                                         <p class="text-sm text-gray-600 mt-1">
-                                            📍 {{ $evento->ubicacion }}
+                                            {{ $evento->ubicacion }}
                                         </p>
                                     @endif
                                     @if($evento->secretaria)
@@ -328,6 +350,95 @@
                 @endif
             </div>
         </div>
-    
+        @endif
+
     </div>
+    @else
+    <div class="text-center py-16 text-gray-400">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>
+        </svg>
+        <p class="font-medium text-gray-500">No hay widgets activos</p>
+        <p class="text-sm mt-1">Usá "Personalizar panel" para activar estadísticas.</p>
+    </div>
+    @endif
+
+    <!-- Modal Personalizar Panel -->
+    @if($modalPersonalizar)
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        x-data
+        x-init="$el.querySelector('[data-modal]').focus()"
+    >
+        <div class="absolute inset-0 bg-black/40" wire:click="$set('modalPersonalizar', false)"></div>
+        <div
+            data-modal
+            tabindex="-1"
+            class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 outline-none"
+            @keydown.escape.window="$wire.set('modalPersonalizar', false)"
+        >
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Personalizar panel</h3>
+                <button wire:click="$set('modalPersonalizar', false)" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            @if($opcionesCards)
+            <div class="mb-5">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tarjetas de resumen</p>
+                <div class="space-y-2">
+                    @foreach($opcionesCards as $key => $card)
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#77BF43]/40 hover:bg-[#77BF43]/5 cursor-pointer transition-colors">
+                        <input
+                            type="checkbox"
+                            wire:model="seleccionCards"
+                            value="{{ $key }}"
+                            class="w-4 h-4 rounded text-[#77BF43] border-gray-300 focus:ring-[#77BF43]"
+                        >
+                        <span class="text-sm font-medium text-gray-700">{{ $card['label'] }}</span>
+                    </label>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            @if($opcionesWidgets)
+            <div class="mb-6">
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estadísticas y Alertas</p>
+                <div class="space-y-2">
+                    @foreach($opcionesWidgets as $key => $widget)
+                    <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#77BF43]/40 hover:bg-[#77BF43]/5 cursor-pointer transition-colors">
+                        <input
+                            type="checkbox"
+                            wire:model="seleccionWidgets"
+                            value="{{ $key }}"
+                            class="w-4 h-4 rounded text-[#77BF43] border-gray-300 focus:ring-[#77BF43]"
+                        >
+                        <span class="text-sm font-medium text-gray-700">{{ $widget['label'] }}</span>
+                    </label>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            <div class="flex justify-end gap-3">
+                <button
+                    wire:click="$set('modalPersonalizar', false)"
+                    class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                    Cancelar
+                </button>
+                <button
+                    wire:click="guardarPreferencias"
+                    class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a] transition-colors"
+                >
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

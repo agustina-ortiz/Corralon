@@ -15,6 +15,7 @@ class User extends Authenticatable
         'password',
         'corralones_permitidos',
         'acceso_todos_corralones',
+        'dashboard_widgets',
         'id_rol',
     ];
 
@@ -26,7 +27,24 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'corralones_permitidos' => 'array',
         'acceso_todos_corralones' => 'boolean',
+        'dashboard_widgets' => 'array',
     ];
+
+    /**
+     * Retorna las claves activas de una sección del dashboard ('cards' o 'widgets'),
+     * filtrando por las preferencias del usuario y sus permisos de rol.
+     * Si el usuario no tiene preferencias guardadas, devuelve todas las permitidas.
+     */
+    public function dashboardActivosPara(string $seccion): array
+    {
+        $config    = config("dashboard.{$seccion}", []);
+        $guardados = $this->dashboard_widgets[$seccion] ?? array_keys($config);
+
+        return array_values(array_filter(
+            $guardados,
+            fn($key) => isset($config[$key]) && $this->rol?->{$config[$key]['permiso']}
+        ));
+    }
 
     /**
      * Verifica si el usuario tiene acceso a un corralón específico
