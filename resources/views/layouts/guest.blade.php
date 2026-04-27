@@ -9,7 +9,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-sans antialiased bg-gray-100">
+<body class="font-sans antialiased min-h-screen" style="background: linear-gradient(to right, #5a8c0b 50%, #f0f4ed 50%);">
     {{ $slot }}
 </body>
 </html>
