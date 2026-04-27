@@ -40,7 +40,7 @@ class AbmInsumos extends Component
         $rules = [
             'insumo' => 'required|string|max:100',
             'id_categoria' => 'required|exists:categorias_insumos,id',
-            'unidad' => 'required|string|max:20',
+            'unidad' => 'required|string|max:20|regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/',
             'stock_minimo' => 'required|numeric|min:0',
             'id_deposito' => 'required|exists:depositos,id',
         ];
@@ -60,6 +60,7 @@ class AbmInsumos extends Component
         'id_categoria.exists' => 'La categoría seleccionada no existe',
         'unidad.required' => 'La unidad es obligatoria',
         'unidad.max' => 'La unidad no puede exceder los 20 caracteres',
+        'unidad.regex' => 'La unidad solo puede contener letras',
         'stock_inicial.numeric' => 'El stock inicial debe ser un número',
         'stock_inicial.min' => 'El stock inicial no puede ser negativo',
         'stock_minimo.required' => 'El stock mínimo es obligatorio',
