@@ -170,7 +170,6 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vencimiento VTV</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Documentos</th>
@@ -209,9 +208,6 @@
                                 <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r {{ $estadoClasses[$item->estado] ?? 'from-gray-50 to-gray-100 text-gray-700 border-gray-200' }} border">
                                     {{ $estadoNombres[$item->estado] ?? $item->estado }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $item->deposito->deposito }}
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
