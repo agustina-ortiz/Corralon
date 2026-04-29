@@ -122,6 +122,7 @@ routes/
 - `calcularStockActual()` recalcula desde el historial de movimientos
 - `stockBajoMinimo()` — bool, compara `stock_actual` con `stock_minimo`
 - Alertas de stock bajo mínimo en el dashboard
+- Campo `unidad` en `insumos` usa valores fijos: `UNIDAD`, `LITROS`, `TAMBOR`, `METRO`, `ROLLO X 100 MT`, `PAQUETE`, `BOLSA`, `BALDE` (validación `in:` en backend y select en UI)
 
 ## Lógica de cantidad (Maquinarias)
 
@@ -147,6 +148,7 @@ Los movimientos (`movimiento_insumos`, `movimiento_maquinarias`) tienen:
 | `CategoriasInsumosSeeder` | Categorías de insumos |
 | `CategoriasMaquinariasSeeder` | Categorías de maquinaria |
 | `InsumosSeeder` | Insumos con movimientos iniciales de stock |
+| `InsumosEconomiaSeeder` | Insumos específicos de la secretaría de economía |
 | `MaquinariasSeeder` | Maquinarias de prueba |
 | `VehiculosSeeder` | Vehículos con fechas de VTV y póliza |
 | `ChoferesSeeder` | Choferes con licencias y asignaciones de vehículos |
@@ -189,6 +191,23 @@ El dashboard muestra:
 - Modales para crear/editar
 - Verificación de permisos antes de cada operación CRUD
 - Filtrado automático por corralon via `->porCorralonesPermitidos()`
+
+### Patrones de acceso rápido en TransferenciasInsumos
+
+El componente `TransferenciasInsumos` implementa atajos desde la lista de movimientos:
+
+**Abrir modal "Nuevo Movimiento" con insumo preseleccionado (paso 2):**
+- Click en el nombre del insumo en cualquier fila de la lista
+- Llama a `abrirModalConInsumo($insumoId)` → internamente usa `seleccionarInsumo()` que setea `insumo_seleccionado`, `tipos_movimiento_disponibles` y `paso_actual = 2`
+- Solo visible si el usuario tiene `puedeCrearMovimientos`
+
+**Abrir modal "Nueva Transferencia" con origen precargado:**
+- Botón de flechas en cada fila, solo visible si `puedeCrearTransferencias`
+- Para **movimientos individuales**: `abrirModalTransferenciaDesdeMovimiento($depositoId, $insumoId)` — usa el depósito del insumo como origen y pre-agrega el insumo
+- Para **transferencias**: `abrirModalTransferenciaDesdeTransferencia($encabezadoId)` — usa el `depositoDestino` de la transferencia como nuevo origen y pre-agrega todos los insumos de `movimientosEntrada`
+- En ambos casos se setea `id_deposito_origen` e `id_corralon_origen`
+
+> **Atención:** `movimientosEntrada()` en `MovimientoEncabezado` tiene una condición dinámica sobre `$this->id_deposito_destino`. No usar con eager loading (`with()`); siempre llamar como método (`->movimientosEntrada()->get()`) después de tener el modelo cargado.
 
 ---
 
