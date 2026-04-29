@@ -568,8 +568,74 @@ class TransferenciasInsumos extends Component
             session()->flash('error', 'No tienes permisos para crear transferencias.');
             return;
         }
-        
+
         $this->resetFormTransferencia();
+        $this->showModalTransferencia = true;
+    }
+
+    public function abrirModalTransferenciaDesdeMovimiento($depositoId, $insumoId)
+    {
+        if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            return;
+        }
+
+        $this->resetFormTransferencia();
+
+        $deposito = Deposito::find($depositoId);
+        if (!$deposito) return;
+
+        $this->id_deposito_origen = $depositoId;
+        $this->id_corralon_origen = $deposito->id_corralon;
+
+        $insumo = Insumo::with('categoriaInsumo')->find($insumoId);
+        if ($insumo) {
+            $this->insumos_transferencia[] = [
+                'id'          => $insumo->id,
+                'nombre'      => $insumo->insumo,
+                'categoria'   => $insumo->categoriaInsumo->nombre,
+                'stock_actual' => $insumo->stock_actual,
+                'unidad'      => $insumo->unidad,
+                'cantidad'    => '',
+            ];
+        }
+
+        $this->showModalTransferencia = true;
+    }
+
+    public function abrirModalTransferenciaDesdeTransferencia($encabezadoId)
+    {
+        if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            return;
+        }
+
+        $this->resetFormTransferencia();
+
+        $encabezado = \App\Models\MovimientoEncabezado::with('depositoDestino')->find($encabezadoId);
+
+        if (!$encabezado) return;
+
+        $deposito = $encabezado->depositoDestino;
+        $this->id_deposito_origen = $deposito->id;
+        $this->id_corralon_origen = $deposito->id_corralon;
+
+        $movimientosEntrada = $encabezado->movimientosEntrada()->with('insumo.categoriaInsumo')->get();
+
+        foreach ($movimientosEntrada as $mov) {
+            $insumo = $mov->insumo;
+            if (!$insumo) continue;
+
+            $this->insumos_transferencia[] = [
+                'id'           => $insumo->id,
+                'nombre'       => $insumo->insumo,
+                'categoria'    => $insumo->categoriaInsumo->nombre,
+                'stock_actual' => $insumo->stock_actual,
+                'unidad'       => $insumo->unidad,
+                'cantidad'     => '',
+            ];
+        }
+
         $this->showModalTransferencia = true;
     }
 
@@ -643,10 +709,22 @@ class TransferenciasInsumos extends Component
             session()->flash('error', 'No tienes permisos para crear movimientos.');
             return;
         }
-        
+
         $this->resetForm();
         $this->showModal = true;
         $this->paso_actual = 1;
+    }
+
+    public function abrirModalConInsumo($insumoId)
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        $this->resetForm();
+        $this->showModal = true;
+        $this->seleccionarInsumo($insumoId);
     }
 
     public function seleccionarInsumo($insumoId)

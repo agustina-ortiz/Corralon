@@ -216,6 +216,9 @@
                     <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Destino</th>
                     <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
                     <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
+                    @if($puedeCrearTransferencias)
+                    <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
+                    @endif
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
@@ -263,7 +266,11 @@
                                     @endphp
                                     @if($mov && $mov->insumo)
                                         <div>
-                                            <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
+                                            @if($puedeCrearMovimientos)
+                                                <button type="button" wire:click="abrirModalConInsumo({{ $mov->insumo->id }})" class="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors text-left">{{ $mov->insumo->insumo }}</button>
+                                            @else
+                                                <div class="text-sm font-medium text-gray-900">{{ $mov->insumo->insumo }}</div>
+                                            @endif
                                             <div class="text-xs text-gray-500">{{ $mov->insumo->categoriaInsumo->nombre }}</div>
                                         </div>
                                     @else
@@ -311,6 +318,20 @@
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 {{ $movimiento->usuario->name }}
                             </td>
+                            @if($puedeCrearTransferencias)
+                            <td class="px-6 py-4 text-right">
+                                <button
+                                    type="button"
+                                    wire:click="abrirModalTransferenciaDesdeTransferencia({{ $movimiento->id }})"
+                                    title="Nueva transferencia desde {{ $movimiento->depositoDestino->deposito }}"
+                                    class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-150"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                </button>
+                            </td>
+                            @endif
                         </tr>
 
                         {{-- Detalle expandible de transferencia --}}
@@ -337,9 +358,11 @@
                                                 <div class="bg-white rounded-lg border border-purple-200 p-4 hover:shadow-md transition-shadow">
                                                     <div class="flex items-start justify-between">
                                                         <div class="flex-1">
-                                                            <div class="text-sm font-semibold text-gray-900">
-                                                                {{ $detalle->insumo->insumo }}
-                                                            </div>
+                                                            @if($puedeCrearMovimientos)
+                                                                <button type="button" wire:click="abrirModalConInsumo({{ $detalle->insumo->id }})" class="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline transition-colors text-left">{{ $detalle->insumo->insumo }}</button>
+                                                            @else
+                                                                <div class="text-sm font-semibold text-gray-900">{{ $detalle->insumo->insumo }}</div>
+                                                            @endif
                                                             <div class="text-xs text-gray-500 mt-1">
                                                                 <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">
                                                                     {{ $detalle->insumo->categoriaInsumo->nombre }}
@@ -393,7 +416,11 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div>
-                                    <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
+                                    @if($puedeCrearMovimientos)
+                                        <button type="button" wire:click="abrirModalConInsumo({{ $movimiento->insumo->id }})" class="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline transition-colors text-left">{{ $movimiento->insumo->insumo }}</button>
+                                    @else
+                                        <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
+                                    @endif
                                     <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
                                 </div>
                             </td>
@@ -443,11 +470,25 @@
                             <td class="px-6 py-4 text-sm text-gray-500">
                                 {{ $movimiento->usuario->name }}
                             </td>
+                            @if($puedeCrearTransferencias)
+                            <td class="px-6 py-4 text-right">
+                                <button
+                                    type="button"
+                                    wire:click="abrirModalTransferenciaDesdeMovimiento({{ $movimiento->insumo->id_deposito }}, {{ $movimiento->insumo->id }})"
+                                    title="Nueva transferencia desde {{ $movimiento->insumo->deposito->deposito }}"
+                                    class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors duration-150"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                                    </svg>
+                                </button>
+                            </td>
+                            @endif
                         </tr>
                     @endif
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-12">
+                        <td colspan="9" class="px-6 py-12">
                             <div class="flex flex-col items-center justify-center text-gray-400">
                                 <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
