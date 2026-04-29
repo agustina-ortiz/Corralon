@@ -228,6 +228,7 @@
                             $movimiento = $item['data'];
                             $movimientosEntrada = $movimiento->movimientosEntrada;
                             $cantidadInsumos = $movimientosEntrada->count();
+                            if ($cantidadInsumos === 0) continue;
                             $esTransferenciaMultiple = $cantidadInsumos > 1;
                             $expandido = in_array($movimiento->id, $movimientos_expandidos);
                         @endphp

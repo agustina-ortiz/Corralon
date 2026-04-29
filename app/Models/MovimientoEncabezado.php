@@ -50,6 +50,7 @@ class MovimientoEncabezado extends Model
     {
         return $this->movimientos()
             ->with(['insumo.categoriaInsumo', 'tipoMovimiento'])
+            ->whereHas('insumo')
             ->where('id_deposito_entrada', $this->id_deposito_destino);
     }
 
