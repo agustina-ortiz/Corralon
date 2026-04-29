@@ -31,7 +31,7 @@ app/
   View/Components/        # AppLayout, GuestLayout
 database/
   migrations/             # 50+ migraciones
-  seeders/                # 9 seeders de datos de prueba
+  seeders/                # 10 seeders de datos de prueba/inicialización
 resources/views/
   livewire/               # Templates de componentes Livewire
   layouts/                # app.blade.php (layout principal), guest.blade.php
@@ -152,8 +152,9 @@ Los movimientos (`movimiento_insumos`, `movimiento_maquinarias`) tienen:
 | `MaquinariasSeeder` | Maquinarias de prueba |
 | `VehiculosSeeder` | Vehículos con fechas de VTV y póliza |
 | `ChoferesSeeder` | Choferes con licencias y asignaciones de vehículos |
+| `MovimientosInventarioInicialSeeder` | Crea un `MovimientoEncabezado` + `MovimientoInsumo` por cada insumo con stock > 0, usando tipo_movimiento id=7 (Inventario Inicial). Idempotente: no duplica si ya existe. Fecha de relevamiento: 2026-02-05 |
 
-Orden de ejecución: Corralones → Depositos → Categorías → Insumos → Maquinarias → Vehículos → Choferes
+Orden de ejecución: Corralones → Depositos → Categorías → Insumos → Maquinarias → Vehículos → Choferes → MovimientosInventarioInicial
 
 ---
 
