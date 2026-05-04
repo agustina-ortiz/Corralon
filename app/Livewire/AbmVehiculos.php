@@ -72,7 +72,7 @@ class AbmVehiculos extends Component
             'vencimiento_poliza' => 'nullable|date',
             'vencimiento_vtv' => 'nullable|date',
             'estado' => 'required|in:disponible,en_uso,mantenimiento,fuera_de_servicio',
-            'id_deposito' => 'required|exists:depositos,id',
+            'id_deposito' => 'nullable|exists:depositos,id',
         ];
     }
 
