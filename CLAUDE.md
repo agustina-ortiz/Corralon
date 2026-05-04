@@ -27,7 +27,7 @@ app/
     Actions/              # Logout
     Forms/                # LoginForm
   Models/                 # Modelos Eloquent (20 modelos)
-  Traits/                 # FiltraPorCorralon, FiltraPorCorralonViaDeposito
+  Traits/                 # FiltraPorPermisos, FiltraPorPermisosCorralon
   View/Components/        # AppLayout, GuestLayout
 database/
   migrations/             # 50+ migraciones
@@ -48,7 +48,7 @@ routes/
 | Modelo | Tabla | Descripción |
 |--------|-------|-------------|
 | `User` | `users` | Usuarios con roles y acceso por corralon |
-| `Rol` | `roles` | Permisos por módulo (booleanos) |
+| `Rol` | `roles` | Roles del sistema (nombre + descripción) |
 | `Corralon` | `corralones` | Sedes/ubicaciones |
 | `Deposito` | `depositos` | Subdivisiones dentro de un corralon |
 | `Insumo` | `insumos` | Items de inventario |
@@ -67,48 +67,78 @@ routes/
 | `MovimientoEncabezado` | `movimiento_encabezados` | Cabecera para agrupar movimientos |
 | `TipoVehiculo` | `tipos_vehiculos` | Tipos de vehículo |
 | `Cuadrilla` | `cuadrillas` | Cuadrillas de trabajo (ligadas a corralon y deposito) |
+| `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 
 ---
 
 ## Rutas principales
 
-| Ruta | Componente | Permiso requerido |
+| Ruta | Componente | Módulo de permiso |
 |------|-----------|------------------|
 | `/dashboard` | DashboardController | autenticado |
-| `/insumos` | AbmInsumos | `lInsumosABM` |
-| `/maquinarias` | AbmMaquinarias | `lMaquinariasABM` |
-| `/vehiculos` | AbmVehiculos | `lVehiculosABM` |
-| `/choferes` | AbmChoferes | `lChoferesABM` |
-| `/depositos` | AbmDepositos | `lDepositosABM` |
-| `/categorias-insumos` | AbmCategoriasInsumos | `lCategoriasInsumosABM` |
-| `/categorias-maquinarias` | AbmCategoriasMaquinarias | `lCategoriasMaquinariasABM` |
-| `/eventos` | AbmEventos | `lEventosABM` |
-| `/empleados` | AbmEmpleados | `lEmpleadosABM` |
-| `/usuarios` | AbmUsuarios | `lUsuariosABM` |
-| `/transferencias-insumos` | TransferenciasInsumos | `lMovimientosInsumos` |
-| `/transferencias-maquinarias` | TransferenciasMaquinarias | `lMovimientosMaquinarias` |
+| `/insumos` | AbmInsumos | `insumos` |
+| `/maquinarias` | AbmMaquinarias | `maquinarias` |
+| `/vehiculos` | AbmVehiculos | `vehiculos` |
+| `/choferes` | AbmChoferes | `choferes` |
+| `/depositos` | AbmDepositos | `depositos` |
+| `/categorias-insumos` | AbmCategoriasInsumos | `categorias_insumos` |
+| `/categorias-maquinarias` | AbmCategoriasMaquinarias | `categorias_maquinarias` |
+| `/eventos` | AbmEventos | `eventos` |
+| `/empleados` | AbmEmpleados | `empleados` |
+| `/usuarios` | AbmUsuarios | `usuarios` |
+| `/transferencias-insumos` | TransferenciasInsumos | `movimientos_insumos` |
+| `/transferencias-maquinarias` | TransferenciasMaquinarias | `movimientos_maquinarias` |
 
 ---
 
-## Autorización (RBAC)
+## Autorización — Sistema de Permisos Granular
+
+### Tabla `usuario_permisos`
+Cada fila es un permiso individual: usuario + corralón + depósito + módulo + nivel de acceso.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id_usuario` | FK → users | Usuario al que aplica |
+| `id_corralon` | FK → corralones (nullable) | NULL = permiso global (módulos sin ubicación) |
+| `id_deposito` | FK → depositos (nullable) | NULL = todos los depósitos del corralón |
+| `modulo` | string(50) | Clave del módulo (ver constantes en `UsuarioPermiso`) |
+| `nivel_acceso` | enum: `ver`, `editar` | `ver` = solo lectura, `editar` = ABM completo |
 
 ### Roles
-- **Administrador** — acceso total
-- **Visualizador** — solo lectura
+- **Administrador** — bypasea todas las verificaciones (`esAdministrador()` retorna true)
+- **Otros roles** — usan `usuario_permisos` para definir acceso granular
 
-### Permisos en tabla `roles` (booleanos)
-`lInsumosABM`, `lMaquinariasABM`, `lVehiculosABM`, `lChoferesABM`, `lCategoriasInsumosABM`, `lCategoriasMaquinariasABM`, `lDepositosABM`, `lEventosABM`, `lEmpleadosABM`, `lUsuariosABM`, `lMovimientosInsumos`, `lMovimientosMaquinarias`
+### Módulos por ubicación (requieren `id_corralon`)
+`insumos`, `maquinarias`, `vehiculos`, `depositos`, `movimientos_insumos`, `movimientos_maquinarias`
+
+### Módulos globales (sin `id_corralon`)
+`empleados`, `choferes`, `eventos`, `categorias_insumos`, `categorias_maquinarias`, `usuarios`
 
 ### Métodos de autorización en `User`
-- `puedeCrear*()`, `puedeEditar*()`, `puedeEliminar*()` — métodos individuales por entidad
-- `tieneAccesoACorralon($id)` — verifica si el usuario puede acceder a un corralon específico
-- `getCorralonesPermitidosIds()` — retorna array de IDs permitidos
+- `esAdministrador()` — rol Administrador, acceso total
+- `tieneAccesoAModulo($modulo)` — puede ver el módulo (sidebar)
+- `puedeEditarEnModulo($modulo, $corralonId?, $depositoId?)` — puede ABM
+- `getCorralonesParaModulo($modulo)` — IDs de corralones para un módulo
+- `getDepositosPermitidosParaModulo($modulo, $corralonId?)` — IDs de depósitos permitidos
+- `getModulosPermitidos()` — array de módulos accesibles
+- `puedeCrear*()`, `puedeEditar*()`, `puedeEliminar*()` — retrocompatibilidad, delegan a `puedeEditarEnModulo()`
+- Cache por request: `$permisosCache` evita queries repetidas
 
-### Acceso por corralon
-- `acceso_todos_corralones` (bool) en `users`
-- `corralones_permitidos` (JSON array de IDs) en `users`
-- Traits `FiltraPorCorralon` y `FiltraPorCorralonViaDeposito` aplican scopes automáticamente
-- Scope: `->porCorralonesPermitidos()` se usa en todas las queries de ABM
+### Traits de filtrado
+- `FiltraPorPermisos` — modelos con `id_deposito` (Insumo, Maquinaria, Vehiculo). Cada modelo define `const MODULO_PERMISO`.
+- `FiltraPorPermisosCorralon` — modelos con `id_corralon` (Deposito)
+- Scope retrocompatible: `->porCorralonesPermitidos()` sigue funcionando
+
+### Sidebar
+- Links filtrados por `$u->tieneAccesoAModulo('modulo')` en `app.blade.php`
+- Secciones enteras se ocultan si el usuario no tiene acceso a ningún módulo de esa sección
+
+### Gestión de permisos (AbmUsuarios)
+- Si el rol = Administrador → acceso total, no se configuran permisos
+- Si otro rol → UI de permisos:
+  - **Módulos Globales**: toggle por módulo (Ver / Editar)
+  - **Por Corralón**: seleccionar corralones, luego toggle módulos dentro de cada uno (Ver / Editar)
+  - Soporte para depósitos específicos por módulo (opcional)
 
 ---
 
@@ -182,7 +212,7 @@ El dashboard muestra:
 - **Tablas:** plural en español (`corralones`, `depositos`, `insumos`, `choferes`)
 - **Foreign keys:** `id_[modelo]` (`id_corralon`, `id_deposito`, `id_usuario`, `id_rol`)
 - **Scopes:** `scopePorCorralonesPermitidos()`, `scopeConStockBajo()`
-- **Métodos de permiso:** `puedeCear*()`, `puedeEditar*()`, `puedeEliminar*()`
+- **Métodos de permiso:** `puedeCrear*()`, `puedeEditar*()`, `puedeEliminar*()`
 - **Métodos de tipo:** `esEntrada()`, `esSalida()`, `esTransferencia()`
 - **Accesors:** patrón `get[Atributo]Attribute()` con `$appends`
 
