@@ -5,9 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\FiltraPorPermisos;
 
 class Maquinaria extends Model
 {
+    use FiltraPorPermisos;
+
+    const MODULO_PERMISO = 'maquinarias';
     protected $fillable = [
         'maquinaria',
         'id_categoria_maquinaria',
@@ -36,19 +40,6 @@ class Maquinaria extends Model
     public function movimientos(): HasMany
     {
         return $this->hasMany(MovimientoMaquinaria::class, 'id_maquinaria');
-    }
-
-    public function scopePorCorralonesPermitidos($query)
-    {
-        $user = auth()->user();
-        
-        if ($user->acceso_todos_corralones) {
-            return $query;
-        }
-
-        return $query->whereHas('deposito', function($q) use ($user) {
-            $q->whereIn('id_corralon', $user->corralones_permitidos ?? []);
-        });
     }
 
     // Calcula la cantidad disponible en el depósito propio de la maquinaria
@@ -86,16 +77,13 @@ class Maquinaria extends Model
     public function getCantidadTotalDisponible()
     {
         $user = auth()->user();
-        
-        $depositosAccesibles = $user->acceso_todos_corralones 
-            ? \App\Models\Deposito::pluck('id')->toArray()
-            : \App\Models\Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])->pluck('id')->toArray();
-        
+        $depositosAccesibles = $user->getDepositosPermitidosParaModulo('maquinarias');
+
         $total = 0;
         foreach ($depositosAccesibles as $depositoId) {
             $total += $this->getCantidadEnDeposito($depositoId);
         }
-        
+
         return $total;
     }
 

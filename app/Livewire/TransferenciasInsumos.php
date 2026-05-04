@@ -171,14 +171,7 @@ class TransferenciasInsumos extends Component
     private function getDepositosAccesibles()
     {
         $user = Auth::user();
-        
-        if ($user->acceso_todos_corralones) {
-            return Deposito::pluck('id')->toArray();
-        }
-
-        return Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])
-            ->pluck('id')
-            ->toArray();
+        return $user->getDepositosPermitidosParaModulo('movimientos_insumos');
     }
 
     /**
@@ -422,14 +415,13 @@ class TransferenciasInsumos extends Component
         $tipos_movimiento = TipoMovimiento::whereIn('tipo', ['I', 'IM'])->orderBy('tipo_movimiento')->get();
 
         // Determinar si el usuario tiene acceso a múltiples corralones
-        $corralonesPermitidosIds = $user->getCorralonesPermitidosIds();
-        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+        $corralonesPermitidosIds = $user->getCorralonesParaModulo('movimientos_insumos');
+        $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
         $corralones = collect();
         if ($tieneMultiplesCorralones) {
-            $corralones = $user->acceso_todos_corralones
-                ? \App\Models\Corralon::orderBy('descripcion')->get()
-                : \App\Models\Corralon::whereIn('id', $corralonesPermitidosIds)->orderBy('descripcion')->get();
+            $corralones = \App\Models\Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
+                ->orderBy('descripcion')->get();
         }
 
         // Depósitos Origen: filtrar por corralón seleccionado si el usuario tiene múltiples

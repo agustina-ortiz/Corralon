@@ -13,33 +13,21 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
-        // Obtener los IDs de corralones a los que el usuario tiene acceso
-        $corralonesAccesibles = $user->getCorralonesPermitidosIds();
-        
-        // Si el usuario tiene acceso a todos los corralones
-        $mostrarTodos = $user->acceso_todos_corralones;
-        
-        if ($mostrarTodos) {
-            // Mostrar todos los datos del sistema
+
+        if ($user->esAdministrador()) {
             $totalInsumos = Insumo::count();
             $totalMaquinaria = Maquinaria::count();
             $totalVehiculos = Vehiculo::count();
         } else {
-            // Obtener los IDs de depósitos que pertenecen a los corralones accesibles
-            $depositosAccesibles = Deposito::whereIn('id_corralon', $corralonesAccesibles)
-                ->pluck('id');
-            
-            // Total Insumos - filtrar por depósitos de los corralones accesibles
-            $totalInsumos = Insumo::whereIn('id_deposito', $depositosAccesibles)->count();
-            
-            // Total Maquinaria - filtrar directamente por corralón
-            $totalMaquinaria = Maquinaria::whereIn('id_deposito', $depositosAccesibles)->count();
-            
-            // Total Vehículos - filtrar directamente por corralón
-            $totalVehiculos = Vehiculo::whereIn('id_deposito', $depositosAccesibles)->count();
+            $depositosInsumos = $user->getDepositosPermitidosParaModulo('insumos');
+            $depositosMaquinarias = $user->getDepositosPermitidosParaModulo('maquinarias');
+            $depositosVehiculos = $user->getDepositosPermitidosParaModulo('vehiculos');
+
+            $totalInsumos = !empty($depositosInsumos) ? Insumo::whereIn('id_deposito', $depositosInsumos)->count() : 0;
+            $totalMaquinaria = !empty($depositosMaquinarias) ? Maquinaria::whereIn('id_deposito', $depositosMaquinarias)->count() : 0;
+            $totalVehiculos = !empty($depositosVehiculos) ? Vehiculo::whereIn('id_deposito', $depositosVehiculos)->count() : 0;
         }
-        
+
         return view('dashboard', compact(
             'totalInsumos',
             'totalMaquinaria',

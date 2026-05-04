@@ -38,6 +38,13 @@ class Dashboard extends Component
         $this->modalPersonalizar = false;
     }
 
+    private function filtrarPorDepositos($query, $user, string $modulo)
+    {
+        if ($user->esAdministrador()) return $query;
+        $depositos = $user->getDepositosPermitidosParaModulo($modulo);
+        return $query->whereIn('id_deposito', $depositos);
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -48,21 +55,15 @@ class Dashboard extends Component
         // ============= TOTALES GENERALES =============
 
         $totalInsumos = in_array('card_insumos', $cardsActivas)
-            ? Insumo::when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-            })->count()
+            ? $this->filtrarPorDepositos(Insumo::query(), $user, 'insumos')->count()
             : null;
 
         $totalMaquinaria = in_array('card_maquinaria', $cardsActivas)
-            ? Maquinaria::when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-            })->count()
+            ? $this->filtrarPorDepositos(Maquinaria::query(), $user, 'maquinarias')->count()
             : null;
 
         $totalVehiculos = in_array('card_vehiculos', $cardsActivas)
-            ? Vehiculo::when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-            })->count()
+            ? $this->filtrarPorDepositos(Vehiculo::query(), $user, 'vehiculos')->count()
             : null;
 
         $countProximosEventos = in_array('card_eventos', $cardsActivas)
@@ -74,11 +75,9 @@ class Dashboard extends Component
         $insumosBajoMinimo    = collect();
         $countInsumosBajoMinimo = 0;
         if (in_array('stock_bajo', $widgetsActivos)) {
-            $insumosBajoMinimo = Insumo::with(['categoriaInsumo', 'deposito.corralon'])
-                ->whereColumn('stock_actual', '<', 'stock_minimo')
-                ->when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                    $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-                })
+            $query = Insumo::with(['categoriaInsumo', 'deposito.corralon'])
+                ->whereColumn('stock_actual', '<', 'stock_minimo');
+            $insumosBajoMinimo = $this->filtrarPorDepositos($query, $user, 'insumos')
                 ->orderBy('stock_actual', 'asc')
                 ->get();
             $countInsumosBajoMinimo = $insumosBajoMinimo->count();
@@ -88,12 +87,10 @@ class Dashboard extends Component
         $countVtvProximasVencer = 0;
         if (in_array('vtv_vencer', $widgetsActivos)) {
             $fechaLimite = Carbon::now()->addDays(30)->endOfDay();
-            $vtvProximasVencer = Vehiculo::with(['deposito.corralon'])
+            $query = Vehiculo::with(['deposito.corralon'])
                 ->whereNotNull('vencimiento_vtv')
-                ->where('vencimiento_vtv', '<=', $fechaLimite)
-                ->when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                    $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-                })
+                ->where('vencimiento_vtv', '<=', $fechaLimite);
+            $vtvProximasVencer = $this->filtrarPorDepositos($query, $user, 'vehiculos')
                 ->orderBy('vencimiento_vtv', 'asc')
                 ->get();
             $countVtvProximasVencer = $vtvProximasVencer->count();
@@ -102,11 +99,9 @@ class Dashboard extends Component
         $vehiculosEnUso    = collect();
         $countVehiculosEnUso = 0;
         if (in_array('vehiculos_en_uso', $widgetsActivos)) {
-            $vehiculosEnUso = Vehiculo::with(['deposito.corralon'])
-                ->where('estado', 'en_uso')
-                ->when(!$user->acceso_todos_corralones, function ($query) use ($user) {
-                    $query->whereHas('deposito', fn($q) => $q->whereIn('id_corralon', $user->corralones_permitidos ?? []));
-                })
+            $query = Vehiculo::with(['deposito.corralon'])
+                ->where('estado', 'en_uso');
+            $vehiculosEnUso = $this->filtrarPorDepositos($query, $user, 'vehiculos')
                 ->orderBy('nro_movil', 'asc')
                 ->get();
             $countVehiculosEnUso = $vehiculosEnUso->count();
@@ -121,40 +116,31 @@ class Dashboard extends Component
             $countProximosEventosWidget = $proximosEventos->count();
         }
 
-        // Opciones del modal filtradas por permiso
-        $opcionesCards   = array_filter(
+        // Opciones del modal filtradas por permiso de modulo
+        $opcionesCards = array_filter(
             config('dashboard.cards'),
-            fn($c) => $user->rol?->{$c['permiso']}
+            fn($c) => $user->tieneAccesoAModulo($c['permiso_modulo'])
         );
         $opcionesWidgets = array_filter(
             config('dashboard.widgets'),
-            fn($w) => $user->rol?->{$w['permiso']}
+            fn($w) => $user->tieneAccesoAModulo($w['permiso_modulo'])
         );
 
         return view('livewire.dashboard', [
-            // Activos
             'cardsActivas'   => $cardsActivas,
             'widgetsActivos' => $widgetsActivos,
-
-            // Totales
             'totalInsumos'    => $totalInsumos,
             'totalMaquinaria' => $totalMaquinaria,
             'totalVehiculos'  => $totalVehiculos,
             'countProximosEventos' => $countProximosEventos,
-
-            // Widgets detallados
             'insumosBajoMinimo'    => $insumosBajoMinimo,
             'vtvProximasVencer'    => $vtvProximasVencer,
             'vehiculosEnUso'       => $vehiculosEnUso,
             'proximosEventos'      => $proximosEventos,
-
-            // Contadores de badges
             'countInsumosBajoMinimo'    => $countInsumosBajoMinimo,
             'countVtvProximasVencer'    => $countVtvProximasVencer,
             'countVehiculosEnUso'       => $countVehiculosEnUso,
             'countProximosEventosWidget' => $countProximosEventosWidget,
-
-            // Opciones para el modal
             'opcionesCards'   => $opcionesCards,
             'opcionesWidgets' => $opcionesWidgets,
         ]);

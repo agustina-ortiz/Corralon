@@ -82,10 +82,11 @@
             </div>
 
             <!-- Navigation -->
+            @php $u = auth()->user(); @endphp
             <nav class="flex-1 overflow-y-auto p-4 sidebar-scroll">
-                <div class="space-y-2"> 
+                <div class="space-y-2">
                     <!-- Dashboard -->
-                    <a href="{{ route('dashboard') }}" 
+                    <a href="{{ route('dashboard') }}"
                        wire:navigate
                        @click="sidebarOpen = false"
                        class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('dashboard') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -96,10 +97,12 @@
                     </a>
 
                     <!-- Sección Inventario -->
+                    @if($u->tieneAccesoAModulo('insumos') || $u->tieneAccesoAModulo('maquinarias') || $u->tieneAccesoAModulo('vehiculos') || $u->tieneAccesoAModulo('categorias_insumos') || $u->tieneAccesoAModulo('categorias_maquinarias') || $u->tieneAccesoAModulo('depositos') || $u->tieneAccesoAModulo('eventos') || $u->tieneAccesoAModulo('movimientos_insumos') || $u->tieneAccesoAModulo('movimientos_maquinarias'))
                     <div class="pt-4">
                         <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Inventario</p>
                         <div class="mt-2 space-y-1">
-                            <a href="{{ route('insumos') }}" 
+                            @if($u->tieneAccesoAModulo('insumos'))
+                            <a href="{{ route('insumos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                 class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('insumos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -108,7 +111,9 @@
                                 </svg>
                                 Insumos
                             </a>
-                            <a href="{{ route('maquinarias') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('maquinarias'))
+                            <a href="{{ route('maquinarias') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('maquinarias') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -118,7 +123,9 @@
                                 </svg>
                                 Maquinaria
                             </a>
-                            <a href="{{ route('vehiculos') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('vehiculos'))
+                            <a href="{{ route('vehiculos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('vehiculos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -129,7 +136,9 @@
                                 </svg>
                                 Vehículos
                             </a>
-                            <a href="{{ route('categorias-insumos') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('categorias_insumos'))
+                            <a href="{{ route('categorias-insumos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('categorias-insumos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -138,7 +147,9 @@
                                 </svg>
                                 Categorías Insumos
                             </a>
-                            <a href="{{ route('categorias-maquinarias') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('categorias_maquinarias'))
+                            <a href="{{ route('categorias-maquinarias') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('categorias-maquinarias') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -147,7 +158,9 @@
                                 </svg>
                                 Categorías Maquinarias
                             </a>
-                            <a href="{{ route('depositos') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('depositos'))
+                            <a href="{{ route('depositos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('depositos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -156,7 +169,9 @@
                                 </svg>
                                 Depósitos
                             </a>
-                            <a href="{{ route('eventos') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('eventos'))
+                            <a href="{{ route('eventos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                 class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('eventos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -165,7 +180,9 @@
                                 </svg>
                                 Eventos
                             </a>
-                            <a href="{{ route('transferencias-insumos') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('movimientos_insumos'))
+                            <a href="{{ route('transferencias-insumos') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('transferencias-insumos') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -174,6 +191,8 @@
                                 </svg>
                                 Movimientos Insumos
                             </a>
+                            @endif
+                            @if($u->tieneAccesoAModulo('movimientos_maquinarias'))
                             <a href="{{ route('transferencias-maquinarias') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
@@ -183,13 +202,17 @@
                                 </svg>
                                 Movimientos Maquinarias
                             </a>
+                            @endif
                         </div>
                     </div>
+                    @endif
 
                     <!-- Sección Recursos -->
+                    @if($u->tieneAccesoAModulo('empleados') || $u->tieneAccesoAModulo('choferes') || $u->tieneAccesoAModulo('usuarios'))
                     <div class="pt-4">
                         <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Recursos</p>
                         <div class="mt-2 space-y-1">
+                            @if($u->tieneAccesoAModulo('empleados'))
                             <a href="{{ route('empleados') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
@@ -199,6 +222,8 @@
                                 </svg>
                                 Empleados
                             </a>
+                            @endif
+                            @if($u->tieneAccesoAModulo('choferes'))
                             <a href="{{ route('choferes') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
@@ -210,7 +235,9 @@
                                 </svg>
                                 Choferes
                             </a>
-                            <a href="{{ route('usuarios') }}" 
+                            @endif
+                            @if($u->tieneAccesoAModulo('usuarios'))
+                            <a href="{{ route('usuarios') }}"
                                 wire:navigate
                                 @click="sidebarOpen = false"
                                class="flex items-center px-4 py-2 rounded-lg transition-colors duration-200 {{ request()->routeIs('usuarios') ? 'bg-custom-green' : 'hover-custom-green hover:bg-gray-600' }}">
@@ -219,8 +246,10 @@
                                 </svg>
                                 Usuarios
                             </a>
+                            @endif
                         </div>
                     </div>
+                    @endif
                 </div>
             </nav>
 

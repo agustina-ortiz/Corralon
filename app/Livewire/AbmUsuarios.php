@@ -4,25 +4,28 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Models\Corralon;
+use App\Models\Deposito;
 use App\Models\Rol;
+use App\Models\UsuarioPermiso;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class AbmUsuarios extends Component
 {
     use WithPagination;
 
-    // Búsqueda y filtros
+    // Busqueda y filtros
     public $busqueda = '';
-    public $filtro_acceso = ''; // 'todos', 'limitado', ''
+    public $filtro_acceso = '';
     public $filtro_corralon = '';
     public $filtro_rol = '';
     public $mostrarFiltros = false;
 
     // Modal
     public $modalAbierto = false;
-    public $modo = 'crear'; // 'crear' o 'editar'
+    public $modo = 'crear';
 
     // Campos del formulario
     public $usuario_id;
@@ -31,8 +34,17 @@ class AbmUsuarios extends Component
     public $password;
     public $password_confirmation;
     public $id_rol;
-    public $acceso_todos_corralones = false;
+
+    // Permisos granulares
+    // Estructura: ['corralon_id' => ['modulo' => 'nivel_acceso', ...], ...]
+    public $permisos_por_corralon = [];
+    // Permisos globales: ['modulo' => 'nivel_acceso', ...]
+    public $permisos_globales = [];
+    // Corralones seleccionados para asignar permisos
     public $corralones_seleccionados = [];
+    // Depositos especificos por corralon+modulo (opcional)
+    // Estructura: ['corralon_id' => ['modulo' => [deposito_ids], ...], ...]
+    public $depositos_especificos = [];
 
     // Ordenamiento
     public $orden_campo = 'name';
@@ -44,7 +56,6 @@ class AbmUsuarios extends Component
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->usuario_id,
             'id_rol' => 'required|exists:roles,id',
-            'acceso_todos_corralones' => 'boolean',
         ];
 
         if ($this->modo === 'crear') {
@@ -53,82 +64,56 @@ class AbmUsuarios extends Component
             $rules['password'] = 'string|min:8|confirmed';
         }
 
-        if (!$this->acceso_todos_corralones) {
-            $rules['corralones_seleccionados'] = 'required|array|min:1';
-        }
-
         return $rules;
     }
 
     protected $messages = [
         'name.required' => 'El nombre es obligatorio',
         'email.required' => 'El email es obligatorio',
-        'email.email' => 'Debe ser un email válido',
-        'email.unique' => 'Este email ya está registrado',
+        'email.email' => 'Debe ser un email valido',
+        'email.unique' => 'Este email ya esta registrado',
         'id_rol.required' => 'Debe seleccionar un rol',
-        'id_rol.exists' => 'El rol seleccionado no es válido',
-        'password.required' => 'La contraseña es obligatoria',
-        'password.min' => 'La contraseña debe tener al menos 8 caracteres',
-        'password.confirmed' => 'Las contraseñas no coinciden',
-        'corralones_seleccionados.required' => 'Debe seleccionar al menos un corralón',
-        'corralones_seleccionados.min' => 'Debe seleccionar al menos un corralón',
+        'id_rol.exists' => 'El rol seleccionado no es valido',
+        'password.required' => 'La contrasena es obligatoria',
+        'password.min' => 'La contrasena debe tener al menos 8 caracteres',
+        'password.confirmed' => 'Las contrasenas no coinciden',
     ];
 
     public function mount()
     {
-        // Verificar que el usuario esté autenticado
         if (!auth()->check()) {
             return redirect()->route('login');
         }
     }
 
-    public function updatingBusqueda()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroAcceso()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroCorralon()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroRol()
-    {
-        $this->resetPage();
-    }
+    public function updatingBusqueda() { $this->resetPage(); }
+    public function updatingFiltroAcceso() { $this->resetPage(); }
+    public function updatingFiltroCorralon() { $this->resetPage(); }
+    public function updatingFiltroRol() { $this->resetPage(); }
 
     public function getUsersProperty()
     {
-        return User::with('rol')
+        return User::with(['rol', 'permisos'])
             ->when($this->busqueda, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->busqueda . '%')
                       ->orWhere('email', 'like', '%' . $this->busqueda . '%');
                 });
             })
-            ->when($this->filtro_acceso === 'todos', function ($query) {
-                $query->where('acceso_todos_corralones', true);
+            ->when($this->filtro_acceso === 'admin', function ($query) {
+                $query->whereHas('rol', fn($q) => $q->where('nombre', 'Administrador'));
             })
             ->when($this->filtro_acceso === 'limitado', function ($query) {
-                $query->where('acceso_todos_corralones', false);
+                $query->whereHas('rol', fn($q) => $q->where('nombre', '!=', 'Administrador'));
             })
             ->when($this->filtro_corralon, function ($query) {
-                $corralon_id = $this->filtro_corralon;
-                $query->where(function ($q) use ($corralon_id) {
-                    // Usuarios con acceso a todos los corralones
-                    $q->where('acceso_todos_corralones', true)
-                      // O usuarios con este corralón específico en su array de permisos
-                      ->orWhereRaw('JSON_CONTAINS(corralones_permitidos, ?)', ['"' . $corralon_id . '"']);
+                $corralonId = $this->filtro_corralon;
+                $query->where(function ($q) use ($corralonId) {
+                    $q->whereHas('rol', fn($r) => $r->where('nombre', 'Administrador'))
+                      ->orWhereHas('permisos', fn($p) => $p->where('id_corralon', $corralonId));
                 });
             })
-            ->when($this->filtro_rol, function ($query) {
-                $query->where('id_rol', $this->filtro_rol);
-            })
+            ->when($this->filtro_rol, fn($q) => $q->where('id_rol', $this->filtro_rol))
             ->orderBy($this->orden_campo, $this->orden_direccion)
             ->paginate(10);
     }
@@ -143,6 +128,17 @@ class AbmUsuarios extends Component
         return Rol::orderBy('nombre')->get();
     }
 
+    public function getDepositosPorCorralonProperty()
+    {
+        $resultado = [];
+        foreach ($this->corralones_seleccionados as $corralonId) {
+            $resultado[$corralonId] = Deposito::where('id_corralon', $corralonId)
+                ->orderBy('deposito')
+                ->get();
+        }
+        return $resultado;
+    }
+
     public function ordenarPor($campo)
     {
         if ($this->orden_campo === $campo) {
@@ -153,9 +149,42 @@ class AbmUsuarios extends Component
         }
     }
 
+    public function toggleCorralon($corralonId)
+    {
+        $corralonId = (string) $corralonId;
+        if (in_array($corralonId, $this->corralones_seleccionados)) {
+            $this->corralones_seleccionados = array_values(array_diff($this->corralones_seleccionados, [$corralonId]));
+            unset($this->permisos_por_corralon[$corralonId]);
+            unset($this->depositos_especificos[$corralonId]);
+        } else {
+            $this->corralones_seleccionados[] = $corralonId;
+            // Inicializar permisos vacios para este corralon
+            $this->permisos_por_corralon[$corralonId] = [];
+        }
+    }
+
+    public function toggleModuloCorralon($corralonId, $modulo, $nivel)
+    {
+        $corralonId = (string) $corralonId;
+        if (isset($this->permisos_por_corralon[$corralonId][$modulo]) && $this->permisos_por_corralon[$corralonId][$modulo] === $nivel) {
+            // Desactivar
+            unset($this->permisos_por_corralon[$corralonId][$modulo]);
+        } else {
+            $this->permisos_por_corralon[$corralonId][$modulo] = $nivel;
+        }
+    }
+
+    public function toggleModuloGlobal($modulo, $nivel)
+    {
+        if (isset($this->permisos_globales[$modulo]) && $this->permisos_globales[$modulo] === $nivel) {
+            unset($this->permisos_globales[$modulo]);
+        } else {
+            $this->permisos_globales[$modulo] = $nivel;
+        }
+    }
+
     public function abrirModal($modo = 'crear', $id = null)
     {
-        // Verificar permisos
         if ($modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
             session()->flash('error', 'No tienes permisos para crear usuarios.');
             return;
@@ -170,16 +199,44 @@ class AbmUsuarios extends Component
         $this->modo = $modo;
 
         if ($modo === 'editar' && $id) {
-            $usuario = User::findOrFail($id);
+            $usuario = User::with('permisos')->findOrFail($id);
             $this->usuario_id = $usuario->id;
             $this->name = $usuario->name;
             $this->email = $usuario->email;
             $this->id_rol = $usuario->id_rol;
-            $this->acceso_todos_corralones = $usuario->acceso_todos_corralones;
-            $this->corralones_seleccionados = $usuario->corralones_permitidos ?? [];
+
+            // Cargar permisos existentes
+            $this->cargarPermisosUsuario($usuario);
         }
 
         $this->modalAbierto = true;
+    }
+
+    private function cargarPermisosUsuario(User $usuario)
+    {
+        $this->permisos_por_corralon = [];
+        $this->permisos_globales = [];
+        $this->corralones_seleccionados = [];
+        $this->depositos_especificos = [];
+
+        foreach ($usuario->permisos as $permiso) {
+            if (UsuarioPermiso::esModuloGlobal($permiso->modulo)) {
+                $this->permisos_globales[$permiso->modulo] = $permiso->nivel_acceso;
+            } elseif ($permiso->id_corralon) {
+                $corralonId = (string) $permiso->id_corralon;
+
+                if (!in_array($corralonId, $this->corralones_seleccionados)) {
+                    $this->corralones_seleccionados[] = $corralonId;
+                }
+
+                $this->permisos_por_corralon[$corralonId][$permiso->modulo] = $permiso->nivel_acceso;
+
+                // Si tiene deposito especifico
+                if ($permiso->id_deposito) {
+                    $this->depositos_especificos[$corralonId][$permiso->modulo][] = (string) $permiso->id_deposito;
+                }
+            }
+        }
     }
 
     public function cerrarModal()
@@ -190,7 +247,6 @@ class AbmUsuarios extends Component
 
     public function guardar()
     {
-        // Verificar permisos antes de guardar
         if ($this->modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
             session()->flash('error', 'No tienes permisos para crear usuarios.');
             $this->cerrarModal();
@@ -205,25 +261,94 @@ class AbmUsuarios extends Component
 
         $this->validate();
 
-        $data = [
-            'name' => $this->name,
-            'email' => $this->email,
-            'id_rol' => $this->id_rol,
-            'acceso_todos_corralones' => $this->acceso_todos_corralones,
-            'corralones_permitidos' => $this->acceso_todos_corralones ? null : $this->corralones_seleccionados,
-        ];
+        $rol = Rol::find($this->id_rol);
+        $esAdmin = $rol && $rol->nombre === 'Administrador';
 
-        if ($this->password) {
-            $data['password'] = Hash::make($this->password);
-        }
+        DB::beginTransaction();
+        try {
+            $data = [
+                'name' => $this->name,
+                'email' => $this->email,
+                'id_rol' => $this->id_rol,
+                'acceso_todos_corralones' => $esAdmin,
+                'corralones_permitidos' => $esAdmin ? null : array_map('intval', $this->corralones_seleccionados),
+            ];
 
-        if ($this->modo === 'crear') {
-            User::create($data);
-            session()->flash('mensaje', 'Usuario creado exitosamente');
-        } else {
-            $usuario = User::findOrFail($this->usuario_id);
-            $usuario->update($data);
-            session()->flash('mensaje', 'Usuario actualizado exitosamente');
+            if ($this->password) {
+                $data['password'] = Hash::make($this->password);
+            }
+
+            if ($this->modo === 'crear') {
+                $usuario = User::create($data);
+            } else {
+                $usuario = User::findOrFail($this->usuario_id);
+                $usuario->update($data);
+            }
+
+            // Guardar permisos (solo si no es admin)
+            // Eliminar permisos existentes
+            $usuario->permisos()->delete();
+
+            if (!$esAdmin) {
+                $permisosACrear = [];
+
+                // Permisos globales
+                foreach ($this->permisos_globales as $modulo => $nivel) {
+                    $permisosACrear[] = [
+                        'id_usuario' => $usuario->id,
+                        'id_corralon' => null,
+                        'id_deposito' => null,
+                        'modulo' => $modulo,
+                        'nivel_acceso' => $nivel,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                // Permisos por corralon
+                foreach ($this->permisos_por_corralon as $corralonId => $modulos) {
+                    foreach ($modulos as $modulo => $nivel) {
+                        // Verificar si hay depositos especificos
+                        $depositosEsp = $this->depositos_especificos[$corralonId][$modulo] ?? [];
+
+                        if (empty($depositosEsp)) {
+                            // Acceso a todos los depositos del corralon
+                            $permisosACrear[] = [
+                                'id_usuario' => $usuario->id,
+                                'id_corralon' => (int) $corralonId,
+                                'id_deposito' => null,
+                                'modulo' => $modulo,
+                                'nivel_acceso' => $nivel,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ];
+                        } else {
+                            // Acceso solo a depositos especificos
+                            foreach ($depositosEsp as $depositoId) {
+                                $permisosACrear[] = [
+                                    'id_usuario' => $usuario->id,
+                                    'id_corralon' => (int) $corralonId,
+                                    'id_deposito' => (int) $depositoId,
+                                    'modulo' => $modulo,
+                                    'nivel_acceso' => $nivel,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ];
+                            }
+                        }
+                    }
+                }
+
+                if (!empty($permisosACrear)) {
+                    DB::table('usuario_permisos')->insert($permisosACrear);
+                }
+            }
+
+            DB::commit();
+            session()->flash('mensaje', $this->modo === 'crear' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al guardar: ' . $e->getMessage());
         }
 
         $this->cerrarModal();
@@ -231,21 +356,19 @@ class AbmUsuarios extends Component
 
     public function eliminar($id)
     {
-        // Verificar permiso de eliminación
         if (!auth()->user()->puedeEliminarUsuarios()) {
             session()->flash('error', 'No tienes permisos para eliminar usuarios.');
             return;
         }
 
         $usuario = User::findOrFail($id);
-        
-        // No permitir eliminar al usuario actual
+
         if ($usuario->id === auth()->id()) {
             session()->flash('error', 'No puedes eliminar tu propio usuario');
             return;
         }
 
-        $usuario->delete();
+        $usuario->delete(); // cascade elimina permisos
         session()->flash('mensaje', 'Usuario eliminado exitosamente');
     }
 
@@ -257,8 +380,10 @@ class AbmUsuarios extends Component
         $this->password = '';
         $this->password_confirmation = '';
         $this->id_rol = '';
-        $this->acceso_todos_corralones = false;
+        $this->permisos_por_corralon = [];
+        $this->permisos_globales = [];
         $this->corralones_seleccionados = [];
+        $this->depositos_especificos = [];
         $this->resetValidation();
     }
 
@@ -271,6 +396,27 @@ class AbmUsuarios extends Component
         $this->resetPage();
     }
 
+    /**
+     * Retorna los corralones con sus permisos para mostrar en la tabla
+     */
+    public function getPermisosResumen($usuario): array
+    {
+        if ($usuario->esAdministrador()) {
+            return ['tipo' => 'admin'];
+        }
+
+        $resumen = [];
+        foreach ($usuario->permisos as $p) {
+            if (UsuarioPermiso::esModuloGlobal($p->modulo)) {
+                $resumen['globales'][$p->modulo] = $p->nivel_acceso;
+            } else {
+                $resumen['corralones'][$p->id_corralon][$p->modulo] = $p->nivel_acceso;
+            }
+        }
+
+        return $resumen;
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -279,7 +425,9 @@ class AbmUsuarios extends Component
             'usuarios' => $this->users,
             'corralones' => $this->corralones,
             'roles' => $this->roles,
-            // Pasar permisos a la vista
+            'modulosPorUbicacion' => UsuarioPermiso::MODULOS_POR_UBICACION,
+            'modulosGlobales' => UsuarioPermiso::MODULOS_GLOBALES,
+            'todosLosModulos' => UsuarioPermiso::MODULOS,
             'puedeCrear' => $user->puedeCrearUsuarios(),
             'puedeEditar' => $user->puedeEditarUsuarios(),
             'puedeEliminar' => $user->puedeEliminarUsuarios(),

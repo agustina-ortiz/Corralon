@@ -19,13 +19,13 @@ class AbmVehiculos extends Component
     public $editMode = false;
     public $showFilters = false;
     public $showModalDocumentos = false;
-    
+
     // Filtros
     public $filtro_marca = '';
     public $filtro_modelo = '';
     public $filtro_estado = '';
     public $filtro_deposito = '';
-    
+
     // Campos del formulario
     public $nro_movil;
     public $vehiculoId;
@@ -42,7 +42,7 @@ class AbmVehiculos extends Component
     public $vencimiento_vtv;
     public $estado;
     public $id_deposito;
-    
+
     // Documentos
     public $nuevo_documento;
     public $nueva_descripcion;
@@ -56,8 +56,8 @@ class AbmVehiculos extends Component
                 'required',
                 'string',
                 'max:50',
-                $this->editMode 
-                    ? 'unique:vehiculos,nro_movil,' . $this->vehiculoId 
+                $this->editMode
+                    ? 'unique:vehiculos,nro_movil,' . $this->vehiculoId
                     : 'unique:vehiculos,nro_movil'
             ],
             'vehiculo' => 'required|string|max:255',
@@ -77,27 +77,26 @@ class AbmVehiculos extends Component
     }
 
     protected $messages = [
-        'nro_movil.required' => 'El número de móvil es obligatorio',
-        'nro_movil.unique' => 'Este número de móvil ya está en uso',
-        'vehiculo.required' => 'El nombre del vehículo es obligatorio',
+        'nro_movil.required' => 'El numero de movil es obligatorio',
+        'nro_movil.unique' => 'Este numero de movil ya esta en uso',
+        'vehiculo.required' => 'El nombre del vehiculo es obligatorio',
         'marca.required' => 'La marca es obligatoria',
         'patente.required' => 'La patente es obligatoria',
         'tipo_combustible.required' => 'El tipo de combustible es obligatorio',
-        'nro_motor.required' => 'El número de motor es obligatorio',
-        'nro_chasis.required' => 'El número de chasis es obligatorio',
+        'nro_motor.required' => 'El numero de motor es obligatorio',
+        'nro_chasis.required' => 'El numero de chasis es obligatorio',
         'estado.required' => 'El estado es obligatorio',
-        'nro_poliza.required' => 'El número de póliza es obligatorio',
-        'id_deposito.required' => 'El depósito es obligatorio',
-        'id_deposito.exists' => 'El depósito seleccionado no existe',
-        'vencimiento_oblea.required' => 'El vencimiento de oblea es obligatorio para vehículos a gas',
-        'vencimiento_oblea.date' => 'Ingrese una fecha válida',
-        'vencimiento_poliza.date' => 'Ingrese una fecha válida',
-        'vencimiento_vtv.date' => 'Ingrese una fecha válida',
+        'nro_poliza.required' => 'El numero de poliza es obligatorio',
+        'id_deposito.required' => 'El deposito es obligatorio',
+        'id_deposito.exists' => 'El deposito seleccionado no existe',
+        'vencimiento_oblea.required' => 'El vencimiento de oblea es obligatorio para vehiculos a gas',
+        'vencimiento_oblea.date' => 'Ingrese una fecha valida',
+        'vencimiento_poliza.date' => 'Ingrese una fecha valida',
+        'vencimiento_vtv.date' => 'Ingrese una fecha valida',
     ];
 
     public function mount()
     {
-        // Verificar que el usuario esté autenticado
         if (!auth()->check()) {
             return redirect()->route('login');
         }
@@ -110,30 +109,11 @@ class AbmVehiculos extends Component
         }
     }
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroMarca()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroModelo()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroEstado()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingFiltroDeposito()
-    {
-        $this->resetPage();
-    }
+    public function updatingSearch() { $this->resetPage(); }
+    public function updatingFiltroMarca() { $this->resetPage(); }
+    public function updatingFiltroModelo() { $this->resetPage(); }
+    public function updatingFiltroEstado() { $this->resetPage(); }
+    public function updatingFiltroDeposito() { $this->resetPage(); }
 
     public function limpiarFiltros()
     {
@@ -158,27 +138,19 @@ class AbmVehiculos extends Component
                       ->orWhere('patente', 'like', '%' . $this->search . '%')
                       ->orWhere('modelo', 'like', '%' . $this->search . '%');
             })
-            ->when($this->filtro_marca, function($query) {
-                $query->where('marca', $this->filtro_marca);
-            })
-            ->when($this->filtro_modelo, function($query) {
-                $query->where('modelo', $this->filtro_modelo);
-            })
-            ->when($this->filtro_estado, function($query) {
-                $query->where('estado', $this->filtro_estado);
-            })
-            ->when($this->filtro_deposito, function($query) {
-                $query->where('id_deposito', $this->filtro_deposito);
-            })
+            ->when($this->filtro_marca, fn($q) => $q->where('marca', $this->filtro_marca))
+            ->when($this->filtro_modelo, fn($q) => $q->where('modelo', $this->filtro_modelo))
+            ->when($this->filtro_estado, fn($q) => $q->where('estado', $this->filtro_estado))
+            ->when($this->filtro_deposito, fn($q) => $q->where('id_deposito', $this->filtro_deposito))
             ->orderBy('vehiculo')
             ->paginate(10);
 
-        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
-        if (!$user->acceso_todos_corralones) {
-            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
-        }
-        
-        $depositos = $depositosQuery->get();
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
+        $depositos = Deposito::with('corralon')
+            ->when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $depositosPermitidos))
+            ->orderBy('deposito')
+            ->get();
+
         $marcas = Vehiculo::select('marca')->distinct()->whereNotNull('marca')->orderBy('marca')->pluck('marca');
         $modelos = Vehiculo::select('modelo')->distinct()->whereNotNull('modelo')->orderBy('modelo')->pluck('modelo');
 
@@ -187,26 +159,29 @@ class AbmVehiculos extends Component
             'depositos' => $depositos,
             'marcas' => $marcas,
             'modelos' => $modelos,
-            // Pasar permisos a la vista
             'puedeCrear' => $user->puedeCrearVehiculos(),
             'puedeEditar' => $user->puedeEditarVehiculos(),
             'puedeEliminar' => $user->puedeEliminarVehiculos(),
         ])->layout('layouts.app', [
-            'header' => 'ABM Vehículos'
+            'header' => 'ABM Vehiculos'
         ]);
+    }
+
+    private function verificarAccesoVehiculo($vehiculo): bool
+    {
+        $user = auth()->user();
+        if ($user->esAdministrador()) return true;
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
+        return in_array($vehiculo->id_deposito, $depositosPermitidos);
     }
 
     public function abrirModalDocumentos($vehiculoId)
     {
         $vehiculo = Vehiculo::with('documentos')->findOrFail($vehiculoId);
 
-        $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $vehiculo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para ver los documentos de este vehículo.');
-                return;
-            }
+        if (!$this->verificarAccesoVehiculo($vehiculo)) {
+            session()->flash('error', 'No tienes permisos para ver los documentos de este vehiculo.');
+            return;
         }
 
         $this->vehiculoId = $vehiculoId;
@@ -224,35 +199,29 @@ class AbmVehiculos extends Component
 
     public function crear()
     {
-        // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearVehiculos()) {
-            session()->flash('error', 'No tienes permisos para crear vehículos.');
+            session()->flash('error', 'No tienes permisos para crear vehiculos.');
             return;
         }
-        
+
         $this->resetForm();
         $this->showModal = true;
     }
 
     public function editar($id)
     {
-        // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para editar vehículos.');
+            session()->flash('error', 'No tienes permisos para editar vehiculos.');
             return;
         }
-        
+
         $vehiculo = Vehiculo::findOrFail($id);
 
-        $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $vehiculo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar este vehículo.');
-                return;
-            }
+        if (!$this->verificarAccesoVehiculo($vehiculo)) {
+            session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+            return;
         }
-            
+
         $this->vehiculoId = $vehiculo->id;
         $this->nro_movil = $vehiculo->nro_movil;
         $this->vehiculo = $vehiculo->vehiculo;
@@ -268,37 +237,33 @@ class AbmVehiculos extends Component
         $this->vencimiento_vtv = $vehiculo->vencimiento_vtv;
         $this->estado = $vehiculo->estado;
         $this->id_deposito = $vehiculo->id_deposito;
-        
+
         $this->editMode = true;
         $this->showModal = true;
     }
 
     public function guardar()
     {
-        // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearVehiculos()) {
-            session()->flash('error', 'No tienes permisos para crear vehículos.');
+            session()->flash('error', 'No tienes permisos para crear vehiculos.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para editar vehículos.');
+            session()->flash('error', 'No tienes permisos para editar vehiculos.');
             $this->showModal = false;
             return;
         }
-        
+
         $this->validate();
 
         $user = auth()->user();
-    
-        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
-        if (!$user->acceso_todos_corralones) {
-            $deposito = Deposito::find($this->id_deposito);
-            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para usar ese depósito.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
+
+        if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para usar ese deposito.');
+            return;
         }
 
         $data = [
@@ -322,20 +287,16 @@ class AbmVehiculos extends Component
         if ($this->editMode) {
             $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
 
-            // Verificar acceso al vehículo original por corralón
-            if (!$user->acceso_todos_corralones) {
-                $corralonId = $vehiculo->deposito->id_corralon;
-                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar este vehículo.');
-                    return;
-                }
+            if (!$this->verificarAccesoVehiculo($vehiculo)) {
+                session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+                return;
             }
 
             $vehiculo->update($data);
-            session()->flash('message', 'Vehículo actualizado exitosamente.');
+            session()->flash('message', 'Vehiculo actualizado exitosamente.');
         } else {
             Vehiculo::create($data);
-            session()->flash('message', 'Vehículo creado exitosamente.');
+            session()->flash('message', 'Vehiculo creado exitosamente.');
         }
 
         $this->cerrarModal();
@@ -343,31 +304,26 @@ class AbmVehiculos extends Component
 
     public function agregarDocumento()
     {
-        // Verificar permiso de edición (agregar documento es una forma de edición)
         if (!auth()->user()->puedeEditarVehiculos()) {
             session()->flash('error', 'No tienes permisos para agregar documentos.');
             return;
         }
-        
+
         $this->validate([
             'nuevo_documento' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'nueva_descripcion' => 'required|string|max:255',
         ]);
 
         if (!$this->vehiculoId) {
-            session()->flash('error', 'Error al identificar el vehículo.');
+            session()->flash('error', 'Error al identificar el vehiculo.');
             return;
         }
 
         $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
 
-        $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $vehiculo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para modificar este vehículo.');
-                return;
-            }
+        if (!$this->verificarAccesoVehiculo($vehiculo)) {
+            session()->flash('error', 'No tienes permisos para modificar este vehiculo.');
+            return;
         }
 
         $archivo = $this->nuevo_documento->store('vehiculos/documentos', 'public');
@@ -380,8 +336,6 @@ class AbmVehiculos extends Component
 
         $this->nuevo_documento = null;
         $this->nueva_descripcion = '';
-
-        // Recargar documentos
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
 
         session()->flash('message', 'Documento agregado exitosamente.');
@@ -389,27 +343,22 @@ class AbmVehiculos extends Component
 
     public function eliminarDocumento($documentoId)
     {
-        // Verificar permiso de edición (eliminar documento es una forma de edición)
         if (!auth()->user()->puedeEditarVehiculos()) {
             session()->flash('error', 'No tienes permisos para eliminar documentos.');
             return;
         }
-        
+
         $documento = DocumentoVehiculo::findOrFail($documentoId);
-        
-        $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $documento->vehiculo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para modificar este vehículo.');
-                return;
-            }
+        $vehiculo = Vehiculo::findOrFail($documento->id_vehiculo);
+
+        if (!$this->verificarAccesoVehiculo($vehiculo)) {
+            session()->flash('error', 'No tienes permisos para modificar este vehiculo.');
+            return;
         }
 
         Storage::disk('public')->delete($documento->archivo);
         $documento->delete();
 
-        // Recargar documentos
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
 
         session()->flash('message', 'Documento eliminado exitosamente.');
@@ -417,31 +366,25 @@ class AbmVehiculos extends Component
 
     public function eliminar($id)
     {
-        // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para eliminar vehículos.');
+            session()->flash('error', 'No tienes permisos para eliminar vehiculos.');
             return;
         }
-        
+
         $vehiculo = Vehiculo::with('documentos')->findOrFail($id);
-        
-        $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $vehiculo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar este vehículo.');
-                return;
-            }
+
+        if (!$this->verificarAccesoVehiculo($vehiculo)) {
+            session()->flash('error', 'No tienes permisos para eliminar este vehiculo.');
+            return;
         }
 
-        // Eliminar todos los documentos asociados
         foreach ($vehiculo->documentos as $documento) {
             Storage::disk('public')->delete($documento->archivo);
             $documento->delete();
         }
-        
+
         $vehiculo->delete();
-        session()->flash('message', 'Vehículo eliminado correctamente.');
+        session()->flash('message', 'Vehiculo eliminado correctamente.');
     }
 
     public function cerrarModal()

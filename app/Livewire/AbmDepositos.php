@@ -44,9 +44,9 @@ class AbmDepositos extends Component
     {
         $user = auth()->user();
         
-        // Determinar si el usuario tiene múltiples corralones
-        $corralonesPermitidosIds = $user->getCorralonesPermitidosIds();
-        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+        // Determinar si el usuario tiene múltiples corralones para este módulo
+        $corralonesPermitidosIds = $user->getCorralonesParaModulo('depositos');
+        $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
         $depositos = Deposito::with('corralon')
             ->porCorralonesPermitidos()
@@ -60,12 +60,10 @@ class AbmDepositos extends Component
             ->orderBy('id')
             ->paginate(10);
 
-        // Filtrar corralones por permisos
-        $corralonesQuery = Corralon::orderBy('descripcion');
-        if (!$user->acceso_todos_corralones) {
-            $corralonesQuery->whereIn('id', $user->corralones_permitidos ?? []);
-        }
-        $corralones = $corralonesQuery->get();
+        // Filtrar corralones por permisos del módulo depósitos
+        $corralones = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
+            ->orderBy('descripcion')
+            ->get();
 
         return view('livewire.abm-depositos', [
             'depositos' => $depositos,
@@ -103,8 +101,9 @@ class AbmDepositos extends Component
         
         // Si el usuario solo tiene acceso a un corralón, preseleccionarlo
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones && count($user->corralones_permitidos ?? []) === 1) {
-            $this->id_corralon = $user->corralones_permitidos[0];
+        $corralonesModulo = $user->getCorralonesParaModulo('depositos');
+        if (!$user->esAdministrador() && count($corralonesModulo) === 1) {
+            $this->id_corralon = $corralonesModulo[0];
         }
         
         $this->showModal = true;
@@ -122,11 +121,10 @@ class AbmDepositos extends Component
         
         // Verificar que el usuario tenga acceso a este depósito por corralón
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
-                return;
-            }
+        $corralonesPermitidos = $user->getCorralonesParaModulo('depositos');
+        if (!$user->esAdministrador() && !in_array($deposito->id_corralon, $corralonesPermitidos)) {
+            session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
+            return;
         }
         
         $this->deposito_id = $deposito->id;
@@ -157,22 +155,19 @@ class AbmDepositos extends Component
         $user = auth()->user();
         
         // Verificar que el corralón seleccionado esté permitido
-        if (!$user->acceso_todos_corralones) {
-            if (!in_array($this->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para usar ese corralón.');
-                return;
-            }
+        $corralonesPermitidos = $user->getCorralonesParaModulo('depositos');
+        if (!$user->esAdministrador() && !in_array((int)$this->id_corralon, $corralonesPermitidos)) {
+            session()->flash('error', 'No tienes permisos para usar ese corralón.');
+            return;
         }
 
         if ($this->editMode) {
             $deposito = Deposito::findOrFail($this->deposito_id);
             
             // Verificar acceso al depósito original por corralón
-            if (!$user->acceso_todos_corralones) {
-                if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
-                    return;
-                }
+            if (!$user->esAdministrador() && !in_array($deposito->id_corralon, $corralonesPermitidos)) {
+                session()->flash('error', 'No tienes permisos para editar depósitos de este corralón.');
+                return;
             }
             
             $deposito->update([
@@ -204,11 +199,10 @@ class AbmDepositos extends Component
         
         // Verificar que el usuario tenga acceso a este depósito por corralón
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar depósitos de este corralón.');
-                return;
-            }
+        $corralonesPermitidos = $user->getCorralonesParaModulo('depositos');
+        if (!$user->esAdministrador() && !in_array($deposito->id_corralon, $corralonesPermitidos)) {
+            session()->flash('error', 'No tienes permisos para eliminar depósitos de este corralón.');
+            return;
         }
         
         // Verificar que no tenga elementos asignados

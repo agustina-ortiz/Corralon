@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Traits\FiltraPorCorralon;
+use App\Traits\FiltraPorPermisosCorralon;
 
 class Deposito extends Model
 {
-    use FiltraPorCorralon;
+    use FiltraPorPermisosCorralon;
+
+    const MODULO_PERMISO = 'depositos';
 
     protected $table = 'depositos';
     

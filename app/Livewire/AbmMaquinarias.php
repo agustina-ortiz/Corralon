@@ -84,28 +84,28 @@ class AbmMaquinarias extends Component
         // ✅ Obtener distribución de maquinarias por depósito
         $maquinarias = $this->getMaquinariasDistribuidas();
 
-        // Filtrar depósitos para los filtros de la tabla
-        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
-        if (!$user->acceso_todos_corralones) {
-            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
-        }
-        $depositos = $depositosQuery->get();
+        // Filtrar depósitos por permisos del módulo maquinarias
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
+        $depositos = Deposito::with('corralon')
+            ->when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $depositosPermitidos))
+            ->orderBy('deposito')
+            ->get();
 
         // Corralones permitidos para el modal
-        $corralonesQuery = Corralon::orderBy('descripcion');
-        if (!$user->acceso_todos_corralones) {
-            $corralonesQuery->whereIn('id', $user->corralones_permitidos ?? []);
-        }
-        $corralones = $corralonesQuery->get();
+        $corralonesPermitidos = $user->getCorralonesParaModulo('maquinarias');
+        $corralones = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidos))
+            ->orderBy('descripcion')
+            ->get();
 
-        // Depósitos del modal filtrados por corralón seleccionado
+        // Depósitos del modal filtrados por corralón seleccionado + permisos
         $depositosModalQuery = Deposito::orderBy('deposito');
         if ($this->id_corralon) {
             $depositosModalQuery->where('id_corralon', $this->id_corralon);
-        } elseif (!$user->acceso_todos_corralones) {
-            $depositosModalQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
+            if (!$user->esAdministrador()) {
+                $depositosModalQuery->whereIn('id', $depositosPermitidos);
+            }
         } else {
-            $depositosModalQuery->whereRaw('1 = 0'); // sin corralón elegido, no mostrar nada
+            $depositosModalQuery->whereRaw('1 = 0');
         }
         $depositosModal = $depositosModalQuery->get();
 
@@ -202,8 +202,9 @@ class AbmMaquinarias extends Component
 
         // Si el usuario solo tiene acceso a un corralón, preseleccionarlo
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones && count($user->corralones_permitidos ?? []) === 1) {
-            $this->id_corralon = $user->corralones_permitidos[0];
+        $corralonesModulo = $user->getCorralonesParaModulo('maquinarias');
+        if (!$user->esAdministrador() && count($corralonesModulo) === 1) {
+            $this->id_corralon = $corralonesModulo[0];
         }
 
         $this->showModal = true;
@@ -219,14 +220,12 @@ class AbmMaquinarias extends Component
         
         $maquinaria = Maquinaria::findOrFail($id);
 
-        // Verificar que el usuario tenga acceso a esta maquinaria por corralón
+        // Verificar que el usuario tenga acceso a esta maquinaria por depósito
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $maquinaria->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar maquinarias de este corralón.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
+        if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para editar maquinarias de este depósito.');
+            return;
         }
 
         $this->maquinaria_id = $maquinaria->id;
@@ -260,25 +259,20 @@ class AbmMaquinarias extends Component
 
         $user = auth()->user();
     
-        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
-        if (!$user->acceso_todos_corralones) {
-            $deposito = Deposito::find($this->id_deposito);
-            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para usar ese depósito.');
-                return;
-            }
+        // Verificar que el depósito seleccionado esté permitido
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
+        if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para usar ese depósito.');
+            return;
         }
 
         if ($this->editMode) {
             $maquinaria = Maquinaria::findOrFail($this->maquinaria_id);
 
-            // Verificar acceso a la maquinaria original por corralón
-            if (!$user->acceso_todos_corralones) {
-                $corralonId = $maquinaria->deposito->id_corralon;
-                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar maquinarias de este corralón.');
-                    return;
-                }
+            // Verificar acceso a la maquinaria original por depósito
+            if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
+                session()->flash('error', 'No tienes permisos para editar maquinarias de este depósito.');
+                return;
             }
 
             $maquinaria->update([
@@ -344,14 +338,12 @@ class AbmMaquinarias extends Component
         
         $maquinaria = Maquinaria::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a esta maquinaria por corralón
+        // Verificar que el usuario tenga acceso a esta maquinaria por depósito
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $maquinaria->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar maquinarias de este corralón.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
+        if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para eliminar maquinarias de este depósito.');
+            return;
         }
         
         try {

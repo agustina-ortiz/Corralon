@@ -3,11 +3,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Traits\FiltraPorCorralonViaDeposito;
+use App\Traits\FiltraPorPermisos;
 
 class Vehiculo extends Model
 {
-    use FiltraPorCorralonViaDeposito;
+    use FiltraPorPermisos;
+
+    const MODULO_PERMISO = 'vehiculos';
 
      protected $table = 'vehiculos';
     

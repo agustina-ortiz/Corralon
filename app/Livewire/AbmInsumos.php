@@ -105,12 +105,12 @@ class AbmInsumos extends Component
 
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
         
-        // Filtrar depósitos por corralones permitidos
-        $depositosQuery = Deposito::with('corralon')->orderBy('deposito');
-        if (!$user->acceso_todos_corralones) {
-            $depositosQuery->whereIn('id_corralon', $user->corralones_permitidos ?? []);
-        }
-        $depositos = $depositosQuery->get();
+        // Filtrar depósitos por permisos del módulo insumos
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
+        $depositos = Deposito::with('corralon')
+            ->when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $depositosPermitidos))
+            ->orderBy('deposito')
+            ->get();
         
         // Filtrar unidades de insumos visibles
         $unidades = Insumo::select('unidad')
@@ -191,16 +191,14 @@ class AbmInsumos extends Component
         
         $insumo = Insumo::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este insumo por corralón
+        // Verificar que el usuario tenga acceso a este insumo por depósito/corralón
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $insumo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para editar insumos de este corralón.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
+        if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para editar insumos de este depósito.');
+            return;
         }
-        
+
         $this->insumo_id = $insumo->id;
         $this->insumo = $insumo->insumo;
         $this->id_categoria = $insumo->id_categoria;
@@ -230,26 +228,21 @@ class AbmInsumos extends Component
         $this->validate();
         
         $user = auth()->user();
-        
-        // Verificar que el depósito seleccionado pertenezca a un corralón permitido
-        if (!$user->acceso_todos_corralones) {
-            $deposito = Deposito::find($this->id_deposito);
-            if (!in_array($deposito->id_corralon, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para usar ese depósito.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
+
+        // Verificar que el depósito seleccionado esté permitido
+        if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para usar ese depósito.');
+            return;
         }
 
         if ($this->editMode) {
             $insumo = Insumo::findOrFail($this->insumo_id);
-            
-            // Verificar acceso al insumo original por corralón
-            if (!$user->acceso_todos_corralones) {
-                $corralonId = $insumo->deposito->id_corralon;
-                if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                    session()->flash('error', 'No tienes permisos para editar insumos de este corralón.');
-                    return;
-                }
+
+            // Verificar acceso al insumo original por depósito
+            if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
+                session()->flash('error', 'No tienes permisos para editar insumos de este depósito.');
+                return;
             }
             
             $insumo->update([
@@ -316,14 +309,12 @@ class AbmInsumos extends Component
         
         $insumo = Insumo::findOrFail($id);
         
-        // Verificar que el usuario tenga acceso a este insumo por corralón
+        // Verificar que el usuario tenga acceso a este insumo por depósito
         $user = auth()->user();
-        if (!$user->acceso_todos_corralones) {
-            $corralonId = $insumo->deposito->id_corralon;
-            if (!in_array($corralonId, $user->corralones_permitidos ?? [])) {
-                session()->flash('error', 'No tienes permisos para eliminar insumos de este corralón.');
-                return;
-            }
+        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
+        if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
+            session()->flash('error', 'No tienes permisos para eliminar insumos de este depósito.');
+            return;
         }
         
         try {

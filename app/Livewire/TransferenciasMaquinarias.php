@@ -181,14 +181,7 @@ class TransferenciasMaquinarias extends Component
     private function getDepositosAccesibles(): array
     {
         $user = Auth::user();
-
-        if ($user->acceso_todos_corralones) {
-            return Deposito::pluck('id')->toArray();
-        }
-
-        return Deposito::whereIn('id_corralon', $user->corralones_permitidos ?? [])
-            ->pluck('id')
-            ->toArray();
+        return $user->getDepositosPermitidosParaModulo('movimientos_maquinarias');
     }
 
     /**
@@ -333,14 +326,13 @@ class TransferenciasMaquinarias extends Component
         $tipos_movimiento = TipoMovimiento::whereIn('tipo', ['M', 'IM'])->orderBy('tipo_movimiento')->get();
 
         // Datos para el modal de transferencia multi-maquinaria
-        $corralonesPermitidosIds  = $user->getCorralonesPermitidosIds();
-        $tieneMultiplesCorralones = $user->acceso_todos_corralones || count($corralonesPermitidosIds) > 1;
+        $corralonesPermitidosIds  = $user->getCorralonesParaModulo('movimientos_maquinarias');
+        $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
         $corralones = collect();
         if ($tieneMultiplesCorralones) {
-            $corralones = $user->acceso_todos_corralones
-                ? Corralon::orderBy('descripcion')->get()
-                : Corralon::whereIn('id', $corralonesPermitidosIds)->orderBy('descripcion')->get();
+            $corralones = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
+                ->orderBy('descripcion')->get();
         }
 
         // Depósitos origen para el modal de transferencia (filtrados por corralón si aplica)
