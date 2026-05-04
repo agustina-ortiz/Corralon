@@ -279,7 +279,7 @@ class AbmVehiculos extends Component
             'nro_poliza' => $this->nro_poliza,
             'vencimiento_poliza' => $this->vencimiento_poliza,
             'vencimiento_vtv' => $this->vencimiento_vtv,
-            'id_secretaria' => 'sec',
+            'id_secretaria' => null,
             'estado' => $this->estado,
             'id_deposito' => $this->id_deposito,
         ];
