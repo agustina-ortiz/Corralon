@@ -20,6 +20,7 @@ class Vehiculo extends Model
         'nro_motor',
         'nro_chasis',
         'modelo',
+        'anio',
         'patente',
         'tipo_combustible',
         'vencimiento_oblea',

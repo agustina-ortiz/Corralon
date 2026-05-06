@@ -34,6 +34,7 @@ class AbmVehiculos extends Component
     public $nro_motor;
     public $nro_chasis;
     public $modelo;
+    public $anio;
     public $patente;
     public $tipo_combustible;
     public $vencimiento_oblea;
@@ -65,6 +66,7 @@ class AbmVehiculos extends Component
             'nro_motor' => 'required|string|max:255',
             'nro_chasis' => 'required|string|max:255',
             'modelo' => 'nullable|string|max:255',
+            'anio' => 'nullable|string|max:4',
             'patente' => 'required|string|max:20',
             'tipo_combustible' => 'required|in:nafta,diesel,gas',
             'vencimiento_oblea' => $this->tipo_combustible === 'gas' ? 'required|date' : 'nullable|date',
@@ -229,6 +231,7 @@ class AbmVehiculos extends Component
         $this->nro_motor = $vehiculo->nro_motor;
         $this->nro_chasis = $vehiculo->nro_chasis;
         $this->modelo = $vehiculo->modelo;
+        $this->anio = $vehiculo->anio;
         $this->patente = $vehiculo->patente;
         $this->tipo_combustible = $vehiculo->tipo_combustible;
         $this->vencimiento_oblea = $vehiculo->vencimiento_oblea;
@@ -273,6 +276,7 @@ class AbmVehiculos extends Component
             'nro_motor' => $this->nro_motor,
             'nro_chasis' => $this->nro_chasis,
             'modelo' => $this->modelo,
+            'anio' => $this->anio,
             'patente' => $this->patente,
             'tipo_combustible' => $this->tipo_combustible,
             'vencimiento_oblea' => $this->tipo_combustible === 'gas' ? $this->vencimiento_oblea : null,
@@ -403,6 +407,7 @@ class AbmVehiculos extends Component
             'nro_motor',
             'nro_chasis',
             'modelo',
+            'anio',
             'patente',
             'tipo_combustible',
             'vencimiento_oblea',
