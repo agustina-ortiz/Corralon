@@ -102,7 +102,7 @@ class Dashboard extends Component
             $query = Vehiculo::with(['deposito.corralon'])
                 ->where('estado', 'en_uso');
             $vehiculosEnUso = $this->filtrarPorDepositos($query, $user, 'vehiculos')
-                ->orderBy('nro_movil', 'asc')
+                ->orderBy('nro_patrimonio', 'asc')
                 ->get();
             $countVehiculosEnUso = $vehiculosEnUso->count();
         }

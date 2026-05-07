@@ -9,7 +9,7 @@
                 <input 
                     type="text" 
                     wire:model.live="search" 
-                    placeholder="Buscar por nro. móvil, vehículo, marca, patente..."
+                    placeholder="Buscar por nro. patrimonio, vehículo, marca/modelo, patente..."
                     class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                 >
             </div>
@@ -23,9 +23,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
                 Filtros
-                @if($filtro_marca || $filtro_modelo || $filtro_estado || $filtro_deposito)
+                @if($filtro_marca_modelo || $filtro_estado || $filtro_deposito)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_marca, $filtro_modelo, $filtro_estado, $filtro_deposito])->filter()->count() }}
+                        {{ collect([$filtro_marca_modelo, $filtro_estado, $filtro_deposito])->filter()->count() }}
                     </span>
                 @endif
             </button>
@@ -66,8 +66,8 @@
                     </svg>
                     Filtros Avanzados
                 </h3>
-                @if($filtro_marca || $filtro_modelo || $filtro_estado || $filtro_deposito)
-                    <button 
+                @if($filtro_marca_modelo || $filtro_estado || $filtro_deposito)
+                    <button
                         wire:click="limpiarFiltros"
                         class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
                     >
@@ -79,31 +79,17 @@
                 @endif
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Filtro Marca -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Filtro Marca/Modelo -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca</label>
-                    <select 
-                        wire:model.live="filtro_marca"
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo</label>
+                    <select
+                        wire:model.live="filtro_marca_modelo"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
-                        <option value="">Todas las marcas</option>
-                        @foreach($marcas as $marca)
-                            <option value="{{ $marca }}">{{ $marca }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Filtro Modelo -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Modelo</label>
-                    <select 
-                        wire:model.live="filtro_modelo"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los modelos</option>
-                        @foreach($modelos as $modelo)
-                            <option value="{{ $modelo }}">{{ $modelo }}</option>
+                        <option value="">Todas las marcas/modelos</option>
+                        @foreach($marcasModelos as $mm)
+                            <option value="{{ $mm }}">{{ $mm }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -166,7 +152,7 @@
             <table class="min-w-full divide-y divide-gray-100">
                 <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nro. Móvil</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nro. Patrimonio</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
@@ -182,7 +168,7 @@
                     @forelse ($vehiculos as $item)
                         <tr class="hover:bg-gray-50/50 transition-colors duration-150">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->nro_movil ?? '-' }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $item->nro_patrimonio ?? '-' }}</div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $item->vehiculo }}</div>
@@ -331,16 +317,16 @@
                                         Información Básica
                                     </h4>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Nro. Móvil -->
+                                        <!-- Nro. Patrimonio -->
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Móvil</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Patrimonio</label>
                                             <input 
                                                 type="text" 
-                                                wire:model="nro_movil"
+                                                wire:model="nro_patrimonio"
                                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                                 placeholder="Ej: 12345"
                                             >
-                                            @error('nro_movil') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            @error('nro_patrimonio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
 
                                         <!-- Vehículo -->
@@ -355,28 +341,16 @@
                                             @error('vehiculo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
 
-                                        <!-- Marca -->
+                                        <!-- Marca/Modelo -->
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Marca *</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="marca"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Toyota"
-                                            >
-                                            @error('marca') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Modelo -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Modelo</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo *</label>
                                             <input
                                                 type="text"
-                                                wire:model="modelo"
+                                                wire:model="marca_modelo"
                                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Hilux"
+                                                placeholder="Ej: Toyota Hilux"
                                             >
-                                            @error('modelo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            @error('marca_modelo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
 
                                         <!-- Año -->
@@ -510,6 +484,53 @@
                                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                             >
                                             @error('vencimiento_vtv') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sección: Origen y Telepase -->
+                                <div class="bg-gray-50 p-4 rounded-xl">
+                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Origen y Telepase
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <!-- Origen -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
+                                            <input
+                                                type="text"
+                                                wire:model="origen"
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                placeholder="Ej: Nacional"
+                                            >
+                                            @error('origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Jurisdicción de Procedencia -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Jurisdicción de Procedencia</label>
+                                            <input
+                                                type="text"
+                                                wire:model="jurisdiccion_procedencia"
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                placeholder="Ej: Buenos Aires"
+                                            >
+                                            @error('jurisdiccion_procedencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                        </div>
+
+                                        <!-- Nro. Telepase -->
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Telepase</label>
+                                            <input
+                                                type="text"
+                                                wire:model="nro_telepase"
+                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                placeholder="Número de telepase"
+                                            >
+                                            @error('nro_telepase') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
                                 </div>

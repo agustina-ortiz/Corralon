@@ -21,19 +21,17 @@ class AbmVehiculos extends Component
     public $showModalDocumentos = false;
 
     // Filtros
-    public $filtro_marca = '';
-    public $filtro_modelo = '';
+    public $filtro_marca_modelo = '';
     public $filtro_estado = '';
     public $filtro_deposito = '';
 
     // Campos del formulario
-    public $nro_movil;
+    public $nro_patrimonio;
     public $vehiculoId;
     public $vehiculo;
-    public $marca;
+    public $marca_modelo;
     public $nro_motor;
     public $nro_chasis;
-    public $modelo;
     public $anio;
     public $patente;
     public $tipo_combustible;
@@ -41,6 +39,9 @@ class AbmVehiculos extends Component
     public $nro_poliza;
     public $vencimiento_poliza;
     public $vencimiento_vtv;
+    public $origen;
+    public $jurisdiccion_procedencia;
+    public $nro_telepase;
     public $estado;
     public $id_deposito;
 
@@ -53,19 +54,18 @@ class AbmVehiculos extends Component
     protected function rules()
     {
         return [
-            'nro_movil' => [
+            'nro_patrimonio' => [
                 'required',
                 'string',
                 'max:50',
                 $this->editMode
-                    ? 'unique:vehiculos,nro_movil,' . $this->vehiculoId
-                    : 'unique:vehiculos,nro_movil'
+                    ? 'unique:vehiculos,nro_patrimonio,' . $this->vehiculoId
+                    : 'unique:vehiculos,nro_patrimonio'
             ],
             'vehiculo' => 'required|string|max:255',
-            'marca' => 'required|string|max:255',
+            'marca_modelo' => 'required|string|max:255',
             'nro_motor' => 'required|string|max:255',
             'nro_chasis' => 'required|string|max:255',
-            'modelo' => 'nullable|string|max:255',
             'anio' => 'nullable|string|max:4',
             'patente' => 'required|string|max:20',
             'tipo_combustible' => 'required|in:nafta,diesel,gas',
@@ -73,16 +73,19 @@ class AbmVehiculos extends Component
             'nro_poliza' => 'required|string|max:255',
             'vencimiento_poliza' => 'nullable|date',
             'vencimiento_vtv' => 'nullable|date',
+            'origen' => 'nullable|string|max:255',
+            'jurisdiccion_procedencia' => 'nullable|string|max:255',
+            'nro_telepase' => 'nullable|string|max:255',
             'estado' => 'required|in:disponible,en_uso,mantenimiento,fuera_de_servicio',
             'id_deposito' => 'nullable|exists:depositos,id',
         ];
     }
 
     protected $messages = [
-        'nro_movil.required' => 'El numero de movil es obligatorio',
-        'nro_movil.unique' => 'Este numero de movil ya esta en uso',
+        'nro_patrimonio.required' => 'El numero de patrimonio es obligatorio',
+        'nro_patrimonio.unique' => 'Este numero de patrimonio ya esta en uso',
         'vehiculo.required' => 'El nombre del vehiculo es obligatorio',
-        'marca.required' => 'La marca es obligatoria',
+        'marca_modelo.required' => 'La marca/modelo es obligatoria',
         'patente.required' => 'La patente es obligatoria',
         'tipo_combustible.required' => 'El tipo de combustible es obligatorio',
         'nro_motor.required' => 'El numero de motor es obligatorio',
@@ -112,15 +115,13 @@ class AbmVehiculos extends Component
     }
 
     public function updatingSearch() { $this->resetPage(); }
-    public function updatingFiltroMarca() { $this->resetPage(); }
-    public function updatingFiltroModelo() { $this->resetPage(); }
+    public function updatingFiltroMarcaModelo() { $this->resetPage(); }
     public function updatingFiltroEstado() { $this->resetPage(); }
     public function updatingFiltroDeposito() { $this->resetPage(); }
 
     public function limpiarFiltros()
     {
-        $this->filtro_marca = '';
-        $this->filtro_modelo = '';
+        $this->filtro_marca_modelo = '';
         $this->filtro_estado = '';
         $this->filtro_deposito = '';
         $this->resetPage();
@@ -134,14 +135,12 @@ class AbmVehiculos extends Component
             ->withCount('documentos')
             ->porCorralonesPermitidos()
             ->where(function($query) {
-                $query->where('nro_movil', 'like', '%' . $this->search . '%')
+                $query->where('nro_patrimonio', 'like', '%' . $this->search . '%')
                       ->orWhere('vehiculo', 'like', '%' . $this->search . '%')
-                      ->orWhere('marca', 'like', '%' . $this->search . '%')
-                      ->orWhere('patente', 'like', '%' . $this->search . '%')
-                      ->orWhere('modelo', 'like', '%' . $this->search . '%');
+                      ->orWhere('marca_modelo', 'like', '%' . $this->search . '%')
+                      ->orWhere('patente', 'like', '%' . $this->search . '%');
             })
-            ->when($this->filtro_marca, fn($q) => $q->where('marca', $this->filtro_marca))
-            ->when($this->filtro_modelo, fn($q) => $q->where('modelo', $this->filtro_modelo))
+            ->when($this->filtro_marca_modelo, fn($q) => $q->where('marca_modelo', $this->filtro_marca_modelo))
             ->when($this->filtro_estado, fn($q) => $q->where('estado', $this->filtro_estado))
             ->when($this->filtro_deposito, fn($q) => $q->where('id_deposito', $this->filtro_deposito))
             ->orderBy('vehiculo')
@@ -153,14 +152,12 @@ class AbmVehiculos extends Component
             ->orderBy('deposito')
             ->get();
 
-        $marcas = Vehiculo::select('marca')->distinct()->whereNotNull('marca')->orderBy('marca')->pluck('marca');
-        $modelos = Vehiculo::select('modelo')->distinct()->whereNotNull('modelo')->orderBy('modelo')->pluck('modelo');
+        $marcasModelos = Vehiculo::select('marca_modelo')->distinct()->whereNotNull('marca_modelo')->orderBy('marca_modelo')->pluck('marca_modelo');
 
         return view('livewire.abm-vehiculos', [
             'vehiculos' => $vehiculos,
             'depositos' => $depositos,
-            'marcas' => $marcas,
-            'modelos' => $modelos,
+            'marcasModelos' => $marcasModelos,
             'puedeCrear' => $user->puedeCrearVehiculos(),
             'puedeEditar' => $user->puedeEditarVehiculos(),
             'puedeEliminar' => $user->puedeEliminarVehiculos(),
@@ -225,12 +222,11 @@ class AbmVehiculos extends Component
         }
 
         $this->vehiculoId = $vehiculo->id;
-        $this->nro_movil = $vehiculo->nro_movil;
+        $this->nro_patrimonio = $vehiculo->nro_patrimonio;
         $this->vehiculo = $vehiculo->vehiculo;
-        $this->marca = $vehiculo->marca;
+        $this->marca_modelo = $vehiculo->marca_modelo;
         $this->nro_motor = $vehiculo->nro_motor;
         $this->nro_chasis = $vehiculo->nro_chasis;
-        $this->modelo = $vehiculo->modelo;
         $this->anio = $vehiculo->anio;
         $this->patente = $vehiculo->patente;
         $this->tipo_combustible = $vehiculo->tipo_combustible;
@@ -238,6 +234,9 @@ class AbmVehiculos extends Component
         $this->nro_poliza = $vehiculo->nro_poliza;
         $this->vencimiento_poliza = $vehiculo->vencimiento_poliza;
         $this->vencimiento_vtv = $vehiculo->vencimiento_vtv;
+        $this->origen = $vehiculo->origen;
+        $this->jurisdiccion_procedencia = $vehiculo->jurisdiccion_procedencia;
+        $this->nro_telepase = $vehiculo->nro_telepase;
         $this->estado = $vehiculo->estado;
         $this->id_deposito = $vehiculo->id_deposito;
 
@@ -270,12 +269,11 @@ class AbmVehiculos extends Component
         }
 
         $data = [
-            'nro_movil' => $this->nro_movil,
+            'nro_patrimonio' => $this->nro_patrimonio,
             'vehiculo' => $this->vehiculo,
-            'marca' => $this->marca,
+            'marca_modelo' => $this->marca_modelo,
             'nro_motor' => $this->nro_motor,
             'nro_chasis' => $this->nro_chasis,
-            'modelo' => $this->modelo,
             'anio' => $this->anio,
             'patente' => $this->patente,
             'tipo_combustible' => $this->tipo_combustible,
@@ -283,6 +281,9 @@ class AbmVehiculos extends Component
             'nro_poliza' => $this->nro_poliza,
             'vencimiento_poliza' => $this->vencimiento_poliza,
             'vencimiento_vtv' => $this->vencimiento_vtv,
+            'origen' => $this->origen,
+            'jurisdiccion_procedencia' => $this->jurisdiccion_procedencia,
+            'nro_telepase' => $this->nro_telepase,
             'id_secretaria' => null,
             'estado' => $this->estado,
             'id_deposito' => $this->id_deposito,
@@ -400,13 +401,12 @@ class AbmVehiculos extends Component
     private function resetForm()
     {
         $this->reset([
-            'nro_movil',
+            'nro_patrimonio',
             'vehiculoId',
             'vehiculo',
-            'marca',
+            'marca_modelo',
             'nro_motor',
             'nro_chasis',
-            'modelo',
             'anio',
             'patente',
             'tipo_combustible',
@@ -414,6 +414,9 @@ class AbmVehiculos extends Component
             'nro_poliza',
             'vencimiento_poliza',
             'vencimiento_vtv',
+            'origen',
+            'jurisdiccion_procedencia',
+            'nro_telepase',
             'estado',
             'id_deposito'
         ]);

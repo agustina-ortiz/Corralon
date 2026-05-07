@@ -172,23 +172,21 @@
                                 rounded-lg transition-colors">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2">
-                                        @if($vehiculo->nro_movil)
+                                        @if($vehiculo->nro_patrimonio)
                                             <span class="
                                                 @if($estaVencida) bg-red-600 text-white
                                                 @elseif($vencePronto) bg-orange-600 text-white
                                                 @else bg-amber-600 text-white
                                                 @endif
                                                 px-2 py-1 rounded text-xs font-bold">
-                                                {{ $vehiculo->nro_movil }}
+                                                {{ $vehiculo->nro_patrimonio }}
                                             </span>
                                         @endif
                                         <p class="font-semibold text-gray-800">{{ $vehiculo->vehiculo }}</p>
                                     </div>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        @if($vehiculo->marca){{ $vehiculo->marca }}@endif
-                                        @if($vehiculo->marca && $vehiculo->modelo) - @endif
-                                        @if($vehiculo->modelo){{ $vehiculo->modelo }}@endif
-                                    </p>
+                                    @if($vehiculo->marca_modelo)
+                                        <p class="text-sm text-gray-600 mt-1">{{ $vehiculo->marca_modelo }}</p>
+                                    @endif
                                     @if($vehiculo->patente)
                                         <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
                                     @endif
@@ -259,15 +257,13 @@
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2">
                                         <span class="bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">
-                                            {{ $vehiculo->nro_movil }}
+                                            {{ $vehiculo->nro_patrimonio }}
                                         </span>
                                         <p class="font-semibold text-gray-800">{{ $vehiculo->vehiculo }}</p>
                                     </div>
-                                    <p class="text-sm text-gray-600 mt-1">
-                                        @if($vehiculo->marca){{ $vehiculo->marca }}@endif
-                                        @if($vehiculo->marca && $vehiculo->modelo) - @endif
-                                        @if($vehiculo->modelo){{ $vehiculo->modelo }}@endif
-                                    </p>
+                                    @if($vehiculo->marca_modelo)
+                                        <p class="text-sm text-gray-600 mt-1">{{ $vehiculo->marca_modelo }}</p>
+                                    @endif
                                     @if($vehiculo->patente)
                                         <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
                                     @endif

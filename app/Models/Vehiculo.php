@@ -14,12 +14,11 @@ class Vehiculo extends Model
      protected $table = 'vehiculos';
     
     protected $fillable = [
-        'nro_movil',
+        'nro_patrimonio',
         'vehiculo',
-        'marca',
+        'marca_modelo',
         'nro_motor',
         'nro_chasis',
-        'modelo',
         'anio',
         'patente',
         'tipo_combustible',
@@ -27,6 +26,9 @@ class Vehiculo extends Model
         'nro_poliza',
         'vencimiento_poliza',
         'vencimiento_vtv',
+        'origen',
+        'jurisdiccion_procedencia',
+        'nro_telepase',
         'id_secretaria',
         'estado',
         'id_deposito',
