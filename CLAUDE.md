@@ -53,7 +53,7 @@ routes/
 | `Deposito` | `depositos` | Subdivisiones dentro de un corralon |
 | `Insumo` | `insumos` | Items de inventario |
 | `Maquinaria` | `maquinarias` | Equipos/máquinas |
-| `Vehiculo` | `vehiculos` | Flota vehicular (marca, modelo, anio, patente, combustible, VTV, póliza) |
+| `Vehiculo` | `vehiculos` | Flota vehicular (nro_patrimonio, marca_modelo, anio, patente, combustible, VTV, póliza, origen, jurisdiccion_procedencia, nro_telepase) |
 | `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
 | `Empleado` | `empleados` | Personal |
 | `Evento` | `eventos` | Eventos programados |
