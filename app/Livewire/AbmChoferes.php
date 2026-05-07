@@ -74,7 +74,7 @@ class AbmChoferes extends Component
             ->orderBy('nombre')
             ->paginate(10);
 
-        $vehiculos = Vehiculo::orderBy('nro_movil')->get();
+        $vehiculos = Vehiculo::orderBy('nro_patrimonio')->get();
         $secretarias = Secretaria::orderBy('secretaria')->get();
 
         return view('livewire.abm-choferes', [

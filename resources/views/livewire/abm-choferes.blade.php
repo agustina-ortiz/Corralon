@@ -117,7 +117,7 @@
                                     <div class="flex flex-wrap gap-1">
                                         @foreach($chofer->vehiculos as $v)
                                             <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
-                                                {{ $v->patente ?? 'Móvil ' . $v->nro_movil }}
+                                                {{ $v->patente ?? 'Patrimonio ' . $v->nro_patrimonio }}
                                             </span>
                                         @endforeach
                                     </div>
@@ -327,7 +327,7 @@
                                         <input
                                             type="text"
                                             x-model="busquedaVehiculo"
-                                            placeholder="Buscar por patente o móvil..."
+                                            placeholder="Buscar por patente o patrimonio..."
                                             class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                         >
                                     </div>
@@ -335,7 +335,7 @@
                                         @forelse($vehiculos as $vehiculo)
                                             <label
                                                 class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-1"
-                                                x-show="busquedaVehiculo === '' || '{{ strtolower($vehiculo->patente . ' ' . $vehiculo->nro_movil) }}'.includes(busquedaVehiculo.toLowerCase())"
+                                                x-show="busquedaVehiculo === '' || '{{ strtolower($vehiculo->patente . ' ' . $vehiculo->nro_patrimonio) }}'.includes(busquedaVehiculo.toLowerCase())"
                                             >
                                                 <input
                                                     type="checkbox"
@@ -344,7 +344,7 @@
                                                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                                 >
                                                 <span class="text-sm text-gray-700">
-                                                    <span class="font-medium">Móvil {{ $vehiculo->nro_movil }}</span>
+                                                    <span class="font-medium">Patrimonio {{ $vehiculo->nro_patrimonio }}</span>
                                                     @if($vehiculo->vehiculo) — {{ $vehiculo->vehiculo }}@endif
                                                     @if($vehiculo->patente) ({{ $vehiculo->patente }})@endif
                                                 </span>
