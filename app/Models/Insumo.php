@@ -109,6 +109,7 @@ class Insumo extends Model
         
         $palabrasEntrada = [
             'entrada',
+            'entrada reposición',
             'ingreso',
             'compra',
             'recepción',
@@ -116,9 +117,9 @@ class Insumo extends Model
             'devolución',
             'devolucion',
             'ajuste positivo',
-            'inventario inicial', // ✅ Agregado
-            'inventario',         // ✅ Agregado
-            'inicial',            // ✅ Agregado
+            'inventario inicial',
+            'inventario',
+            'inicial',
         ];
 
         foreach ($palabrasEntrada as $palabra) {
@@ -145,6 +146,8 @@ class Insumo extends Model
             'préstamo',
             'prestamo',
             'ajuste negativo',
+            'asignación con reposición',
+            'asignación sin reposición',
             'baja',
         ];
 
@@ -170,22 +173,21 @@ class Insumo extends Model
      */
     public function sincronizarStock()
     {
-        // Calcular el stock basado en los movimientos
         $entradas = MovimientoInsumo::where('id_insumo', $this->id)
             ->whereHas('tipoMovimiento', function($q) {
-                $q->where('tipo', 'I'); // Ingresos
+                $q->whereIn('tipo_movimiento', TipoMovimiento::NOMBRES_ENTRADA);
             })
             ->sum('cantidad');
-        
+
         $salidas = MovimientoInsumo::where('id_insumo', $this->id)
             ->whereHas('tipoMovimiento', function($q) {
-                $q->where('tipo', 'E'); // Egresos
+                $q->whereIn('tipo_movimiento', TipoMovimiento::NOMBRES_SALIDA);
             })
             ->sum('cantidad');
-        
+
         $this->stock_actual = $entradas - $salidas;
         $this->save();
-        
+
         return $this->stock_actual;
     }
 

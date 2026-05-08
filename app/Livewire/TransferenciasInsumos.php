@@ -9,6 +9,8 @@ use App\Models\MovimientoInsumo;
 use App\Models\MovimientoEncabezado;
 use App\Models\TipoMovimiento;
 use App\Models\CategoriaInsumo;
+use App\Models\Vehiculo;
+use App\Models\Evento;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -62,6 +64,12 @@ class TransferenciasInsumos extends Component
     public $cantidad = '';
     public $observaciones = '';
     
+    // Campos para asignaciones (vehículo/evento)
+    public $tipo_destino = ''; // 'vehiculo' o 'evento'
+    public $id_referencia = '';
+    public $search_destino = '';
+    public $mostrar_lista_destino = false;
+
     // Búsqueda de insumos
     public $search_insumo = '';
     public $mostrar_lista = false;
@@ -151,6 +159,11 @@ class TransferenciasInsumos extends Component
             'observaciones' => 'nullable|string|max:500',
         ];
 
+        if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento';
+            $rules['id_referencia'] = 'required';
+        }
+
         return $rules;
     }
 
@@ -163,6 +176,8 @@ class TransferenciasInsumos extends Component
         'insumos_transferencia.min' => 'Debe seleccionar al menos un insumo.',
         'insumos_transferencia.*.cantidad.required' => 'La cantidad es obligatoria.',
         'insumos_transferencia.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
+        'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo o Evento).',
+        'id_referencia.required' => 'Debe seleccionar un vehículo o evento.',
     ];
 
     /**
@@ -212,7 +227,32 @@ class TransferenciasInsumos extends Component
                 'color' => 'red',
                 'disponible' => true
             ];
+            $tipos[] = [
+                'key' => 'asignacion_con_reposicion',
+                'nombre' => 'Asignación con Reposición',
+                'descripcion' => 'Asignar insumo a un vehículo o evento (con devolución posterior)',
+                'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+                'color' => 'orange',
+                'disponible' => true
+            ];
+            $tipos[] = [
+                'key' => 'asignacion_sin_reposicion',
+                'nombre' => 'Asignación sin Reposición',
+                'descripcion' => 'Asignar insumo a un vehículo o evento (sin devolución)',
+                'icon' => 'M17 8l4 4m0 0l-4 4m4-4H3',
+                'color' => 'red',
+                'disponible' => true
+            ];
         }
+
+        $tipos[] = [
+            'key' => 'entrada_reposicion',
+            'nombre' => 'Entrada Reposición',
+            'descripcion' => 'Devolver insumos previamente asignados a un vehículo o evento',
+            'icon' => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
+            'color' => 'teal',
+            'disponible' => true
+        ];
 
         return $tipos;
     }
@@ -406,6 +446,32 @@ class TransferenciasInsumos extends Component
                 ->get(['id', 'insumo', 'id_categoria', 'id_deposito', 'stock_actual', 'stock_minimo', 'unidad']);
         }
 
+        // Vehículos y eventos para asignaciones
+        $vehiculos_destino = collect();
+        $eventos_destino = collect();
+        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
+            if ($this->tipo_destino === 'vehiculo') {
+                $vehiculos_destino = Vehiculo::when($this->search_destino, function($query) {
+                        $query->where(function($q) {
+                            $q->where('vehiculo', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('patente', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('marca_modelo', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('nro_patrimonio', 'like', '%' . $this->search_destino . '%');
+                        });
+                    })
+                    ->orderBy('vehiculo')
+                    ->limit(50)
+                    ->get();
+            } elseif ($this->tipo_destino === 'evento') {
+                $eventos_destino = Evento::when($this->search_destino, function($query) {
+                        $query->where('evento', 'like', '%' . $this->search_destino . '%');
+                    })
+                    ->orderBy('evento')
+                    ->limit(50)
+                    ->get();
+            }
+        }
+
         $depositos = Deposito::whereIn('id', $depositosAccesibles)
             ->orderBy('deposito')
             ->get();
@@ -464,6 +530,8 @@ class TransferenciasInsumos extends Component
             'categorias' => $categorias,
             'usuarios' => $usuarios,
             'tipos_movimiento' => $tipos_movimiento,
+            'vehiculos_destino' => $vehiculos_destino,
+            'eventos_destino' => $eventos_destino,
             // Pasar permisos a la vista
             'puedeCrearMovimientos' => $user->puedeCrearMovimientosInsumos(),
             'puedeCrearTransferencias' => $user->puedeCrearTransferenciasInsumos(),
@@ -764,6 +832,10 @@ class TransferenciasInsumos extends Component
                 }
                 $this->tipo_movimiento = '';
                 $this->cantidad = '';
+                $this->tipo_destino = '';
+                $this->id_referencia = '';
+                $this->search_destino = '';
+                $this->mostrar_lista_destino = false;
             }
         }
     }
@@ -787,6 +859,11 @@ class TransferenciasInsumos extends Component
                     return $this->guardarAjustePositivo();
                 case 'ajuste_negativo':
                     return $this->guardarAjusteNegativo();
+                case 'asignacion_con_reposicion':
+                case 'asignacion_sin_reposicion':
+                    return $this->guardarAsignacion();
+                case 'entrada_reposicion':
+                    return $this->guardarEntradaReposicion();
                 default:
                     session()->flash('error', 'Tipo de movimiento no válido.');
                     $this->cerrarModal();
@@ -863,15 +940,8 @@ class TransferenciasInsumos extends Component
 
             DB::beginTransaction();
 
-            $tipoMovimientoSalida = TipoMovimiento::firstOrCreate([
-                'tipo_movimiento' => 'Transferencia Salida',
-                'tipo' => 'E'
-            ]);
-
-            $tipoMovimientoEntrada = TipoMovimiento::firstOrCreate([
-                'tipo_movimiento' => 'Transferencia Entrada',
-                'tipo' => 'I'
-            ]);
+            $tipoMovimientoSalida = TipoMovimiento::where('tipo_movimiento', 'Transferencia Salida')->first();
+            $tipoMovimientoEntrada = TipoMovimiento::where('tipo_movimiento', 'Transferencia Entrada')->first();
 
             $encabezado = MovimientoEncabezado::create([
                 'fecha' => now(),
@@ -972,10 +1042,7 @@ class TransferenciasInsumos extends Component
         try {
             DB::beginTransaction();
 
-            $tipoMovimiento = TipoMovimiento::firstOrCreate([
-                'tipo_movimiento' => 'Carga de Stock',
-                'tipo' => 'I'
-            ]);
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Carga de Stock')->first();
 
             $insumo = Insumo::find($this->insumo_id);
             
@@ -1019,10 +1086,7 @@ class TransferenciasInsumos extends Component
         try {
             DB::beginTransaction();
 
-            $tipoMovimiento = TipoMovimiento::firstOrCreate([
-                'tipo_movimiento' => 'Ajuste Positivo',
-                'tipo' => 'I'
-            ]);
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Ajuste Positivo')->first();
 
             $insumo = Insumo::find($this->insumo_id);
             
@@ -1075,10 +1139,7 @@ class TransferenciasInsumos extends Component
 
             DB::beginTransaction();
 
-            $tipoMovimiento = TipoMovimiento::firstOrCreate([
-                'tipo_movimiento' => 'Ajuste Negativo',
-                'tipo' => 'E'
-            ]);
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Ajuste Negativo')->first();
 
             MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
@@ -1108,6 +1169,139 @@ class TransferenciasInsumos extends Component
         }
     }
 
+    public function updatedTipoDestino()
+    {
+        $this->id_referencia = '';
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
+        $this->resetErrorBag('id_referencia');
+    }
+
+    public function updatedSearchDestino()
+    {
+        $this->mostrar_lista_destino = true;
+    }
+
+    public function seleccionarDestino($id)
+    {
+        $this->id_referencia = $id;
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
+    }
+
+    private function guardarAsignacion()
+    {
+        try {
+            $insumo = Insumo::find($this->insumo_id);
+
+            if (!$insumo) {
+                throw new \Exception('No se encontró el insumo seleccionado.');
+            }
+
+            if ($this->cantidad > $insumo->stock_actual) {
+                session()->flash('error', 'La cantidad excede el stock disponible.');
+                $this->cerrarModal();
+                return;
+            }
+
+            $nombreTipo = $this->tipo_movimiento === 'asignacion_con_reposicion'
+                ? 'Asignación con Reposición'
+                : 'Asignación sin Reposición';
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', $nombreTipo)->first();
+
+            MovimientoInsumo::create([
+                'id_insumo' => $insumo->id,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'cantidad' => $this->cantidad,
+                'fecha' => now(),
+                'fecha_devolucion' => null,
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $insumo->id_deposito,
+                'id_referencia' => $this->id_referencia,
+                'tipo_referencia' => $this->tipo_destino,
+            ]);
+
+            $insumo->sincronizarStock();
+
+            DB::commit();
+
+            $destinoNombre = $this->obtenerNombreDestino();
+            $mensaje = "{$nombreTipo} realizada: {$this->cantidad} {$insumo->unidad} de {$insumo->insumo} → {$destinoNombre}";
+            session()->flash('message', $mensaje);
+
+            \Illuminate\Support\Facades\Cache::flush();
+
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la asignación: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarAsignacion: ' . $e->getMessage());
+        }
+    }
+
+    private function guardarEntradaReposicion()
+    {
+        try {
+            $insumo = Insumo::find($this->insumo_id);
+
+            if (!$insumo) {
+                throw new \Exception('No se encontró el insumo seleccionado.');
+            }
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Entrada Reposición')->first();
+
+            MovimientoInsumo::create([
+                'id_insumo' => $insumo->id,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'cantidad' => $this->cantidad,
+                'fecha' => now(),
+                'fecha_devolucion' => null,
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $insumo->id_deposito,
+                'id_referencia' => $this->id_referencia,
+                'tipo_referencia' => $this->tipo_destino,
+            ]);
+
+            $insumo->sincronizarStock();
+
+            DB::commit();
+
+            $destinoNombre = $this->obtenerNombreDestino();
+            $mensaje = "Entrada Reposición realizada: +{$this->cantidad} {$insumo->unidad} de {$insumo->insumo} ← {$destinoNombre}";
+            session()->flash('message', $mensaje);
+
+            \Illuminate\Support\Facades\Cache::flush();
+
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la entrada reposición: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarEntradaReposicion: ' . $e->getMessage());
+        }
+    }
+
+    private function obtenerNombreDestino(): string
+    {
+        if ($this->tipo_destino === 'vehiculo') {
+            $vehiculo = Vehiculo::find($this->id_referencia);
+            return $vehiculo ? "Vehículo: {$vehiculo->vehiculo} ({$vehiculo->patente})" : 'Vehículo desconocido';
+        }
+        if ($this->tipo_destino === 'evento') {
+            $evento = Evento::find($this->id_referencia);
+            return $evento ? "Evento: {$evento->evento}" : 'Evento desconocido';
+        }
+        return 'Destino desconocido';
+    }
+
     public function cerrarModal()
     {
         $this->showModal = false;
@@ -1132,6 +1326,10 @@ class TransferenciasInsumos extends Component
         $this->observaciones = '';
         $this->search_insumo = '';
         $this->mostrar_lista = false;
+        $this->tipo_destino = '';
+        $this->id_referencia = '';
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
         $this->depositos_disponibles = [];
         $this->tipos_movimiento_disponibles = [];
         $this->resetErrorBag();

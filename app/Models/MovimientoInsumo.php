@@ -57,6 +57,7 @@ class MovimientoInsumo extends Model
             'maquina' => Maquinaria::class,
             'evento' => Evento::class,
             'secretaria' => Secretaria::class,
+            'vehiculo' => Vehiculo::class,
         ];
 
         $model = $modelMap[$this->tipo_referencia] ?? null;
