@@ -60,7 +60,7 @@ routes/
 | `Secretaria` | `secretarias` | Dependencias/secretarías municipales |
 | `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock |
 | `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos |
-| `TipoMovimiento` | `tipo_movimientos` | Tipos: Entrada, Salida, Transferencia, Inventario |
+| `TipoMovimiento` | `tipo_movimientos` | Tipos de movimiento (columna `tipo`: I=Insumos, M=Maquinaria, IM=ambos) |
 | `CategoriaInsumo` | `categorias_insumos` | Categorías de insumos |
 | `CategoriaMaquinaria` | `categoria_maquinarias` | Categorías de maquinaria |
 | `DocumentoVehiculo` | `documentos_vehiculos` | Documentos de vehículos |
@@ -146,13 +146,42 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 
 - El stock **no se almacena directamente**, se calcula desde los movimientos
 - `stock_actual` en la tabla `insumos` se sincroniza con `sincronizarStock()` tras cada movimiento
+- `sincronizarStock()` usa `TipoMovimiento::NOMBRES_ENTRADA` y `NOMBRES_SALIDA` para clasificar movimientos (por nombre, no por columna `tipo`)
 - **Stock calculado** = suma de Entradas − suma de Salidas
-- Tipos de movimiento: `Entrada`, `Salida`, `Transferencia`, `Inventario`
+- Tipos de movimiento para insumos:
+  - **Entradas** (suman stock): Carga de Stock, Ajuste Positivo, Inventario Inicial, Transferencia Entrada, Devolución, Entrada Reposición
+  - **Salidas** (restan stock): Ajuste Negativo, Transferencia Salida, Asignación con Reposición, Asignación sin Reposición
 - Transferencias: para el deposito origen es Salida, para el destino es Entrada (se determina por `id_deposito_entrada`)
-- `calcularStockActual()` recalcula desde el historial de movimientos
+- `calcularStockActual()` recalcula desde el historial de movimientos (usa `esEntradaPorNombre()` / `esSalidaPorNombre()`)
 - `stockBajoMinimo()` — bool, compara `stock_actual` con `stock_minimo`
 - Alertas de stock bajo mínimo en el dashboard
 - Campo `unidad` en `insumos` usa valores fijos: `UNIDAD`, `LITROS`, `TAMBOR`, `METRO`, `ROLLO X 100 MT`, `PAQUETE`, `BOLSA`, `BALDE` (validación `in:` en backend y select en UI)
+
+### Asignaciones de insumos
+
+Los movimientos de asignación permiten asignar insumos a **vehículos** o **eventos**:
+
+- **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después)
+- **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo)
+- **Entrada Reposición** — devolver insumos previamente asignados
+
+Flujo en TransferenciasInsumos (modal "Nuevo Movimiento"):
+1. Seleccionar insumo (paso 1)
+2. Elegir tipo de movimiento (paso 2) — las asignaciones solo aparecen si hay stock > 0
+3. Seleccionar tipo de destino (Vehículo o Evento) + buscar/seleccionar el registro + cantidad (paso 3)
+
+Los movimientos se guardan con `tipo_referencia = 'vehiculo'` o `'evento'` e `id_referencia` apuntando al registro seleccionado.
+
+### Columna `tipo` en `tipo_movimientos`
+
+La columna `tipo` indica a qué **módulo** aplica el tipo de movimiento:
+- `I` = solo Insumos
+- `M` = solo Maquinarias
+- `IM` = ambos módulos
+
+**No** indica si es ingreso o egreso. La clasificación entrada/salida se determina por el nombre del tipo usando las constantes `NOMBRES_ENTRADA` y `NOMBRES_SALIDA` en `TipoMovimiento`.
+
+Al buscar un tipo de movimiento en el código, usar `TipoMovimiento::where('tipo_movimiento', $nombre)->first()` — **nunca** `firstOrCreate`.
 
 ## Lógica de cantidad (Maquinarias)
 
@@ -165,7 +194,7 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 
 Los movimientos (`movimiento_insumos`, `movimiento_maquinarias`) tienen:
 - `id_referencia` — ID de la entidad asociada
-- `tipo_referencia` — enum: `empleado`, `maquina`, `evento`, `secretaria`, `inventario`, `deposito`, `mantenimiento`, `Transferencia`
+- `tipo_referencia` — enum: `empleado`, `maquina`, `evento`, `secretaria`, `inventario`, `deposito`, `mantenimiento`, `transferencia`, `vehiculo`
 
 ---
 
