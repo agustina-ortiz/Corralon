@@ -270,10 +270,7 @@ class AbmInsumos extends Component
             
             // Si hay stock inicial, crear movimiento de inventario inicial
             if ($this->stock_inicial && $this->stock_inicial > 0) {
-                $tipoInventarioInicial = TipoMovimiento::firstOrCreate([
-                    'tipo_movimiento' => 'Inventario Inicial',
-                    'tipo' => 'I'
-                ]);
+                $tipoInventarioInicial = TipoMovimiento::where('tipo_movimiento', 'Inventario Inicial')->first();
                 
                 MovimientoInsumo::create([
                     'id_insumo' => $insumo->id,
