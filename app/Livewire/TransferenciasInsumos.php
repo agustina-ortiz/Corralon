@@ -87,6 +87,9 @@ class TransferenciasInsumos extends Component
     // Para expandir/colapsar movimientos
     public $movimientos_expandidos = [];
     
+    // Panel de asignaciones pendientes
+    public $showAsignacionesPendientes = false;
+
     // Datos auxiliares
     public $depositos_disponibles = [];
     public $tipos_movimiento_disponibles = [];
@@ -472,6 +475,65 @@ class TransferenciasInsumos extends Component
             }
         }
 
+        // Asignaciones pendientes de reposición
+        $asignacionesPendientes = collect();
+        if ($this->showAsignacionesPendientes) {
+            $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
+            $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
+
+            if ($tipoConReposicion) {
+                $asignaciones = MovimientoInsumo::where('id_tipo_movimiento', $tipoConReposicion->id)
+                    ->whereHas('insumo', function($q) use ($depositosAccesibles) {
+                        $q->whereIn('id_deposito', $depositosAccesibles);
+                    })
+                    ->selectRaw('id_insumo, tipo_referencia, id_referencia, SUM(cantidad) as total_asignado')
+                    ->groupBy('id_insumo', 'tipo_referencia', 'id_referencia')
+                    ->get();
+
+                // Obtener devoluciones y bajas ya realizadas
+                $descuentos = collect();
+                if ($tiposDescuento->isNotEmpty()) {
+                    $descuentos = MovimientoInsumo::whereIn('id_tipo_movimiento', $tiposDescuento)
+                        ->selectRaw('id_insumo, tipo_referencia, id_referencia, SUM(cantidad) as total_descontado')
+                        ->groupBy('id_insumo', 'tipo_referencia', 'id_referencia')
+                        ->get()
+                        ->keyBy(fn($d) => "{$d->id_insumo}-{$d->tipo_referencia}-{$d->id_referencia}");
+                }
+
+                foreach ($asignaciones as $asig) {
+                    $key = "{$asig->id_insumo}-{$asig->tipo_referencia}-{$asig->id_referencia}";
+                    $descontado = $descuentos->get($key)?->total_descontado ?? 0;
+                    $pendiente = $asig->total_asignado - $descontado;
+
+                    if ($pendiente > 0) {
+                        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($asig->id_insumo);
+                        $referencia = null;
+                        $referenciaNombre = '';
+
+                        if ($asig->tipo_referencia === 'vehiculo') {
+                            $referencia = Vehiculo::find($asig->id_referencia);
+                            $referenciaNombre = $referencia ? "{$referencia->vehiculo} ({$referencia->patente})" : "Vehículo #{$asig->id_referencia}";
+                        } elseif ($asig->tipo_referencia === 'evento') {
+                            $referencia = Evento::find($asig->id_referencia);
+                            $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$asig->id_referencia}";
+                        }
+
+                        $asignacionesPendientes->push([
+                            'id_insumo' => $asig->id_insumo,
+                            'insumo_nombre' => $insumo?->insumo ?? 'Desconocido',
+                            'categoria' => $insumo?->categoriaInsumo?->nombre ?? '',
+                            'deposito' => $insumo?->deposito?->deposito ?? '',
+                            'unidad' => $insumo?->unidad ?? '',
+                            'tipo_referencia' => $asig->tipo_referencia,
+                            'id_referencia' => $asig->id_referencia,
+                            'referencia_nombre' => $referenciaNombre,
+                            'cantidad_pendiente' => $pendiente,
+                        ]);
+                    }
+                }
+            }
+        }
+
         $depositos = Deposito::whereIn('id', $depositosAccesibles)
             ->orderBy('deposito')
             ->get();
@@ -532,6 +594,7 @@ class TransferenciasInsumos extends Component
             'tipos_movimiento' => $tipos_movimiento,
             'vehiculos_destino' => $vehiculos_destino,
             'eventos_destino' => $eventos_destino,
+            'asignacionesPendientes' => $asignacionesPendientes,
             // Pasar permisos a la vista
             'puedeCrearMovimientos' => $user->puedeCrearMovimientosInsumos(),
             'puedeCrearTransferencias' => $user->puedeCrearTransferenciasInsumos(),
@@ -1300,6 +1363,151 @@ class TransferenciasInsumos extends Component
             return $evento ? "Evento: {$evento->evento}" : 'Evento desconocido';
         }
         return 'Destino desconocido';
+    }
+
+    public function devolverAsignacion($insumoId, $tipoReferencia, $idReferencia, $cantidadDevolver)
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        $cantidadDevolver = floatval($cantidadDevolver);
+        if ($cantidadDevolver <= 0) {
+            session()->flash('error', 'La cantidad debe ser mayor a 0.');
+            return;
+        }
+
+        try {
+            $insumo = Insumo::find($insumoId);
+            if (!$insumo) {
+                throw new \Exception('No se encontró el insumo.');
+            }
+
+            $pendiente = $this->calcularPendiente($insumoId, $tipoReferencia, $idReferencia);
+            if ($cantidadDevolver > $pendiente) {
+                session()->flash('error', "No puede devolver más de " . number_format($pendiente, 2) . " {$insumo->unidad} pendientes.");
+                return;
+            }
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Entrada Reposición')->first();
+
+            MovimientoInsumo::create([
+                'id_insumo' => $insumo->id,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'cantidad' => $cantidadDevolver,
+                'fecha' => now(),
+                'fecha_devolucion' => null,
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $insumo->id_deposito,
+                'id_referencia' => $idReferencia,
+                'tipo_referencia' => $tipoReferencia,
+            ]);
+
+            $insumo->sincronizarStock();
+
+            DB::commit();
+
+            $referenciaNombre = '';
+            if ($tipoReferencia === 'vehiculo') {
+                $v = Vehiculo::find($idReferencia);
+                $referenciaNombre = $v ? "{$v->vehiculo} ({$v->patente})" : "Vehículo #{$idReferencia}";
+            } elseif ($tipoReferencia === 'evento') {
+                $ev = Evento::find($idReferencia);
+                $referenciaNombre = $ev ? $ev->evento : "Evento #{$idReferencia}";
+            }
+
+            session()->flash('message', "Devolución realizada: +{$cantidadDevolver} {$insumo->unidad} de {$insumo->insumo} desde {$referenciaNombre}");
+
+            \Illuminate\Support\Facades\Cache::flush();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
+            \Log::error('Error en devolverAsignacion: ' . $e->getMessage());
+        }
+    }
+
+    public function darDeBajaAsignacion($insumoId, $tipoReferencia, $idReferencia)
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        try {
+            $insumo = Insumo::find($insumoId);
+            if (!$insumo) {
+                throw new \Exception('No se encontró el insumo.');
+            }
+
+            $pendiente = $this->calcularPendiente($insumoId, $tipoReferencia, $idReferencia);
+            if ($pendiente <= 0) {
+                session()->flash('error', 'No hay cantidad pendiente para dar de baja.');
+                return;
+            }
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Baja Reposición')->first();
+
+            MovimientoInsumo::create([
+                'id_insumo' => $insumo->id,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'cantidad' => $pendiente,
+                'fecha' => now(),
+                'fecha_devolucion' => null,
+                'id_usuario' => Auth::id(),
+                'id_deposito_entrada' => $insumo->id_deposito,
+                'id_referencia' => $idReferencia,
+                'tipo_referencia' => $tipoReferencia,
+            ]);
+
+            DB::commit();
+
+            $referenciaNombre = '';
+            if ($tipoReferencia === 'vehiculo') {
+                $v = Vehiculo::find($idReferencia);
+                $referenciaNombre = $v ? "{$v->vehiculo} ({$v->patente})" : "Vehículo #{$idReferencia}";
+            } elseif ($tipoReferencia === 'evento') {
+                $ev = Evento::find($idReferencia);
+                $referenciaNombre = $ev ? $ev->evento : "Evento #{$idReferencia}";
+            }
+
+            session()->flash('message', "Baja realizada: {$pendiente} {$insumo->unidad} de {$insumo->insumo} en {$referenciaNombre}");
+
+            \Illuminate\Support\Facades\Cache::flush();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al dar de baja: ' . $e->getMessage());
+            \Log::error('Error en darDeBajaAsignacion: ' . $e->getMessage());
+        }
+    }
+
+    private function calcularPendiente($insumoId, $tipoReferencia, $idReferencia): float
+    {
+        $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
+        $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
+
+        $totalAsignado = MovimientoInsumo::where('id_tipo_movimiento', $tipoConReposicion->id)
+            ->where('id_insumo', $insumoId)
+            ->where('tipo_referencia', $tipoReferencia)
+            ->where('id_referencia', $idReferencia)
+            ->sum('cantidad');
+
+        $totalDescontado = 0;
+        if ($tiposDescuento->isNotEmpty()) {
+            $totalDescontado = MovimientoInsumo::whereIn('id_tipo_movimiento', $tiposDescuento)
+                ->where('id_insumo', $insumoId)
+                ->where('tipo_referencia', $tipoReferencia)
+                ->where('id_referencia', $idReferencia)
+                ->sum('cantidad');
+        }
+
+        return $totalAsignado - $totalDescontado;
     }
 
     public function cerrarModal()

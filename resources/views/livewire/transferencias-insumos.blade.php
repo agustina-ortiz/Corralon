@@ -203,6 +203,138 @@
         </div>
     @endif
 
+    <!-- Panel de Asignaciones Pendientes de Reposición -->
+    <div class="mb-6">
+        <button
+            wire:click="$toggle('showAsignacionesPendientes')"
+            class="w-full flex items-center justify-between px-5 py-3.5 bg-white border border-orange-200 rounded-xl hover:bg-orange-50 transition-all duration-200 shadow-sm"
+        >
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-orange-100 rounded-lg">
+                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <span class="text-sm font-semibold text-gray-800">Asignaciones Pendientes de Reposición</span>
+                @if($showAsignacionesPendientes && $asignacionesPendientes->count() > 0)
+                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-bold text-white bg-orange-500 rounded-full">
+                        {{ $asignacionesPendientes->count() }}
+                    </span>
+                @endif
+            </div>
+            <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 {{ $showAsignacionesPendientes ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+
+        @if($showAsignacionesPendientes)
+            <div class="mt-2 bg-white border border-orange-100 rounded-xl shadow-sm overflow-hidden">
+                @if($asignacionesPendientes->count() > 0)
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-orange-50">
+                            <tr>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Insumo</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Depósito</th>
+                                <th class="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asignado a</th>
+                                <th class="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Pendiente</th>
+                                <th class="px-5 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Devolver</th>
+                                @if($puedeCrearMovimientos)
+                                <th class="px-5 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
+                                @endif
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100"
+                               x-data="{ cantidades: {} }"
+                               x-init="
+                                    @foreach($asignacionesPendientes as $idx => $asig)
+                                        cantidades['{{ $idx }}'] = {{ $asig['cantidad_pendiente'] }};
+                                    @endforeach
+                               "
+                        >
+                            @foreach($asignacionesPendientes as $idx => $asig)
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-5 py-3">
+                                        <div class="text-sm font-medium text-gray-900">{{ $asig['insumo_nombre'] }}</div>
+                                        <div class="text-xs text-gray-500">{{ $asig['categoria'] }}</div>
+                                    </td>
+                                    <td class="px-5 py-3">
+                                        <span class="text-sm text-gray-700">{{ $asig['deposito'] }}</span>
+                                    </td>
+                                    <td class="px-5 py-3">
+                                        <div class="flex items-center gap-2">
+                                            @if($asig['tipo_referencia'] === 'vehiculo')
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-lg">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
+                                                    Vehículo
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-lg">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                    Evento
+                                                </span>
+                                            @endif
+                                            <span class="text-sm text-gray-900">{{ $asig['referencia_nombre'] }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-5 py-3 text-center">
+                                        <span class="text-sm font-semibold text-orange-600">
+                                            {{ number_format($asig['cantidad_pendiente'], 2) }} {{ $asig['unidad'] }}
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3 text-center">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0.01"
+                                            max="{{ $asig['cantidad_pendiente'] }}"
+                                            x-model="cantidades['{{ $idx }}']"
+                                            class="w-24 px-2 py-1.5 text-sm text-center border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        >
+                                    </td>
+                                    @if($puedeCrearMovimientos)
+                                    <td class="px-5 py-3 text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                x-on:click="$wire.devolverAsignacion({{ $asig['id_insumo'] }}, '{{ $asig['tipo_referencia'] }}', {{ $asig['id_referencia'] }}, cantidades['{{ $idx }}'])"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors shadow-sm"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                                                </svg>
+                                                Devolver
+                                            </button>
+                                            <button
+                                                type="button"
+                                                x-on:click="if(confirm('¿Dar de baja el pendiente restante? Esta acción no devuelve stock al depósito.')) { $wire.darDeBajaAsignacion({{ $asig['id_insumo'] }}, '{{ $asig['tipo_referencia'] }}', {{ $asig['id_referencia'] }}) }"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm"
+                                                title="Dar de baja el pendiente restante (no devuelve stock)"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                                Dar de baja
+                                            </button>
+                                        </div>
+                                    </td>
+                                    @endif
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @else
+                    <div class="px-6 py-8 text-center text-gray-400">
+                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-sm font-medium">No hay asignaciones pendientes de reposición</p>
+                        <p class="text-xs mt-1">Todas las asignaciones con reposición han sido devueltas</p>
+                    </div>
+                @endif
+            </div>
+        @endif
+    </div>
+
     <!-- Lista de Movimientos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -398,11 +530,9 @@
                     @else
                         @php
                             $movimiento = $item['data'];
-                            $tipoClasses = [
-                                'I' => 'bg-green-100 text-green-700',
-                                'E' => 'bg-red-100 text-red-700',
-                            ];
-                            $clase = $tipoClasses[$movimiento->tipoMovimiento->tipo] ?? 'bg-gray-100 text-gray-700';
+                            $clase = $movimiento->tipoMovimiento->esSalida()
+                                ? 'bg-red-100 text-red-700'
+                                : ($movimiento->tipoMovimiento->esEntrada() ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700');
                         @endphp
                         
                         {{-- Fila de Movimiento Individual --}}
@@ -424,19 +554,20 @@
                                     <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
                                 </div>
                             </td>
+                            @php $esSalida = $movimiento->tipoMovimiento->esSalida(); @endphp
                             <td class="px-6 py-4">
-                                <div class="text-sm font-semibold {{ $movimiento->tipoMovimiento->tipo === 'I' ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $movimiento->tipoMovimiento->tipo === 'I' ? '+' : '-' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
+                                <div class="text-sm font-semibold {{ $esSalida ? 'text-red-600' : 'text-green-600' }}">
+                                    {{ $esSalida ? '-' : '+' }}{{ number_format($movimiento->cantidad, 2) }} {{ $movimiento->insumo->unidad }}
                                 </div>
                             </td>
-                            
+
                             {{-- COLUMNA ORIGEN - Para movimientos individuales --}}
                             <td class="px-6 py-4">
-                                @if($movimiento->tipoMovimiento->tipo === 'E')
+                                @if($esSalida)
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
                                         {{ $movimiento->insumo->deposito->deposito }}
                                     </span>
-                                @elseif($movimiento->tipo_referencia === 'vehiculo' || $movimiento->tipo_referencia === 'evento')
+                                @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento']))
                                     @php $ref = $movimiento->referencia; @endphp
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-orange-100 text-orange-700 rounded-lg font-medium">
                                         @if($movimiento->tipo_referencia === 'vehiculo')
@@ -454,7 +585,7 @@
 
                             {{-- COLUMNA DESTINO - Para movimientos individuales --}}
                             <td class="px-6 py-4">
-                                @if(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento']) && $movimiento->tipoMovimiento->tipo === 'E')
+                                @if($esSalida && in_array($movimiento->tipo_referencia, ['vehiculo', 'evento']))
                                     @php $ref = $movimiento->referencia; @endphp
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-orange-100 text-orange-700 rounded-lg font-medium">
                                         @if($movimiento->tipo_referencia === 'vehiculo')
@@ -463,7 +594,7 @@
                                             {{ $ref->evento ?? 'Evento #'.$movimiento->id_referencia }}
                                         @endif
                                     </span>
-                                @elseif($movimiento->tipoMovimiento->tipo === 'I')
+                                @elseif(!$esSalida)
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
                                         {{ $movimiento->insumo->deposito->deposito }}
                                     </span>
