@@ -151,6 +151,7 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 - Tipos de movimiento para insumos:
   - **Entradas** (suman stock): Carga de Stock, Ajuste Positivo, Inventario Inicial, Transferencia Entrada, Devolución, Entrada Reposición
   - **Salidas** (restan stock): Ajuste Negativo, Transferencia Salida, Asignación con Reposición, Asignación sin Reposición
+  - **Neutral** (no afecta stock): Baja Reposición
 - Transferencias: para el deposito origen es Salida, para el destino es Entrada (se determina por `id_deposito_entrada`)
 - `calcularStockActual()` recalcula desde el historial de movimientos (usa `esEntradaPorNombre()` / `esSalidaPorNombre()`)
 - `stockBajoMinimo()` — bool, compara `stock_actual` con `stock_minimo`
@@ -163,7 +164,8 @@ Los movimientos de asignación permiten asignar insumos a **vehículos** o **eve
 
 - **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después)
 - **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo)
-- **Entrada Reposición** — devolver insumos previamente asignados
+- **Entrada Reposición** — devolver insumos previamente asignados (suma stock)
+- **Baja Reposición** — cancelar pendencia sin devolver stock (ej: se usaron como repuesto definitivo). No está en NOMBRES_ENTRADA ni NOMBRES_SALIDA, no afecta stock.
 
 Flujo en TransferenciasInsumos (modal "Nuevo Movimiento"):
 1. Seleccionar insumo (paso 1)
@@ -171,6 +173,14 @@ Flujo en TransferenciasInsumos (modal "Nuevo Movimiento"):
 3. Seleccionar tipo de destino (Vehículo o Evento) + buscar/seleccionar el registro + cantidad (paso 3)
 
 Los movimientos se guardan con `tipo_referencia = 'vehiculo'` o `'evento'` e `id_referencia` apuntando al registro seleccionado.
+
+#### Panel "Asignaciones Pendientes de Reposición"
+
+Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) que muestra asignaciones con reposición que aún no fueron devueltas ni dadas de baja.
+
+- **Cálculo pendiente**: `SUM(Asignación con Reposición) - SUM(Entrada Reposición) - SUM(Baja Reposición)` por cada combinación insumo + tipo_referencia + id_referencia
+- **Acciones por fila**: campo de cantidad + botón "Devolver" (crea Entrada Reposición, suma stock) y botón "Dar de baja" (crea Baja Reposición con confirm(), no afecta stock)
+- Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendiente()`
 
 ### Columna `tipo` en `tipo_movimientos`
 
