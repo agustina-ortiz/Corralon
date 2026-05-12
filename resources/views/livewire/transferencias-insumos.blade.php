@@ -610,6 +610,9 @@
                                 <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
                                     {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                                 </span>
+                                @if($movimiento->nro_orden_compra)
+                                    <div class="text-xs text-gray-500 text-center mt-1">OC: {{ $movimiento->nro_orden_compra }}</div>
+                                @endif
                             </td>
                             
                             <td class="px-6 py-4 text-sm text-gray-500">
@@ -1338,6 +1341,20 @@
                                                 </p>
                                             @endif
                                         </div>
+
+                                        <!-- Orden de compra / N° de suministro (solo para Carga de Stock y Ajuste Positivo) -->
+                                        @if(in_array($tipo_movimiento, ['carga', 'ajuste_positivo']))
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Orden de compra / N° de suministro</label>
+                                                <input
+                                                    type="text"
+                                                    wire:model="nro_orden_compra"
+                                                    placeholder="Ej: OC-2026-0042"
+                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                >
+                                                @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            </div>
+                                        @endif
 
                                         <!-- Observaciones -->
                                         <div>

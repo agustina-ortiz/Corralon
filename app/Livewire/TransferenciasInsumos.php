@@ -64,6 +64,7 @@ class TransferenciasInsumos extends Component
     
     // Campos del formulario (movimientos individuales)
     public $cantidad = '';
+    public $nro_orden_compra = '';
     public $observaciones = '';
     public $comprobantes = [];
     
@@ -166,6 +167,7 @@ class TransferenciasInsumos extends Component
         ];
 
         if (in_array($this->tipo_movimiento, ['carga', 'ajuste_positivo'])) {
+            $rules['nro_orden_compra'] = 'nullable|string|max:100';
             $rules['comprobantes'] = 'nullable|array|max:5';
             $rules['comprobantes.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
@@ -1155,6 +1157,7 @@ class TransferenciasInsumos extends Component
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
+                'nro_orden_compra' => $this->nro_orden_compra ?: null,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
@@ -1201,6 +1204,7 @@ class TransferenciasInsumos extends Component
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
+                'nro_orden_compra' => $this->nro_orden_compra ?: null,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
@@ -1573,6 +1577,7 @@ class TransferenciasInsumos extends Component
         $this->insumo_id = null;
         $this->tipo_movimiento = '';
         $this->cantidad = '';
+        $this->nro_orden_compra = '';
         $this->observaciones = '';
         $this->search_insumo = '';
         $this->mostrar_lista = false;
