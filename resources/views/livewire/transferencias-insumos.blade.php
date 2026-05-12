@@ -267,10 +267,15 @@
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path></svg>
                                                     Vehículo
                                                 </span>
-                                            @else
+                                            @elseif($asig['tipo_referencia'] === 'evento')
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-lg">
                                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                                     Evento
+                                                </span>
+                                            @elseif($asig['tipo_referencia'] === 'empleado')
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700 rounded-lg">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                                    Empleado
                                                 </span>
                                             @endif
                                             <span class="text-sm text-gray-900">{{ $asig['referencia_nombre'] }}</span>
@@ -567,13 +572,15 @@
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
                                         {{ $movimiento->insumo->deposito->deposito }}
                                     </span>
-                                @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento']))
+                                @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']))
                                     @php $ref = $movimiento->referencia; @endphp
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-orange-100 text-orange-700 rounded-lg font-medium">
                                         @if($movimiento->tipo_referencia === 'vehiculo')
                                             {{ $ref->vehiculo ?? 'Vehículo #'.$movimiento->id_referencia }}
-                                        @else
+                                        @elseif($movimiento->tipo_referencia === 'evento')
                                             {{ $ref->evento ?? 'Evento #'.$movimiento->id_referencia }}
+                                        @else
+                                            {{ $ref ? $ref->nombre_formateado : 'Empleado #'.$movimiento->id_referencia }}
                                         @endif
                                     </span>
                                 @else
@@ -585,13 +592,15 @@
 
                             {{-- COLUMNA DESTINO - Para movimientos individuales --}}
                             <td class="px-6 py-4">
-                                @if($esSalida && in_array($movimiento->tipo_referencia, ['vehiculo', 'evento']))
+                                @if($esSalida && in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']))
                                     @php $ref = $movimiento->referencia; @endphp
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-orange-100 text-orange-700 rounded-lg font-medium">
                                         @if($movimiento->tipo_referencia === 'vehiculo')
                                             {{ $ref->vehiculo ?? 'Vehículo #'.$movimiento->id_referencia }}
-                                        @else
+                                        @elseif($movimiento->tipo_referencia === 'evento')
                                             {{ $ref->evento ?? 'Evento #'.$movimiento->id_referencia }}
+                                        @else
+                                            {{ $ref ? $ref->nombre_formateado : 'Empleado #'.$movimiento->id_referencia }}
                                         @endif
                                     </span>
                                 @elseif(!$esSalida)
@@ -1196,7 +1205,7 @@
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     {{ in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']) ? 'Asignar a *' : 'Devuelto desde *' }}
                                                 </label>
-                                                <div class="grid grid-cols-2 gap-3">
+                                                <div class="grid grid-cols-3 gap-3">
                                                     <button
                                                         type="button"
                                                         wire:click="$set('tipo_destino', 'vehiculo')"
@@ -1218,6 +1227,16 @@
                                                         </svg>
                                                         <span class="text-sm font-medium">Evento</span>
                                                     </button>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('tipo_destino', 'empleado')"
+                                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'empleado' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                                    >
+                                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                        </svg>
+                                                        <span class="text-sm font-medium">Empleado</span>
+                                                    </button>
                                                 </div>
                                                 @error('tipo_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             </div>
@@ -1226,14 +1245,18 @@
                                             @if($tipo_destino)
                                                 <div class="mb-5 relative">
                                                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                        Seleccionar {{ $tipo_destino === 'vehiculo' ? 'Vehículo' : 'Evento' }} *
+                                                        Seleccionar {{ $tipo_destino === 'vehiculo' ? 'Vehículo' : ($tipo_destino === 'evento' ? 'Evento' : 'Empleado') }} *
                                                     </label>
 
                                                     @if($id_referencia)
                                                         @php
-                                                            $destinoSeleccionado = $tipo_destino === 'vehiculo'
-                                                                ? \App\Models\Vehiculo::find($id_referencia)
-                                                                : \App\Models\Evento::find($id_referencia);
+                                                            if ($tipo_destino === 'vehiculo') {
+                                                                $destinoSeleccionado = \App\Models\Vehiculo::find($id_referencia);
+                                                            } elseif ($tipo_destino === 'evento') {
+                                                                $destinoSeleccionado = \App\Models\Evento::find($id_referencia);
+                                                            } else {
+                                                                $destinoSeleccionado = \App\Models\EmpleadoMunicipal::find($id_referencia);
+                                                            }
                                                         @endphp
                                                         <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3">
                                                             <div>
@@ -1243,6 +1266,9 @@
                                                                 @elseif($tipo_destino === 'evento' && $destinoSeleccionado)
                                                                     <div class="text-sm font-medium text-green-900">{{ $destinoSeleccionado->evento }}</div>
                                                                     <div class="text-xs text-green-700">{{ $destinoSeleccionado->fecha?->format('d/m/Y') }} • {{ $destinoSeleccionado->ubicacion }}</div>
+                                                                @elseif($tipo_destino === 'empleado' && $destinoSeleccionado)
+                                                                    <div class="text-sm font-medium text-green-900">{{ $destinoSeleccionado->nombre_formateado }}</div>
+                                                                    <div class="text-xs text-green-700">Legajo {{ $destinoSeleccionado->LEGAJO }} • DNI {{ number_format($destinoSeleccionado->DNI, 0, '', '.') }}</div>
                                                                 @endif
                                                             </div>
                                                             <button type="button" wire:click="$set('id_referencia', '')" class="text-green-600 hover:text-green-800">
@@ -1257,7 +1283,7 @@
                                                                 type="text"
                                                                 wire:model.live="search_destino"
                                                                 wire:focus="$set('mostrar_lista_destino', true)"
-                                                                placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : 'por nombre de evento...' }}"
+                                                                placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
                                                                 class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                                                 autocomplete="off"
                                                             >
@@ -1301,10 +1327,27 @@
                                                                         @endforeach
                                                                     </ul>
                                                                 </div>
+                                                            @elseif($tipo_destino === 'empleado' && $empleados_destino->count() > 0)
+                                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                                    <ul class="py-2">
+                                                                        @foreach($empleados_destino as $emp)
+                                                                            <li>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    wire:click="seleccionarDestino({{ $emp->LEGAJO }})"
+                                                                                    class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                                                                                >
+                                                                                    <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
+                                                                                    <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
+                                                                                </button>
+                                                                            </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
                                                             @elseif($search_destino)
                                                                 <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
                                                                     <div class="px-4 py-6 text-center text-gray-400">
-                                                                        <p class="text-sm">No se encontraron {{ $tipo_destino === 'vehiculo' ? 'vehículos' : 'eventos' }}</p>
+                                                                        <p class="text-sm">No se encontraron {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }}</p>
                                                                     </div>
                                                                 </div>
                                                             @endif

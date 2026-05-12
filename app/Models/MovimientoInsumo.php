@@ -60,7 +60,7 @@ class MovimientoInsumo extends Model
     public function referencia()
     {
         $modelMap = [
-            'empleado' => Personal::class,
+            'empleado' => EmpleadoMunicipal::class,
             'maquina' => Maquinaria::class,
             'evento' => Evento::class,
             'secretaria' => Secretaria::class,

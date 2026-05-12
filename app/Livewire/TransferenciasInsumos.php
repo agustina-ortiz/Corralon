@@ -18,6 +18,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ComprobanteMovimiento;
+use App\Models\EmpleadoMunicipal;
 
 class TransferenciasInsumos extends Component
 {
@@ -69,7 +70,7 @@ class TransferenciasInsumos extends Component
     public $comprobantes = [];
     
     // Campos para asignaciones (vehículo/evento)
-    public $tipo_destino = ''; // 'vehiculo' o 'evento'
+    public $tipo_destino = ''; // 'vehiculo', 'evento' o 'empleado'
     public $id_referencia = '';
     public $search_destino = '';
     public $mostrar_lista_destino = false;
@@ -173,7 +174,7 @@ class TransferenciasInsumos extends Component
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
-            $rules['tipo_destino'] = 'required|in:vehiculo,evento';
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado';
             $rules['id_referencia'] = 'required';
         }
 
@@ -189,8 +190,8 @@ class TransferenciasInsumos extends Component
         'insumos_transferencia.min' => 'Debe seleccionar al menos un insumo.',
         'insumos_transferencia.*.cantidad.required' => 'La cantidad es obligatoria.',
         'insumos_transferencia.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
-        'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo o Evento).',
-        'id_referencia.required' => 'Debe seleccionar un vehículo o evento.',
+        'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo, Evento o Empleado).',
+        'id_referencia.required' => 'Debe seleccionar un vehículo, evento o empleado.',
         'comprobantes.max' => 'Puede adjuntar un máximo de 5 archivos.',
         'comprobantes.*.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',
         'comprobantes.*.max' => 'Cada archivo no debe superar los 5 MB.',
@@ -463,9 +464,10 @@ class TransferenciasInsumos extends Component
                 ->get(['id', 'insumo', 'id_categoria', 'id_deposito', 'stock_actual', 'stock_minimo', 'unidad']);
         }
 
-        // Vehículos y eventos para asignaciones
+        // Vehículos, eventos y empleados para asignaciones
         $vehiculos_destino = collect();
         $eventos_destino = collect();
+        $empleados_destino = collect();
         if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
             if ($this->tipo_destino === 'vehiculo') {
                 $vehiculos_destino = Vehiculo::when($this->search_destino, function($query) {
@@ -484,6 +486,18 @@ class TransferenciasInsumos extends Component
                         $query->where('evento', 'like', '%' . $this->search_destino . '%');
                     })
                     ->orderBy('evento')
+                    ->limit(50)
+                    ->get();
+            } elseif ($this->tipo_destino === 'empleado') {
+                $empleados_destino = EmpleadoMunicipal::activos()
+                    ->when($this->search_destino, function($query) {
+                        $query->where(function($q) {
+                            $q->where('NOMBRE', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('LEGAJO', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('DNI', 'like', '%' . $this->search_destino . '%');
+                        });
+                    })
+                    ->orderBy('NOMBRE')
                     ->limit(50)
                     ->get();
             }
@@ -530,6 +544,9 @@ class TransferenciasInsumos extends Component
                         } elseif ($asig->tipo_referencia === 'evento') {
                             $referencia = Evento::find($asig->id_referencia);
                             $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$asig->id_referencia}";
+                        } elseif ($asig->tipo_referencia === 'empleado') {
+                            $referencia = EmpleadoMunicipal::find($asig->id_referencia);
+                            $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$asig->id_referencia}";
                         }
 
                         $asignacionesPendientes->push([
@@ -608,6 +625,7 @@ class TransferenciasInsumos extends Component
             'tipos_movimiento' => $tipos_movimiento,
             'vehiculos_destino' => $vehiculos_destino,
             'eventos_destino' => $eventos_destino,
+            'empleados_destino' => $empleados_destino,
             'asignacionesPendientes' => $asignacionesPendientes,
             // Pasar permisos a la vista
             'puedeCrearMovimientos' => $user->puedeCrearMovimientosInsumos(),
@@ -1407,6 +1425,10 @@ class TransferenciasInsumos extends Component
         if ($this->tipo_destino === 'evento') {
             $evento = Evento::find($this->id_referencia);
             return $evento ? "Evento: {$evento->evento}" : 'Evento desconocido';
+        }
+        if ($this->tipo_destino === 'empleado') {
+            $empleado = EmpleadoMunicipal::find($this->id_referencia);
+            return $empleado ? "Empleado: {$empleado->nombre_formateado} (Leg. {$empleado->LEGAJO})" : 'Empleado desconocido';
         }
         return 'Destino desconocido';
     }
