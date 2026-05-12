@@ -156,6 +156,10 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
   - **Entradas** (suman stock): Carga de Stock, Ajuste Positivo, Inventario Inicial, Transferencia Entrada, Devolución, Entrada Reposición
   - **Salidas** (restan stock): Ajuste Negativo, Transferencia Salida, Asignación con Reposición, Asignación sin Reposición
   - **Neutral** (no afecta stock): Baja Reposición
+- Tipos de movimiento para maquinarias:
+  - **Entradas** (suman stock): Carga de Stock, Inventario Inicial Maquinaria, Transferencia Entrada Maquinaria, Devolución, Entrada Reposición Maquinaria
+  - **Salidas** (restan stock): Asignación Maquinaria, Asignación Maquinaria con Reposición, Asignación Maquinaria sin Reposición, Mantenimiento Maquinaria, Transferencia Salida Maquinaria
+  - **Neutral** (no afecta stock): Baja Reposición Maquinaria
 - Transferencias: para el deposito origen es Salida, para el destino es Entrada (se determina por `id_deposito_entrada`)
 - `calcularStockActual()` recalcula desde el historial de movimientos (usa `esEntradaPorNombre()` / `esSalidaPorNombre()`)
 - `stockBajoMinimo()` — bool, compara `stock_actual` con `stock_minimo`
@@ -166,8 +170,8 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 
 Los movimientos de asignación permiten asignar insumos a **vehículos**, **eventos** o **empleados**:
 
-- **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después)
-- **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo)
+- **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después). Destinos: vehículo, evento o empleado.
+- **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo). **Solo vehículos y eventos** (no empleados).
 - **Entrada Reposición** — devolver insumos previamente asignados (suma stock)
 - **Baja Reposición** — cancelar pendencia sin devolver stock (ej: se usaron como repuesto definitivo). No está en NOMBRES_ENTRADA ni NOMBRES_SALIDA, no afecta stock.
 
@@ -216,6 +220,25 @@ Al buscar un tipo de movimiento en el código, usar `TipoMovimiento::where('tipo
 - `getCantidadDisponibleAttribute()` — descuenta las unidades actualmente en uso (salidas sin devolución)
 - `getCantidadEnDeposito($depositoId)` — cantidad disponible en un deposito específico
 - `getCantidadTotalDisponible()` — total disponible en todos los depositos
+
+### Asignaciones de maquinarias
+
+Los movimientos de asignación permiten asignar maquinarias a **vehículos**, **eventos** o **empleados**, con la misma lógica que insumos:
+
+- **Asignación Maquinaria con Reposición** — salida temporal (con devolución posterior). Destinos: vehículo, evento o empleado.
+- **Asignación Maquinaria sin Reposición** — salida definitiva. **Solo vehículos y eventos** (no empleados).
+- **Entrada Reposición Maquinaria** — devolver maquinaria previamente asignada (suma stock)
+- **Baja Reposición Maquinaria** — cancelar pendencia sin devolver stock. No afecta stock.
+
+Los movimientos se guardan con `tipo_referencia = 'vehiculo'`, `'evento'` o `'empleado'` e `id_referencia` apuntando al registro seleccionado.
+
+#### Panel "Asignaciones Pendientes de Reposición" (Maquinarias)
+
+Panel colapsable en TransferenciasMaquinarias (arriba de la lista de movimientos) que muestra asignaciones con reposición pendientes.
+
+- **Cálculo pendiente**: `SUM(Asignación Maquinaria con Reposición) - SUM(Entrada Reposición Maquinaria) - SUM(Baja Reposición Maquinaria)`
+- **Acciones por fila**: campo de cantidad + botón "Devolver" y botón "Baja"
+- Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendienteMaquinaria()`
 
 ## Referencias polimórficas en movimientos
 
