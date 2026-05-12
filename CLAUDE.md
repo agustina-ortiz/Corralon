@@ -26,7 +26,7 @@ app/
   Livewire/               # Componentes reactivos (ABM*, Transferencias*, Dashboard)
     Actions/              # Logout
     Forms/                # LoginForm
-  Models/                 # Modelos Eloquent (20 modelos)
+  Models/                 # Modelos Eloquent (21 modelos)
   Traits/                 # FiltraPorPermisos, FiltraPorPermisosCorralon
   View/Components/        # AppLayout, GuestLayout
 database/
@@ -68,6 +68,7 @@ routes/
 | `TipoVehiculo` | `tipos_vehiculos` | Tipos de vehículo |
 | `Cuadrilla` | `cuadrillas` | Cuadrillas de trabajo (ligadas a corralon y deposito) |
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
+| `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
 
 ---
 
@@ -88,6 +89,8 @@ routes/
 | `/usuarios` | AbmUsuarios | `usuarios` |
 | `/transferencias-insumos` | TransferenciasInsumos | `movimientos_insumos` |
 | `/transferencias-maquinarias` | TransferenciasMaquinarias | `movimientos_maquinarias` |
+| `/comprobantes/{id}/ver` | Closure (ruta) | autenticado |
+| `/comprobantes/{id}/descargar` | Closure (ruta) | autenticado |
 
 ---
 
@@ -181,6 +184,18 @@ Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) qu
 - **Cálculo pendiente**: `SUM(Asignación con Reposición) - SUM(Entrada Reposición) - SUM(Baja Reposición)` por cada combinación insumo + tipo_referencia + id_referencia
 - **Acciones por fila**: campo de cantidad + botón "Devolver" (crea Entrada Reposición, suma stock) y botón "Dar de baja" (crea Baja Reposición con confirm(), no afecta stock)
 - Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendiente()`
+
+### Comprobantes adjuntos en movimientos
+
+Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** permiten adjuntar comprobantes (órdenes de compra, recibos, etc.):
+
+- **Modelo:** `ComprobanteMovimiento` — tabla `comprobantes_movimiento` con FK a `movimiento_insumos`
+- **Almacenamiento:** disco `local` (privado, `storage/app/private/comprobantes/`), no accesible por URL directa
+- **Archivos permitidos:** PDF, JPG, PNG — máximo 5 archivos por movimiento, 5 MB cada uno
+- **Campo opcional** en paso 3 del modal de nuevo movimiento
+- **Visualización:** ícono de clip en la lista de movimientos, con dropdown que muestra los archivos adjuntos
+- **Acciones:** ver (abre inline en el navegador) y descargar (fuerza descarga) — ambas rutas protegidas por autenticación
+- El componente usa `WithFileUploads` de Livewire para la subida de archivos
 
 ### Columna `tipo` en `tipo_movimientos`
 
