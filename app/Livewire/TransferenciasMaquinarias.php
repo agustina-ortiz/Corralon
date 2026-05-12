@@ -9,6 +9,9 @@ use App\Models\TipoMovimiento;
 use App\Models\CategoriaMaquinaria;
 use App\Models\Corralon;
 use App\Models\User;
+use App\Models\Vehiculo;
+use App\Models\Evento;
+use App\Models\EmpleadoMunicipal;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -63,6 +66,15 @@ class TransferenciasMaquinarias extends Component
     public $cantidad_a_cargar = 1;
     public $cantidad_a_asignar = 1;
 
+    // Asignaciones - destino
+    public $tipo_destino = '';
+    public $id_referencia = '';
+    public $search_destino = '';
+    public $mostrar_lista_destino = false;
+
+    // Panel de asignaciones pendientes
+    public $showAsignacionesPendientes = false;
+
     // Para transferencia multi-maquinaria (modal separado)
     public $showModalTransferencia = false;
     public $id_corralon_origen = '';
@@ -82,11 +94,23 @@ class TransferenciasMaquinarias extends Component
             'icon'       => 'M12 4v16m8-8H4',
             'color'      => 'indigo',
         ],
-        'Asignación Maquinaria' => [
-            'key'        => 'asignacion',
-            'descripcion'=> 'Asignar maquinaria a un empleado o evento',
-            'icon'       => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
-            'color'      => 'blue',
+        'Asignación Maquinaria con Reposición' => [
+            'key'        => 'asignacion_con_reposicion',
+            'descripcion'=> 'Asignar maquinaria con devolución posterior',
+            'icon'       => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4',
+            'color'      => 'orange',
+        ],
+        'Asignación Maquinaria sin Reposición' => [
+            'key'        => 'asignacion_sin_reposicion',
+            'descripcion'=> 'Asignar maquinaria sin devolución',
+            'icon'       => 'M17 8l4 4m0 0l-4 4m4-4H3',
+            'color'      => 'red',
+        ],
+        'Entrada Reposición Maquinaria' => [
+            'key'        => 'entrada_reposicion',
+            'descripcion'=> 'Devolver maquinaria previamente asignada',
+            'icon'       => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
+            'color'      => 'teal',
         ],
         'Mantenimiento Maquinaria' => [
             'key'        => 'mantenimiento',
@@ -102,7 +126,7 @@ class TransferenciasMaquinarias extends Component
         ],
         'Devolución' => [
             'key'        => 'devolucion',
-            'descripcion'=> 'Devolver maquinaria al depósito',
+            'descripcion'=> 'Devolver maquinaria desde mantenimiento',
             'icon'       => 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
             'color'      => 'green',
         ],
@@ -138,15 +162,26 @@ class TransferenciasMaquinarias extends Component
             $rules['cantidad_a_cargar']  = ['required', 'integer', 'min:1', 'max:1000'];
         }
 
-        if ($this->tipo_movimiento === 'asignacion') {
+        if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion'])) {
             $rules['id_deposito_origen'] = 'required|exists:depositos,id';
 
             $cantidadDisponible = $this->maquinaria_seleccionada && $this->id_deposito_origen
                 ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
                 : 1;
 
-            $rules['cantidad_a_asignar']      = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
-            $rules['fecha_devolucion_esperada'] = 'required|date|after:today';
+            $rules['cantidad_a_asignar'] = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
+
+            $tiposDestinoPermitidos = $this->tipo_movimiento === 'asignacion_sin_reposicion'
+                ? 'vehiculo,evento'
+                : 'vehiculo,evento,empleado';
+            $rules['tipo_destino'] = 'required|in:' . $tiposDestinoPermitidos;
+            $rules['id_referencia'] = 'required';
+        }
+
+        if ($this->tipo_movimiento === 'entrada_reposicion') {
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado';
+            $rules['id_referencia'] = 'required';
+            $rules['cantidad_a_asignar'] = ['required', 'integer', 'min:1'];
         }
 
         return $rules;
@@ -166,6 +201,8 @@ class TransferenciasMaquinarias extends Component
         'cantidad_a_cargar.required'        => 'Debe ingresar la cantidad a cargar.',
         'cantidad_a_cargar.min'             => 'La cantidad debe ser al menos 1.',
         'cantidad_a_cargar.max'             => 'La cantidad excede el límite permitido.',
+        'tipo_destino.required'             => 'Debe seleccionar el tipo de destino (Vehículo, Evento o Empleado).',
+        'id_referencia.required'            => 'Debe seleccionar un vehículo, evento o empleado.',
     ];
 
     public function mount()
@@ -212,11 +249,13 @@ class TransferenciasMaquinarias extends Component
 
         // Disponibilidad por tipo según contexto de stock
         $disponibilidad = [
-            'Carga de Stock'           => true,
-            'Asignación Maquinaria'    => $tieneStock,
-            'Mantenimiento Maquinaria' => $tieneStock,
-            'Transferencia Salida'     => $tieneStock,
-            'Devolución'               => true,
+            'Carga de Stock'                          => true,
+            'Asignación Maquinaria con Reposición'    => $tieneStock,
+            'Asignación Maquinaria sin Reposición'    => $tieneStock,
+            'Entrada Reposición Maquinaria'           => true,
+            'Mantenimiento Maquinaria'                => $tieneStock,
+            'Transferencia Salida'                    => $tieneStock,
+            'Devolución'                              => true,
         ];
 
         $nombres = array_keys(self::UI_CONFIG);
@@ -377,6 +416,93 @@ class TransferenciasMaquinarias extends Component
                 ->values();
         }
 
+        // Vehículos, eventos y empleados para asignaciones
+        $vehiculos_destino = collect();
+        $eventos_destino = collect();
+        $empleados_destino = collect();
+        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
+            if ($this->tipo_destino === 'vehiculo') {
+                $vehiculos_destino = Vehiculo::when($this->search_destino, function($query) {
+                        $query->where(function($q) {
+                            $q->where('vehiculo', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('patente', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('marca_modelo', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('nro_patrimonio', 'like', '%' . $this->search_destino . '%');
+                        });
+                    })
+                    ->orderBy('vehiculo')
+                    ->limit(50)
+                    ->get();
+            } elseif ($this->tipo_destino === 'evento') {
+                $eventos_destino = Evento::when($this->search_destino, function($query) {
+                        $query->where('evento', 'like', '%' . $this->search_destino . '%');
+                    })
+                    ->orderBy('evento')
+                    ->limit(50)
+                    ->get();
+            } elseif ($this->tipo_destino === 'empleado') {
+                $empleados_destino = EmpleadoMunicipal::activos()
+                    ->when($this->search_destino, function($query) {
+                        $query->where(function($q) {
+                            $q->where('NOMBRE', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('LEGAJO', 'like', '%' . $this->search_destino . '%')
+                              ->orWhere('DNI', 'like', '%' . $this->search_destino . '%');
+                        });
+                    })
+                    ->orderBy('NOMBRE')
+                    ->limit(50)
+                    ->get();
+            }
+        }
+
+        // Asignaciones pendientes de reposición (maquinarias)
+        $asignacionesPendientes = collect();
+        if ($this->showAsignacionesPendientes) {
+            $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación Maquinaria con Reposición')->first();
+            $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
+
+            if ($tipoConReposicion) {
+                $asignaciones = MovimientoMaquinaria::where('id_tipo_movimiento', $tipoConReposicion->id)
+                    ->whereHas('maquinaria', function($q) use ($depositosAccesibles) {
+                        $q->whereIn('id_deposito', $depositosAccesibles);
+                    })
+                    ->selectRaw('id_maquinaria, tipo_referencia, id_referencia, SUM(cantidad) as total_asignado')
+                    ->groupBy('id_maquinaria', 'tipo_referencia', 'id_referencia')
+                    ->get();
+
+                $descuentos = collect();
+                if ($tiposDescuento->isNotEmpty()) {
+                    $descuentos = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $tiposDescuento)
+                        ->selectRaw('id_maquinaria, tipo_referencia, id_referencia, SUM(cantidad) as total_descontado')
+                        ->groupBy('id_maquinaria', 'tipo_referencia', 'id_referencia')
+                        ->get()
+                        ->keyBy(fn($d) => "{$d->id_maquinaria}-{$d->tipo_referencia}-{$d->id_referencia}");
+                }
+
+                foreach ($asignaciones as $asig) {
+                    $key = "{$asig->id_maquinaria}-{$asig->tipo_referencia}-{$asig->id_referencia}";
+                    $descontado = $descuentos->get($key)?->total_descontado ?? 0;
+                    $pendiente = $asig->total_asignado - $descontado;
+
+                    if ($pendiente > 0) {
+                        $maquinaria = Maquinaria::with(['categoriaMaquinaria', 'deposito'])->find($asig->id_maquinaria);
+                        $referenciaNombre = $this->resolverNombreReferencia($asig->tipo_referencia, $asig->id_referencia);
+
+                        $asignacionesPendientes->push([
+                            'id_maquinaria' => $asig->id_maquinaria,
+                            'maquinaria_nombre' => $maquinaria?->maquinaria ?? 'Desconocida',
+                            'categoria' => $maquinaria?->categoriaMaquinaria?->nombre ?? '',
+                            'deposito' => $maquinaria?->deposito?->deposito ?? '',
+                            'tipo_referencia' => $asig->tipo_referencia,
+                            'id_referencia' => $asig->id_referencia,
+                            'referencia_nombre' => $referenciaNombre,
+                            'cantidad_pendiente' => $pendiente,
+                        ]);
+                    }
+                }
+            }
+        }
+
         return view('livewire.transferencias-maquinarias', [
             'movimientos'                          => $movimientos,
             'maquinarias_filtradas'                => $maquinarias_filtradas,
@@ -391,6 +517,10 @@ class TransferenciasMaquinarias extends Component
             'depositosOrigenTf'                    => $depositosOrigenTf,
             'depositosDestinoTf'                   => $depositosDestinoTf,
             'maquinarias_disponibles_transferencia'=> $maquinarias_disponibles_transferencia,
+            'vehiculos_destino'                    => $vehiculos_destino,
+            'eventos_destino'                      => $eventos_destino,
+            'empleados_destino'                    => $empleados_destino,
+            'asignacionesPendientes'               => $asignacionesPendientes,
         ])->layout('layouts.app', ['header' => 'Movimientos de Maquinarias']);
     }
 
@@ -445,13 +575,15 @@ class TransferenciasMaquinarias extends Component
             if ($this->cantidad_a_transferir < $max) {
                 $this->cantidad_a_transferir++;
             }
-        } elseif ($this->tipo_movimiento === 'asignacion') {
+        } elseif (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion'])) {
             $max = $this->maquinaria_seleccionada && $this->id_deposito_origen
                 ? $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen)
                 : 1;
             if ($this->cantidad_a_asignar < $max) {
                 $this->cantidad_a_asignar++;
             }
+        } elseif ($this->tipo_movimiento === 'entrada_reposicion') {
+            $this->cantidad_a_asignar++;
         } elseif ($this->tipo_movimiento === 'carga_stock') {
             if ($this->cantidad_a_cargar < 1000) {
                 $this->cantidad_a_cargar++;
@@ -463,7 +595,7 @@ class TransferenciasMaquinarias extends Component
     {
         if ($this->tipo_movimiento === 'transferencia') {
             if ($this->cantidad_a_transferir > 1) $this->cantidad_a_transferir--;
-        } elseif ($this->tipo_movimiento === 'asignacion') {
+        } elseif (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
             if ($this->cantidad_a_asignar > 1) $this->cantidad_a_asignar--;
         } elseif ($this->tipo_movimiento === 'carga_stock') {
             if ($this->cantidad_a_cargar > 1) $this->cantidad_a_cargar--;
@@ -498,7 +630,6 @@ class TransferenciasMaquinarias extends Component
         $depositosAccesibles = $this->getDepositosAccesibles();
 
         if ($tipo === 'transferencia') {
-            // Origen = depósito de la maquinaria; el usuario elige el destino
             $this->id_deposito_origen = $this->maquinaria_seleccionada->id_deposito;
             $this->depositos_disponibles = Deposito::whereIn('id', $depositosAccesibles)
                 ->orderBy('deposito')->get();
@@ -506,15 +637,17 @@ class TransferenciasMaquinarias extends Component
             $this->cantidad_a_transferir = min(1, $cantidadDisponible);
         }
 
-        if ($tipo === 'asignacion') {
-            // Origen = depósito de la maquinaria (no se elige)
+        if (in_array($tipo, ['asignacion_con_reposicion', 'asignacion_sin_reposicion'])) {
             $this->id_deposito_origen = $this->maquinaria_seleccionada->id_deposito;
             $cantidadDisponible = $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen);
             $this->cantidad_a_asignar = min(1, max(1, $cantidadDisponible));
         }
 
+        if ($tipo === 'entrada_reposicion') {
+            $this->cantidad_a_asignar = 1;
+        }
+
         if ($tipo === 'carga_stock') {
-            // Destino = depósito de la maquinaria (no se elige)
             $this->id_deposito_origen = $this->maquinaria_seleccionada->id_deposito;
             $this->cantidad_a_cargar = 1;
         }
@@ -524,10 +657,30 @@ class TransferenciasMaquinarias extends Component
 
     public function updatedIdDepositoOrigen()
     {
-        if ($this->tipo_movimiento === 'asignacion' && $this->maquinaria_seleccionada && $this->id_deposito_origen) {
+        if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']) && $this->maquinaria_seleccionada && $this->id_deposito_origen) {
             $cantidadDisponible = $this->maquinaria_seleccionada->getCantidadEnDeposito($this->id_deposito_origen);
             $this->cantidad_a_asignar = min(1, $cantidadDisponible);
         }
+    }
+
+    public function updatedTipoDestino()
+    {
+        $this->id_referencia = '';
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
+        $this->resetErrorBag('id_referencia');
+    }
+
+    public function updatedSearchDestino()
+    {
+        $this->mostrar_lista_destino = true;
+    }
+
+    public function seleccionarDestino($id)
+    {
+        $this->id_referencia = $id;
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
     }
 
     public function volverPaso()
@@ -548,6 +701,10 @@ class TransferenciasMaquinarias extends Component
                 $this->tipo_movimiento = '';
                 $this->id_deposito_destino = '';
                 $this->fecha_devolucion_esperada = '';
+                $this->tipo_destino = '';
+                $this->id_referencia = '';
+                $this->search_destino = '';
+                $this->mostrar_lista_destino = false;
             }
         }
     }
@@ -565,11 +722,13 @@ class TransferenciasMaquinarias extends Component
             $this->validate();
 
             switch ($this->tipo_movimiento) {
-                case 'carga_stock':   return $this->guardarCargaStock();
-                case 'asignacion':    return $this->guardarAsignacion();
-                case 'transferencia': return $this->ejecutarTransferencia();
-                case 'devolucion':    return $this->guardarDevolucion();
-                case 'mantenimiento': return $this->guardarMantenimiento();
+                case 'carga_stock':                return $this->guardarCargaStock();
+                case 'asignacion_con_reposicion':
+                case 'asignacion_sin_reposicion':  return $this->guardarAsignacionNueva();
+                case 'entrada_reposicion':         return $this->guardarEntradaReposicionMaquinaria();
+                case 'transferencia':              return $this->ejecutarTransferencia();
+                case 'devolucion':                 return $this->guardarDevolucion();
+                case 'mantenimiento':              return $this->guardarMantenimiento();
                 default:
                     session()->flash('error', 'Tipo de movimiento no válido.');
                     $this->cerrarModal();
@@ -619,11 +778,15 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
-    private function guardarAsignacion()
+    private function guardarAsignacionNueva()
     {
         DB::beginTransaction();
         try {
-            $tipoMovimiento = $this->resolverTipo('Asignación Maquinaria');
+            $nombreTipo = $this->tipo_movimiento === 'asignacion_con_reposicion'
+                ? 'Asignación Maquinaria con Reposición'
+                : 'Asignación Maquinaria sin Reposición';
+
+            $tipoMovimiento = $this->resolverTipo($nombreTipo);
             $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
 
             $stockDisponible = $maquinaria->getCantidadEnDeposito($this->id_deposito_origen);
@@ -636,19 +799,19 @@ class TransferenciasMaquinarias extends Component
                 'cantidad'           => $this->cantidad_a_asignar,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha'              => now(),
-                'fecha_devolucion'   => $this->fecha_devolucion_esperada,
+                'fecha_devolucion'   => null,
                 'id_usuario'         => Auth::id(),
                 'id_deposito_entrada'=> $this->id_deposito_origen,
-                'id_referencia'      => 0,
-                'tipo_referencia'    => 'empleado',
+                'id_referencia'      => $this->id_referencia,
+                'tipo_referencia'    => $this->tipo_destino,
             ]);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
 
-            $deposito = Deposito::find($this->id_deposito_origen);
-            $unidad   = $this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Asignación realizada: {$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} desde {$deposito->deposito}");
+            $destinoNombre = $this->obtenerNombreDestino();
+            $unidad = $this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "{$nombreTipo} realizada: {$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} → {$destinoNombre}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
@@ -656,7 +819,43 @@ class TransferenciasMaquinarias extends Component
             DB::rollBack();
             session()->flash('error', 'Error al realizar la asignación: ' . $e->getMessage());
             $this->cerrarModal();
-            \Log::error('Error en guardarAsignacion: ' . $e->getMessage());
+            \Log::error('Error en guardarAsignacionNueva: ' . $e->getMessage());
+        }
+    }
+
+    private function guardarEntradaReposicionMaquinaria()
+    {
+        DB::beginTransaction();
+        try {
+            $tipoMovimiento = $this->resolverTipo('Entrada Reposición Maquinaria');
+            $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
+
+            MovimientoMaquinaria::create([
+                'id_maquinaria'      => $maquinaria->id,
+                'cantidad'           => $this->cantidad_a_asignar,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha'              => now(),
+                'fecha_devolucion'   => null,
+                'id_usuario'         => Auth::id(),
+                'id_deposito_entrada'=> $maquinaria->id_deposito,
+                'id_referencia'      => $this->id_referencia,
+                'tipo_referencia'    => $this->tipo_destino,
+            ]);
+
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
+            DB::commit();
+
+            $destinoNombre = $this->obtenerNombreDestino();
+            $unidad = $this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "Entrada Reposición realizada: +{$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} ← {$destinoNombre}");
+            \Illuminate\Support\Facades\Cache::flush();
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la entrada reposición: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarEntradaReposicionMaquinaria: ' . $e->getMessage());
         }
     }
 
@@ -1113,6 +1312,156 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
+    private function obtenerNombreDestino(): string
+    {
+        return $this->resolverNombreReferencia($this->tipo_destino, $this->id_referencia);
+    }
+
+    private function resolverNombreReferencia(string $tipoReferencia, $idReferencia): string
+    {
+        if ($tipoReferencia === 'vehiculo') {
+            $vehiculo = Vehiculo::find($idReferencia);
+            return $vehiculo ? "Vehículo: {$vehiculo->vehiculo} ({$vehiculo->patente})" : 'Vehículo desconocido';
+        }
+        if ($tipoReferencia === 'evento') {
+            $evento = Evento::find($idReferencia);
+            return $evento ? "Evento: {$evento->evento}" : 'Evento desconocido';
+        }
+        if ($tipoReferencia === 'empleado') {
+            $empleado = EmpleadoMunicipal::find($idReferencia);
+            return $empleado ? "Empleado: {$empleado->nombre_formateado} (Leg. {$empleado->LEGAJO})" : 'Empleado desconocido';
+        }
+        return 'Destino desconocido';
+    }
+
+    public function devolverAsignacion($maquinariaId, $tipoReferencia, $idReferencia, $cantidadDevolver)
+    {
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        $cantidadDevolver = intval($cantidadDevolver);
+        if ($cantidadDevolver < 1) {
+            session()->flash('error', 'La cantidad debe ser al menos 1.');
+            return;
+        }
+
+        try {
+            $maquinaria = Maquinaria::find($maquinariaId);
+            if (!$maquinaria) {
+                throw new \Exception('No se encontró la maquinaria.');
+            }
+
+            $pendiente = $this->calcularPendienteMaquinaria($maquinariaId, $tipoReferencia, $idReferencia);
+            if ($cantidadDevolver > $pendiente) {
+                session()->flash('error', "No puede devolver más de {$pendiente} unidades pendientes.");
+                return;
+            }
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = $this->resolverTipo('Entrada Reposición Maquinaria');
+
+            MovimientoMaquinaria::create([
+                'id_maquinaria'      => $maquinaria->id,
+                'cantidad'           => $cantidadDevolver,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha'              => now(),
+                'fecha_devolucion'   => null,
+                'id_usuario'         => Auth::id(),
+                'id_deposito_entrada'=> $maquinaria->id_deposito,
+                'id_referencia'      => $idReferencia,
+                'tipo_referencia'    => $tipoReferencia,
+            ]);
+
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
+            DB::commit();
+
+            $referenciaNombre = $this->resolverNombreReferencia($tipoReferencia, $idReferencia);
+            $unidad = $cantidadDevolver == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "Devolución realizada: +{$cantidadDevolver} {$unidad} de {$maquinaria->maquinaria} desde {$referenciaNombre}");
+            \Illuminate\Support\Facades\Cache::flush();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
+            \Log::error('Error en devolverAsignacion maquinaria: ' . $e->getMessage());
+        }
+    }
+
+    public function darDeBajaAsignacion($maquinariaId, $tipoReferencia, $idReferencia)
+    {
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        try {
+            $maquinaria = Maquinaria::find($maquinariaId);
+            if (!$maquinaria) {
+                throw new \Exception('No se encontró la maquinaria.');
+            }
+
+            $pendiente = $this->calcularPendienteMaquinaria($maquinariaId, $tipoReferencia, $idReferencia);
+            if ($pendiente <= 0) {
+                session()->flash('error', 'No hay cantidad pendiente para dar de baja.');
+                return;
+            }
+
+            DB::beginTransaction();
+
+            $tipoMovimiento = $this->resolverTipo('Baja Reposición Maquinaria');
+
+            MovimientoMaquinaria::create([
+                'id_maquinaria'      => $maquinaria->id,
+                'cantidad'           => $pendiente,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha'              => now(),
+                'fecha_devolucion'   => null,
+                'id_usuario'         => Auth::id(),
+                'id_deposito_entrada'=> $maquinaria->id_deposito,
+                'id_referencia'      => $idReferencia,
+                'tipo_referencia'    => $tipoReferencia,
+            ]);
+
+            DB::commit();
+
+            $referenciaNombre = $this->resolverNombreReferencia($tipoReferencia, $idReferencia);
+            $unidad = $pendiente == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "Baja realizada: {$pendiente} {$unidad} de {$maquinaria->maquinaria} en {$referenciaNombre}");
+            \Illuminate\Support\Facades\Cache::flush();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al dar de baja: ' . $e->getMessage());
+            \Log::error('Error en darDeBajaAsignacion maquinaria: ' . $e->getMessage());
+        }
+    }
+
+    private function calcularPendienteMaquinaria($maquinariaId, $tipoReferencia, $idReferencia): int
+    {
+        $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación Maquinaria con Reposición')->first();
+        $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
+
+        $totalAsignado = MovimientoMaquinaria::where('id_tipo_movimiento', $tipoConReposicion->id)
+            ->where('id_maquinaria', $maquinariaId)
+            ->where('tipo_referencia', $tipoReferencia)
+            ->where('id_referencia', $idReferencia)
+            ->sum('cantidad');
+
+        $totalDescontado = 0;
+        if ($tiposDescuento->isNotEmpty()) {
+            $totalDescontado = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $tiposDescuento)
+                ->where('id_maquinaria', $maquinariaId)
+                ->where('tipo_referencia', $tipoReferencia)
+                ->where('id_referencia', $idReferencia)
+                ->sum('cantidad');
+        }
+
+        return max(0, $totalAsignado - $totalDescontado);
+    }
+
     public function cerrarModal()
     {
         $this->showModal = false;
@@ -1136,6 +1485,10 @@ class TransferenciasMaquinarias extends Component
         $this->mostrar_lista = false;
         $this->depositos_disponibles = [];
         $this->tipos_movimiento_disponibles = [];
+        $this->tipo_destino = '';
+        $this->id_referencia = '';
+        $this->search_destino = '';
+        $this->mostrar_lista_destino = false;
         $this->resetErrorBag();
     }
 }

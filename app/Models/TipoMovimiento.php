@@ -20,6 +20,7 @@ class TipoMovimiento extends Model
         'Carga de Stock Maquinaria',
         'Devolución',
         'Entrada Reposición',
+        'Entrada Reposición Maquinaria',
         'Inventario Inicial',
         'Inventario Inicial Maquinaria',
         'Transferencia Entrada',
@@ -30,6 +31,8 @@ class TipoMovimiento extends Model
     const NOMBRES_SALIDA = [
         'Ajuste Negativo',
         'Asignación Maquinaria',
+        'Asignación Maquinaria con Reposición',
+        'Asignación Maquinaria sin Reposición',
         'Asignación con Reposición',
         'Asignación sin Reposición',
         'Mantenimiento Maquinaria',

@@ -191,6 +191,100 @@
         </div>
     @endif
 
+    <!-- Panel de Asignaciones Pendientes -->
+    @if($puedeCrear)
+    <div class="mb-6">
+        <button
+            wire:click="$toggle('showAsignacionesPendientes')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-white border-2 border-orange-200 rounded-xl hover:bg-orange-50 transition-colors duration-200"
+        >
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-sm font-semibold text-orange-800">Asignaciones Pendientes de Reposición</span>
+            </div>
+            <svg class="w-5 h-5 text-orange-500 transition-transform duration-200 {{ $showAsignacionesPendientes ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+        </button>
+
+        @if($showAsignacionesPendientes)
+            <div class="mt-2 bg-white border border-orange-100 rounded-xl overflow-hidden">
+                @if($asignacionesPendientes->count() > 0)
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-orange-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-orange-700 uppercase">Maquinaria</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-orange-700 uppercase">Destino</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-orange-700 uppercase">Pendiente</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold text-orange-700 uppercase">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($asignacionesPendientes as $index => $item)
+                                    <tr class="hover:bg-orange-50/50">
+                                        <td class="px-4 py-3">
+                                            <div class="text-sm font-medium text-gray-900">{{ $item['maquinaria_nombre'] }}</div>
+                                            <div class="text-xs text-gray-500">{{ $item['categoria'] }} • {{ $item['deposito'] }}</div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="text-sm text-gray-900">{{ $item['referencia_nombre'] }}</div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <span class="inline-flex items-center px-2.5 py-1 text-sm font-bold text-orange-700 bg-orange-100 rounded-full">
+                                                {{ $item['cantidad_pendiente'] }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <div class="flex items-center gap-1" x-data="{ cantidad: 1 }">
+                                                    <input
+                                                        type="number"
+                                                        x-model="cantidad"
+                                                        min="1"
+                                                        max="{{ $item['cantidad_pendiente'] }}"
+                                                        class="w-16 px-2 py-1.5 text-sm border border-gray-200 rounded-lg text-center focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                    >
+                                                    <button
+                                                        type="button"
+                                                        x-on:click="$wire.devolverAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}', cantidad)"
+                                                        class="px-3 py-1.5 text-xs font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
+                                                        title="Devolver"
+                                                    >
+                                                        Devolver
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    wire:click="darDeBajaAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}')"
+                                                    wire:confirm="¿Está seguro de dar de baja {{ $item['cantidad_pendiente'] }} unidad(es) de {{ $item['maquinaria_nombre'] }}? Esta acción NO devuelve stock."
+                                                    class="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
+                                                    title="Dar de baja (no devuelve stock)"
+                                                >
+                                                    Baja
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="px-6 py-8 text-center text-gray-400">
+                        <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-sm">No hay asignaciones pendientes de reposición</p>
+                    </div>
+                @endif
+            </div>
+        @endif
+    </div>
+    @endif
+
     <!-- Lista de Movimientos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -614,26 +708,181 @@
                                             </div>
                                         </div>
 
-                                        @if($tipo_movimiento === 'asignacion')
-                                            {{-- Depósito auto-determinado por la maquinaria seleccionada --}}
-                                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
-                                                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                                </svg>
-                                                <span class="text-blue-800">
-                                                    Depósito de origen: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
-                                                    &nbsp;—&nbsp;
-                                                    @php $dispAsig = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
-                                                    {{ $dispAsig }} {{ $dispAsig == 1 ? 'unidad disponible' : 'unidades disponibles' }}
-                                                </span>
-                                            </div>
+                                        @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion']))
+                                            @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
+                                                {{-- Depósito auto-determinado --}}
+                                                <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                                                    <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                    </svg>
+                                                    <span class="text-blue-800">
+                                                        Depósito de origen: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
+                                                        &nbsp;—&nbsp;
+                                                        @php $dispAsig = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
+                                                        {{ $dispAsig }} {{ $dispAsig == 1 ? 'unidad disponible' : 'unidades disponibles' }}
+                                                    </span>
+                                                </div>
+                                            @endif
 
+                                            <!-- Selector de tipo de destino -->
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    Cantidad a Asignar *
-                                                    <span class="text-xs text-gray-500 font-normal">
-                                                        (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
-                                                    </span>
+                                                    {{ in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']) ? 'Asignar a *' : 'Devuelto desde *' }}
+                                                </label>
+                                                @php
+                                                    $permiteEmpleado = $tipo_movimiento !== 'asignacion_sin_reposicion';
+                                                @endphp
+                                                <div class="grid {{ $permiteEmpleado ? 'grid-cols-3' : 'grid-cols-2' }} gap-3">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('tipo_destino', 'vehiculo')"
+                                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'vehiculo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                                    >
+                                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                                                        </svg>
+                                                        <span class="text-sm font-medium">Vehículo</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('tipo_destino', 'evento')"
+                                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'evento' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                                    >
+                                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                        </svg>
+                                                        <span class="text-sm font-medium">Evento</span>
+                                                    </button>
+                                                    @if($permiteEmpleado)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('tipo_destino', 'empleado')"
+                                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'empleado' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                                    >
+                                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                        </svg>
+                                                        <span class="text-sm font-medium">Empleado</span>
+                                                    </button>
+                                                    @endif
+                                                </div>
+                                                @error('tipo_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <!-- Buscar y seleccionar destino -->
+                                            @if($tipo_destino)
+                                                <div class="mb-5 relative">
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                        Seleccionar {{ $tipo_destino === 'vehiculo' ? 'Vehículo' : ($tipo_destino === 'evento' ? 'Evento' : 'Empleado') }} *
+                                                    </label>
+
+                                                    @if($id_referencia)
+                                                        @php
+                                                            if ($tipo_destino === 'vehiculo') {
+                                                                $destinoSeleccionado = \App\Models\Vehiculo::find($id_referencia);
+                                                            } elseif ($tipo_destino === 'evento') {
+                                                                $destinoSeleccionado = \App\Models\Evento::find($id_referencia);
+                                                            } else {
+                                                                $destinoSeleccionado = \App\Models\EmpleadoMunicipal::find($id_referencia);
+                                                            }
+                                                        @endphp
+                                                        <div class="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3">
+                                                            <div>
+                                                                @if($tipo_destino === 'vehiculo' && $destinoSeleccionado)
+                                                                    <div class="text-sm font-medium text-green-900">{{ $destinoSeleccionado->vehiculo }}</div>
+                                                                    <div class="text-xs text-green-700">{{ $destinoSeleccionado->patente }} • {{ $destinoSeleccionado->marca_modelo }}</div>
+                                                                @elseif($tipo_destino === 'evento' && $destinoSeleccionado)
+                                                                    <div class="text-sm font-medium text-green-900">{{ $destinoSeleccionado->evento }}</div>
+                                                                    <div class="text-xs text-green-700">{{ $destinoSeleccionado->fecha?->format('d/m/Y') }} • {{ $destinoSeleccionado->ubicacion }}</div>
+                                                                @elseif($tipo_destino === 'empleado' && $destinoSeleccionado)
+                                                                    <div class="text-sm font-medium text-green-900">{{ $destinoSeleccionado->nombre_formateado }}</div>
+                                                                    <div class="text-xs text-green-700">Legajo {{ $destinoSeleccionado->LEGAJO }} • DNI {{ number_format($destinoSeleccionado->DNI, 0, '', '.') }}</div>
+                                                                @endif
+                                                            </div>
+                                                            <button type="button" wire:click="$set('id_referencia', '')" class="text-green-600 hover:text-green-800">
+                                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    @else
+                                                        <div class="relative">
+                                                            <input
+                                                                type="text"
+                                                                wire:model.live="search_destino"
+                                                                wire:focus="$set('mostrar_lista_destino', true)"
+                                                                placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
+                                                                class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                                autocomplete="off"
+                                                            >
+                                                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                                            </svg>
+                                                        </div>
+
+                                                        @if($mostrar_lista_destino)
+                                                            @if($tipo_destino === 'vehiculo' && $vehiculos_destino->count() > 0)
+                                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                                    <ul class="py-2">
+                                                                        @foreach($vehiculos_destino as $v)
+                                                                            <li>
+                                                                                <button type="button" wire:click="seleccionarDestino({{ $v->id }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                                    <div class="text-sm font-medium text-gray-900">{{ $v->vehiculo }}</div>
+                                                                                    <div class="text-xs text-gray-500 mt-0.5">{{ $v->patente }} • {{ $v->marca_modelo }}</div>
+                                                                                </button>
+                                                                            </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                            @elseif($tipo_destino === 'evento' && $eventos_destino->count() > 0)
+                                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                                    <ul class="py-2">
+                                                                        @foreach($eventos_destino as $ev)
+                                                                            <li>
+                                                                                <button type="button" wire:click="seleccionarDestino({{ $ev->id }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                                    <div class="text-sm font-medium text-gray-900">{{ $ev->evento }}</div>
+                                                                                    <div class="text-xs text-gray-500 mt-0.5">{{ $ev->fecha?->format('d/m/Y') }} • {{ $ev->ubicacion }}</div>
+                                                                                </button>
+                                                                            </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                            @elseif($tipo_destino === 'empleado' && $empleados_destino->count() > 0)
+                                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                                    <ul class="py-2">
+                                                                        @foreach($empleados_destino as $emp)
+                                                                            <li>
+                                                                                <button type="button" wire:click="seleccionarDestino({{ $emp->LEGAJO }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                                    <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
+                                                                                    <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
+                                                                                </button>
+                                                                            </li>
+                                                                        @endforeach
+                                                                    </ul>
+                                                                </div>
+                                                            @elseif($search_destino)
+                                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
+                                                                    <div class="px-4 py-6 text-center text-gray-400">
+                                                                        <p class="text-sm">No se encontraron {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }}</p>
+                                                                    </div>
+                                                                </div>
+                                                            @endif
+                                                        @endif
+                                                    @endif
+                                                    @error('id_referencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                </div>
+                                            @endif
+
+                                            <!-- Cantidad -->
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Cantidad *
+                                                    @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
+                                                        <span class="text-xs text-gray-500 font-normal">
+                                                            (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
+                                                        </span>
+                                                    @endif
                                                 </label>
                                                 <div class="flex items-center gap-3">
                                                     <button
@@ -651,7 +900,9 @@
                                                         type="number"
                                                         wire:model.live="cantidad_a_asignar"
                                                         min="1"
-                                                        max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                                        @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
+                                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                                        @endif
                                                         class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                                     >
 
@@ -659,37 +910,27 @@
                                                         type="button"
                                                         wire:click="incrementarCantidad"
                                                         class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                                        {{ $cantidad_a_asignar >= $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) ? 'disabled' : '' }}
                                                     >
                                                         <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                                         </svg>
                                                     </button>
 
-                                                    <div class="flex-1">
-                                                        <input
-                                                            type="range"
-                                                            wire:model.live="cantidad_a_asignar"
-                                                            min="1"
-                                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
-                                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                                        >
-                                                    </div>
+                                                    @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
+                                                        <div class="flex-1">
+                                                            <input
+                                                                type="range"
+                                                                wire:model.live="cantidad_a_asignar"
+                                                                min="1"
+                                                                max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                                            >
+                                                        </div>
+                                                    @endif
                                                 </div>
                                                 @error('cantidad_a_asignar')
                                                     <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                                                 @enderror
-                                            </div>
-
-                                            <div class="mb-5">
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Devolución Esperada *</label>
-                                                <input
-                                                    type="date"
-                                                    wire:model="fecha_devolucion_esperada"
-                                                    min="{{ date('Y-m-d', strtotime('+1 day')) }}"
-                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                >
-                                                @error('fecha_devolucion_esperada') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             </div>
                                         @endif
 
