@@ -12,7 +12,7 @@ Sistema de gestión de inventario y recursos para corralones municipales (Munici
 - **Frontend:** Livewire 3 + Volt, Tailwind CSS 3, Alpine.js
 - **UI Components:** Livewire Flux 2.9
 - **Build tool:** Vite
-- **Base de datos:** MySQL (`corralon`)
+- **Base de datos:** MySQL (`corralon`) + conexión secundaria `munimer_inasi` (empleados municipales)
 - **Auth:** Laravel Breeze (email/password)
 
 ---
@@ -26,7 +26,7 @@ app/
   Livewire/               # Componentes reactivos (ABM*, Transferencias*, Dashboard)
     Actions/              # Logout
     Forms/                # LoginForm
-  Models/                 # Modelos Eloquent (21 modelos)
+  Models/                 # Modelos Eloquent (22 modelos, incluye EmpleadoMunicipal con conexión externa)
   Traits/                 # FiltraPorPermisos, FiltraPorPermisosCorralon
   View/Components/        # AppLayout, GuestLayout
 database/
@@ -69,6 +69,7 @@ routes/
 | `Cuadrilla` | `cuadrillas` | Cuadrillas de trabajo (ligadas a corralon y deposito) |
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 | `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
+| `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Scope `activos()`, accessor `nombre_formateado` |
 
 ---
 
@@ -163,7 +164,7 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 
 ### Asignaciones de insumos
 
-Los movimientos de asignación permiten asignar insumos a **vehículos** o **eventos**:
+Los movimientos de asignación permiten asignar insumos a **vehículos**, **eventos** o **empleados**:
 
 - **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después)
 - **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo)
@@ -173,9 +174,9 @@ Los movimientos de asignación permiten asignar insumos a **vehículos** o **eve
 Flujo en TransferenciasInsumos (modal "Nuevo Movimiento"):
 1. Seleccionar insumo (paso 1)
 2. Elegir tipo de movimiento (paso 2) — las asignaciones solo aparecen si hay stock > 0
-3. Seleccionar tipo de destino (Vehículo o Evento) + buscar/seleccionar el registro + cantidad (paso 3)
+3. Seleccionar tipo de destino (Vehículo, Evento o Empleado) + buscar/seleccionar el registro + cantidad (paso 3)
 
-Los movimientos se guardan con `tipo_referencia = 'vehiculo'` o `'evento'` e `id_referencia` apuntando al registro seleccionado.
+Los movimientos se guardan con `tipo_referencia = 'vehiculo'`, `'evento'` o `'empleado'` e `id_referencia` apuntando al registro seleccionado. Para empleados, `id_referencia` es el `LEGAJO` de la tabla `in_maestro` en la BD `munimer_inasi`.
 
 #### Panel "Asignaciones Pendientes de Reposición"
 
@@ -321,6 +322,7 @@ php artisan usuarios:rehash-passwords              # Rehashea contraseñas a bcr
 ## Notas de desarrollo
 
 - **DB local:** MySQL sin contraseña, usuario `root`, base `corralon`
+- **DB secundaria:** `munimer_inasi` (empleados municipales) — conexión configurada en `config/database.php` como `munimer_inasi`, credenciales en `.env` (`DB_INASI_*`). En desarrollo local puede apuntar al servidor de desarrollo (10.0.0.16)
 - **Sesiones:** almacenadas en base de datos (`SESSION_DRIVER=database`)
 - **Mail:** modo `log` en desarrollo (no envía correos reales)
 - **Verificación de email:** habilitada en producción
