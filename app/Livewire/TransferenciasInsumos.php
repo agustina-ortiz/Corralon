@@ -174,7 +174,10 @@ class TransferenciasInsumos extends Component
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
-            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado';
+            $tiposDestinoPermitidos = $this->tipo_movimiento === 'asignacion_sin_reposicion'
+                ? 'vehiculo,evento'
+                : 'vehiculo,evento,empleado';
+            $rules['tipo_destino'] = 'required|in:' . $tiposDestinoPermitidos;
             $rules['id_referencia'] = 'required';
         }
 

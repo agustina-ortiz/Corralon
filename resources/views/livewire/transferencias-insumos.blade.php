@@ -1205,7 +1205,10 @@
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     {{ in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']) ? 'Asignar a *' : 'Devuelto desde *' }}
                                                 </label>
-                                                <div class="grid grid-cols-3 gap-3">
+                                                @php
+                                                    $permiteEmpleado = $tipo_movimiento !== 'asignacion_sin_reposicion';
+                                                @endphp
+                                                <div class="grid {{ $permiteEmpleado ? 'grid-cols-3' : 'grid-cols-2' }} gap-3">
                                                     <button
                                                         type="button"
                                                         wire:click="$set('tipo_destino', 'vehiculo')"
@@ -1227,6 +1230,7 @@
                                                         </svg>
                                                         <span class="text-sm font-medium">Evento</span>
                                                     </button>
+                                                    @if($permiteEmpleado)
                                                     <button
                                                         type="button"
                                                         wire:click="$set('tipo_destino', 'empleado')"
@@ -1237,6 +1241,7 @@
                                                         </svg>
                                                         <span class="text-sm font-medium">Empleado</span>
                                                     </button>
+                                                    @endif
                                                 </div>
                                                 @error('tipo_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             </div>
