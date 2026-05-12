@@ -75,6 +75,18 @@ Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
     ->middleware(['auth'])
     ->name('usuarios');
 
+Route::get('/comprobantes/{comprobante}/ver', function (App\Models\ComprobanteMovimiento $comprobante) {
+    $path = storage_path('app/private/comprobantes/' . $comprobante->archivo);
+    return response()->file($path, ['Content-Type' => $comprobante->tipo_mime]);
+})->middleware(['auth'])->name('comprobantes.ver');
+
+Route::get('/comprobantes/{comprobante}/descargar', function (App\Models\ComprobanteMovimiento $comprobante) {
+    return response()->download(
+        storage_path('app/private/comprobantes/' . $comprobante->archivo),
+        $comprobante->nombre_original
+    );
+})->middleware(['auth'])->name('comprobantes.descargar');
+
 Route::post('/logout', function (Request $request) {
     Auth::logout();
     $request->session()->invalidate();

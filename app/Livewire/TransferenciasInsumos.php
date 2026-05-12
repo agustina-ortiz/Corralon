@@ -14,12 +14,14 @@ use App\Models\Evento;
 use App\Models\User;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ComprobanteMovimiento;
 
 class TransferenciasInsumos extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     protected $listeners = ['refreshComponent' => '$refresh'];
     
@@ -63,6 +65,7 @@ class TransferenciasInsumos extends Component
     // Campos del formulario (movimientos individuales)
     public $cantidad = '';
     public $observaciones = '';
+    public $comprobantes = [];
     
     // Campos para asignaciones (vehículo/evento)
     public $tipo_destino = ''; // 'vehiculo' o 'evento'
@@ -162,6 +165,11 @@ class TransferenciasInsumos extends Component
             'observaciones' => 'nullable|string|max:500',
         ];
 
+        if (in_array($this->tipo_movimiento, ['carga', 'ajuste_positivo'])) {
+            $rules['comprobantes'] = 'nullable|array|max:5';
+            $rules['comprobantes.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:5120';
+        }
+
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
             $rules['tipo_destino'] = 'required|in:vehiculo,evento';
             $rules['id_referencia'] = 'required';
@@ -181,6 +189,9 @@ class TransferenciasInsumos extends Component
         'insumos_transferencia.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
         'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo o Evento).',
         'id_referencia.required' => 'Debe seleccionar un vehículo o evento.',
+        'comprobantes.max' => 'Puede adjuntar un máximo de 5 archivos.',
+        'comprobantes.*.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',
+        'comprobantes.*.max' => 'Cada archivo no debe superar los 5 MB.',
     ];
 
     /**
@@ -328,7 +339,8 @@ class TransferenciasInsumos extends Component
                 'insumo.categoriaInsumo',
                 'insumo.deposito',
                 'tipoMovimiento',
-                'usuario'
+                'usuario',
+                'comprobantes'
             ])
             ->whereNull('id_movimiento_encabezado')
             ->whereHas('insumo', function($query) use ($depositosAccesibles) {
@@ -1100,6 +1112,32 @@ class TransferenciasInsumos extends Component
         }
     }
     
+    public function removeComprobante($index)
+    {
+        $comprobantes = $this->comprobantes;
+        unset($comprobantes[$index]);
+        $this->comprobantes = array_values($comprobantes);
+    }
+
+    private function guardarComprobantes($movimientoId)
+    {
+        if (empty($this->comprobantes)) {
+            return;
+        }
+
+        foreach ($this->comprobantes as $file) {
+            $path = $file->store('comprobantes', 'local');
+            $filename = basename($path);
+
+            ComprobanteMovimiento::create([
+                'id_movimiento_insumo' => $movimientoId,
+                'archivo' => $filename,
+                'nombre_original' => $file->getClientOriginalName(),
+                'tipo_mime' => $file->getMimeType(),
+            ]);
+        }
+    }
+
     private function guardarCarga()
     {
         try {
@@ -1113,7 +1151,7 @@ class TransferenciasInsumos extends Component
                 throw new \Exception('No se encontró el insumo seleccionado.');
             }
 
-            MovimientoInsumo::create([
+            $movimiento = MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
@@ -1125,15 +1163,17 @@ class TransferenciasInsumos extends Component
                 'tipo_referencia' => 'inventario',
             ]);
 
+            $this->guardarComprobantes($movimiento->id);
+
             $insumo->sincronizarStock();
 
             DB::commit();
 
             $mensaje = "Carga realizada exitosamente: {$this->cantidad} {$insumo->unidad} de {$insumo->insumo}";
             session()->flash('message', $mensaje);
-            
+
             \Illuminate\Support\Facades\Cache::flush();
-            
+
             $this->cerrarModal();
 
         } catch (\Exception $e) {
@@ -1157,7 +1197,7 @@ class TransferenciasInsumos extends Component
                 throw new \Exception('No se encontró el insumo seleccionado.');
             }
 
-            MovimientoInsumo::create([
+            $movimiento = MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
@@ -1168,6 +1208,8 @@ class TransferenciasInsumos extends Component
                 'id_referencia' => 0,
                 'tipo_referencia' => 'inventario',
             ]);
+
+            $this->guardarComprobantes($movimiento->id);
 
             $insumo->sincronizarStock();
 
@@ -1538,6 +1580,7 @@ class TransferenciasInsumos extends Component
         $this->id_referencia = '';
         $this->search_destino = '';
         $this->mostrar_lista_destino = false;
+        $this->comprobantes = [];
         $this->depositos_disponibles = [];
         $this->tipos_movimiento_disponibles = [];
         $this->resetErrorBag();
