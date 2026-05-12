@@ -193,6 +193,7 @@ Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** permiten adjunt
 - **Almacenamiento:** disco `local` (privado, `storage/app/private/comprobantes/`), no accesible por URL directa
 - **Archivos permitidos:** PDF, JPG, PNG — máximo 5 archivos por movimiento, 5 MB cada uno
 - **Campo opcional** en paso 3 del modal de nuevo movimiento
+- **`nro_orden_compra`:** campo opcional en `movimiento_insumos` para registrar el número de orden de compra o suministro (solo Carga de Stock y Ajuste Positivo). Se muestra en la lista como "OC: ..." debajo del tipo de movimiento.
 - **Visualización:** ícono de clip en la lista de movimientos, con dropdown que muestra los archivos adjuntos
 - **Acciones:** ver (abre inline en el navegador) y descargar (fuerza descarga) — ambas rutas protegidas por autenticación
 - El componente usa `WithFileUploads` de Livewire para la subida de archivos
