@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Usuario — Sistema de Gestión de Stock</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background: #fff;
+        }
+
+        /* ========== PORTADA ========== */
+        .cover {
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+            text-align: center;
+            padding: 3cm 2cm;
+        }
+
+        .cover-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #77BF43, #5a9e2e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .cover-logo svg {
+            width: 60px;
+            height: 60px;
+            fill: white;
+        }
+
+        .cover h1 {
+            font-size: 28pt;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .cover h2 {
+            font-size: 16pt;
+            color: #77BF43;
+            font-weight: 400;
+            margin-bottom: 2rem;
+        }
+
+        .cover-line {
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #77BF43, #5a9e2e);
+            border-radius: 2px;
+            margin: 1.5rem auto;
+        }
+
+        .cover-info {
+            font-size: 12pt;
+            color: #4a5568;
+            margin-top: 1rem;
+        }
+
+        .cover-info strong {
+            color: #2d3748;
+        }
+
+        .cover-footer {
+            margin-top: auto;
+            font-size: 10pt;
+            color: #718096;
+        }
+
+        /* ========== TABLA DE CONTENIDOS ========== */
+        .toc {
+            page-break-after: always;
+            padding: 1cm 0;
+        }
+
+        .toc h2 {
+            font-size: 20pt;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #77BF43;
+        }
+
+        .toc-list {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        .toc-list li {
+            counter-increment: toc-counter;
+            padding: 0.5rem 0;
+            border-bottom: 1px dotted #cbd5e0;
+            display: flex;
+            align-items: baseline;
+        }
+
+        .toc-list li::before {
+            content: counter(toc-counter) ".";
+            font-weight: 700;
+            color: #77BF43;
+            min-width: 2rem;
+            font-size: 12pt;
+        }
+
+        .toc-list li a {
+            color: #2d3748;
+            text-decoration: none;
+            font-size: 12pt;
+        }
+
+        .toc-list li a:hover {
+            color: #77BF43;
+        }
+
+        /* ========== SECCIONES ========== */
+        .section {
+            page-break-before: always;
+            padding-top: 0.5cm;
+        }
+
+        .section:first-of-type {
+            page-break-before: auto;
+        }
+
+        h2.section-title {
+            font-size: 20pt;
+            color: #2d3748;
+            margin-bottom: 0.3rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #77BF43;
+            page-break-after: avoid;
+        }
+
+        .section-number {
+            color: #77BF43;
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: 14pt;
+            color: #2d3748;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.5rem;
+            border-left: 4px solid #77BF43;
+            page-break-after: avoid;
+        }
+
+        h4 {
+            font-size: 12pt;
+            color: #4a5568;
+            margin-top: 1.2rem;
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+            page-break-after: avoid;
+        }
+
+        p {
+            margin-bottom: 0.7rem;
+            text-align: justify;
+        }
+
+        /* ========== PLACEHOLDER DE CAPTURA ========== */
+        .screenshot-placeholder {
+            border: 2px dashed #a0aec0;
+            border-radius: 8px;
+            background: #f7fafc;
+            padding: 2rem 1.5rem;
+            margin: 1rem 0 1.2rem 0;
+            text-align: center;
+            page-break-inside: avoid;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .screenshot-placeholder .icon {
+            font-size: 32pt;
+            color: #a0aec0;
+        }
+
+        .screenshot-placeholder .label {
+            font-size: 10pt;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .screenshot-placeholder .description {
+            font-size: 10pt;
+            color: #a0aec0;
+            font-style: italic;
+            max-width: 400px;
+        }
+
+        /* ========== TABLAS ========== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.8rem 0 1.2rem 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+
+        thead th {
+            background: #2d3748;
+            color: white;
+            padding: 0.5rem 0.7rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 9.5pt;
+        }
+
+        thead th:first-child {
+            border-radius: 6px 0 0 0;
+        }
+
+        thead th:last-child {
+            border-radius: 0 6px 0 0;
+        }
+
+        tbody td {
+            padding: 0.45rem 0.7rem;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 6px;
+        }
+
+        tbody tr:last-child td:last-child {
+            border-radius: 0 0 6px 0;
+        }
+
+        /* ========== LISTAS ========== */
+        ul, ol {
+            margin: 0.5rem 0 0.8rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* ========== NOTAS Y ALERTAS ========== */
+        .note {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 0.7rem 1rem;
+            margin: 0.8rem 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+
+        .note strong {
+            color: #2b6cb0;
+        }
+
+        .warning {
+            background: #fffbeb;
+            border-left: 4px solid #ecc94b;
+            padding: 0.7rem 1rem;
+            margin: 0.8rem 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+
+        .warning strong {
+            color: #975a16;
+        }
+
+        .tip {
+            background: #f0fff4;
+            border-left: 4px solid #77BF43;
+            padding: 0.7rem 1rem;
+            margin: 0.8rem 0;
+            border-radius: 0 6px 6px 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+
+        .tip strong {
+            color: #276749;
+        }
+
+        /* ========== PASOS NUMERADOS ========== */
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+        }
+
+        .steps li {
+            counter-increment: step-counter;
+            padding: 0.4rem 0 0.4rem 2.5rem;
+            position: relative;
+            margin-bottom: 0.3rem;
+        }
+
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0.35rem;
+            width: 1.6rem;
+            height: 1.6rem;
+            background: #77BF43;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 1.6rem;
+            font-size: 9pt;
+            font-weight: 700;
+        }
+
+        /* ========== BADGES INLINE ========== */
+        .badge {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 9pt;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #c6f6d5; color: #276749; }
+        .badge-blue { background: #bee3f8; color: #2a4365; }
+        .badge-red { background: #fed7d7; color: #9b2c2c; }
+        .badge-yellow { background: #fefcbf; color: #975a16; }
+        .badge-purple { background: #e9d8fd; color: #553c9a; }
+        .badge-gray { background: #e2e8f0; color: #4a5568; }
+        .badge-orange { background: #feebc8; color: #9c4221; }
+
+        /* ========== CÓDIGO INLINE ========== */
+        code {
+            background: #edf2f7;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            font-size: 9.5pt;
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+
+        /* ========== SEPARADOR ========== */
+        hr {
+            border: none;
+            border-top: 1px solid #e2e8f0;
+            margin: 1.5rem 0;
+        }
+
+        /* ========== FOOTER DE PAGINA ========== */
+        .page-footer {
+            font-size: 8pt;
+            color: #a0aec0;
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* ========== PRINT ========== */
+        @media print {
+            body { font-size: 10pt; }
+            .cover { min-height: 100vh; }
+            .screenshot-placeholder { min-height: 200px; }
+            a { color: #1a1a1a; text-decoration: none; }
+        }
+
+        /* ========== SUB-SECCIONES (evitar cortes) ========== */
+        .subsection {
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+ 
+<!-- ==================== PORTADA ==================== -->
+<div class="cover">
+    <div class="cover-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4zm10 16H4V8h16v12z"/><path d="M11 12h2v2h2v2h-2v2h-2v-2H9v-2h2z"/></svg>
+    </div>
+    <h1>Manual de Usuario</h1>
+    <h2>Sistema de Gestión de Stock</h2>
+    <div class="cover-line"></div>
+    <div class="cover-info">
+        <p><strong>Municipalidad de Mercedes</strong></p>
+        <p>Administración de insumos, maquinarias, vehículos<br>y recursos de los corralones municipales</p>
+    </div>
+    <div class="cover-line"></div>
+    <div class="cover-info">
+        <p>Versión 1.0 &mdash; Mayo 2026</p>
+        <p>Uso interno</p>
+    </div>
+    <div class="cover-footer">
+        <p>Municipalidad de Mercedes &mdash; Secretaría de Servicios Públicos</p>
+    </div>
+</div>
+ 
+<!-- ==================== TABLA DE CONTENIDOS ==================== -->
+<div class="toc">
+    <h2>Tabla de Contenidos</h2>
+    <ol class="toc-list">
+        <li><a href="#sec1">Introducción</a></li>
+        <li><a href="#sec2">Ingreso al Sistema</a></li>
+        <li><a href="#sec3">Navegación General</a></li>
+        <li><a href="#sec4">Dashboard</a></li>
+        <li><a href="#sec5">Insumos</a></li>
+        <li><a href="#sec6">Maquinarias</a></li>
+        <li><a href="#sec7">Vehículos</a></li>
+        <li><a href="#sec8">Choferes</a></li>
+        <li><a href="#sec9">Empleados</a></li>
+        <li><a href="#sec10">Eventos</a></li>
+        <li><a href="#sec11">Depósitos</a></li>
+        <li><a href="#sec12">Categorías de Insumos y Maquinarias</a></li>
+        <li><a href="#sec13">Movimientos de Insumos</a></li>
+        <li><a href="#sec14">Movimientos de Maquinarias</a></li>
+        <li><a href="#sec15">Administración de Usuarios y Permisos</a></li>
+        <li><a href="#sec16">Preguntas Frecuentes</a></li>
+    </ol>
+</div>
+ 
+<!-- ==================== 1. INTRODUCCIÓN ==================== -->
+<div class="section" id="sec1">
+    <h2 class="section-title"><span class="section-number">1.</span> Introducción</h2>
+ 
+    <p>El <strong>Sistema de Gestión de Stock</strong> es una aplicación web desarrollada para la Municipalidad de Mercedes que permite administrar los recursos de los corralones municipales de forma centralizada.</p>
+ 
+    <h3>Qué puede hacer con este sistema</h3>
+    <ul>
+        <li><strong>Gestionar insumos</strong> &mdash; materiales, repuestos y consumibles con control de stock automático.</li>
+        <li><strong>Administrar maquinarias</strong> &mdash; equipos y herramientas con seguimiento de disponibilidad.</li>
+        <li><strong>Controlar vehículos</strong> &mdash; flota vehicular con documentación, vencimientos de VTV y pólizas.</li>
+        <li><strong>Registrar choferes</strong> &mdash; conductores con licencias, categorías y vehículos asignados.</li>
+        <li><strong>Gestionar empleados y eventos</strong> &mdash; personal y actividades programadas.</li>
+        <li><strong>Registrar movimientos</strong> &mdash; entradas, salidas, transferencias y asignaciones de insumos y maquinarias entre depósitos, vehículos, eventos y empleados.</li>
+    </ul>
+ 
+    <h3>Conceptos clave</h3>
+    <table>
+        <thead>
+            <tr><th>Concepto</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Corralón</strong></td><td>Sede o ubicación física municipal (ej: Corralón Central, Corralón Norte).</td></tr>
+            <tr><td><strong>Depósito</strong></td><td>Subdivisión dentro de un corralón. Los insumos, maquinarias y vehículos se almacenan en depósitos.</td></tr>
+            <tr><td><strong>Movimiento</strong></td><td>Operación que modifica el stock: entrada, salida, transferencia o asignación.</td></tr>
+            <tr><td><strong>Transferencia</strong></td><td>Movimiento de uno o más ítems entre depósitos (puede ser entre corralones distintos).</td></tr>
+            <tr><td><strong>Asignación</strong></td><td>Entrega de insumos o maquinarias a un vehículo, evento o empleado.</td></tr>
+        </tbody>
+    </table>
+</div>
+ 
+<!-- ==================== 2. INGRESO AL SISTEMA ==================== -->
+<div class="section" id="sec2">
+    <h2 class="section-title"><span class="section-number">2.</span> Ingreso al Sistema</h2>
+ 
+    <h3>Pantalla de Login</h3>
+    <p>Al acceder al sistema se presenta la pantalla de inicio de sesión. En el lado izquierdo se muestra información institucional y en el derecho el formulario de ingreso.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Pantalla de login completa mostrando el formulario de correo electrónico, contraseña y botón "Ingresar al sistema"</div>
+    </div>
+ 
+    <h3>Pasos para ingresar</h3>
+    <ol class="steps">
+        <li>Ingrese su <strong>correo electrónico</strong> en el campo correspondiente.</li>
+        <li>Ingrese su <strong>contraseña</strong>. Puede usar el ícono del ojo para ver/ocultar la contraseña.</li>
+        <li>(Opcional) Marque la casilla <strong>"Recordarme"</strong> para mantener la sesión activa.</li>
+        <li>Haga clic en el botón <strong>"Ingresar al sistema"</strong>.</li>
+    </ol>
+ 
+    <p>Si las credenciales son correctas, será redirigido al Dashboard. Si son incorrectas, se mostrará un mensaje de error debajo del formulario.</p>
+ 
+    <div class="note">
+        <strong>Nota:</strong> Si olvidó su contraseña, contacte al administrador del sistema para que la restablezca.
+    </div>
+ 
+    <h3>Cerrar sesión</h3>
+    <p>Para cerrar sesión, haga clic en el <strong>botón rojo de logout</strong> ubicado en la parte inferior del menú lateral (sidebar), junto a su nombre y correo electrónico.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Parte inferior del sidebar mostrando el nombre del usuario, email y botón rojo de logout</div>
+    </div>
+</div>
+ 
+<!-- ==================== 3. NAVEGACIÓN GENERAL ==================== -->
+<div class="section" id="sec3">
+    <h2 class="section-title"><span class="section-number">3.</span> Navegación General</h2>
+ 
+    <h3>Menú lateral (Sidebar)</h3>
+    <p>El menú lateral izquierdo es la forma principal de navegar entre las secciones del sistema. Está organizado en tres áreas:</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Sidebar completo mostrando todas las secciones: Dashboard, Inventario (con sus sub-ítems) y Recursos (con sus sub-ítems). Resaltar el ítem activo en verde.</div>
+    </div>
+ 
+    <table>
+        <thead>
+            <tr><th>Sección</th><th>Módulos incluidos</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Dashboard</strong></td>
+                <td>Pantalla principal con resúmenes y alertas (siempre visible)</td>
+            </tr>
+            <tr>
+                <td><strong>INVENTARIO</strong></td>
+                <td>Insumos, Maquinaria, Vehículos, Categorías Insumos, Categorías Maquinarias, Depósitos, Eventos, Movimientos Insumos, Movimientos Maquinarias</td>
+            </tr>
+            <tr>
+                <td><strong>RECURSOS</strong></td>
+                <td>Empleados, Choferes, Usuarios</td>
+            </tr>
+        </tbody>
+    </table>
+ 
+    <p>El enlace de la sección activa se resalta con fondo <strong>verde</strong>. Solo se muestran las secciones a las que usted tiene acceso según sus permisos asignados.</p>
+ 
+    <h3>Navegación en dispositivos móviles</h3>
+    <p>En pantallas pequeñas (celulares, tablets), el menú lateral se oculta automáticamente. Use el botón de <strong>menú hamburguesa</strong> (tres líneas horizontales) en la esquina superior izquierda para abrirlo.</p>
+ 
+    <h3>Elementos comunes en todas las pantallas</h3>
+    <p>La mayoría de las pantallas comparten estos elementos:</p>
+ 
+    <table>
+        <thead>
+            <tr><th>Elemento</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Barra de búsqueda</strong></td><td>Campo de texto para filtrar registros por nombre u otros campos. Filtra en tiempo real mientras escribe.</td></tr>
+            <tr><td><strong>Botón "Filtros"</strong></td><td>Abre un panel desplegable con filtros avanzados. Muestra un número indicando cuántos filtros están activos.</td></tr>
+            <tr><td><strong>Botón "Nuevo..."</strong></td><td>Abre el formulario para crear un nuevo registro. Solo visible si tiene permisos de edición.</td></tr>
+            <tr><td><strong>Tabla de datos</strong></td><td>Lista paginada (10 registros por página). Navegue entre páginas con los botones al pie de la tabla.</td></tr>
+            <tr><td><strong>Acciones por fila</strong></td><td>Botón de editar (azul, ícono de lápiz) y eliminar (rojo, ícono de papelera) en cada registro.</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Cualquier pantalla ABM (ej: Insumos) mostrando la barra de búsqueda, botón de filtros con badge numérico, botón "Nuevo", tabla de datos con paginación y botones de acciones por fila</div>
+    </div>
+</div>
+ 
+<!-- ==================== 4. DASHBOARD ==================== -->
+<div class="section" id="sec4">
+    <h2 class="section-title"><span class="section-number">4.</span> Dashboard</h2>
+ 
+    <p>El Dashboard es la pantalla principal del sistema. Muestra un resumen general del estado de los recursos y alertas importantes que requieren atención.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Vista general del Dashboard mostrando las tarjetas de resumen superiores y los widgets de alertas</div>
+    </div>
+ 
+    <h3>Tarjetas de resumen</h3>
+    <p>En la parte superior se muestran hasta 4 tarjetas con contadores rápidos:</p>
+ 
+    <table>
+        <thead>
+            <tr><th>Tarjeta</th><th>Ícono</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Total Insumos</strong></td><td>Azul</td><td>Cantidad total de insumos registrados en el sistema</td></tr>
+            <tr><td><strong>Maquinaria</strong></td><td>Verde</td><td>Cantidad total de maquinarias registradas</td></tr>
+            <tr><td><strong>Vehículos</strong></td><td>Violeta</td><td>Cantidad total de vehículos en la flota</td></tr>
+            <tr><td><strong>Próximos Eventos</strong></td><td>Índigo</td><td>Cantidad de eventos próximos programados</td></tr>
+        </tbody>
+    </table>
+ 
+    <h3>Widgets de alertas</h3>
+ 
+    <h4>Insumos con Stock Bajo</h4>
+    <p>Muestra los insumos cuyo stock actual está por debajo del stock mínimo configurado. Cada fila indica el nombre del insumo, categoría, depósito, corralón, stock actual (en naranja), stock mínimo y cuántas unidades faltan.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Widget "Insumos con Stock Bajo" mostrando al menos 2-3 insumos con stock bajo mínimo, resaltando las cantidades en naranja</div>
+    </div>
+ 
+    <h4>VTVs Próximas a Vencer</h4>
+    <p>Lista los vehículos cuya Verificación Técnica Vehicular está por vencer o ya venció. Los colores indican la urgencia:</p>
+    <ul>
+        <li><span class="badge badge-red">Rojo</span> &mdash; VTV ya vencida</li>
+        <li><span class="badge badge-orange">Naranja</span> &mdash; Vence en los próximos 7 días</li>
+        <li><span class="badge badge-yellow">Amarillo</span> &mdash; Vence en los próximos 30 días</li>
+    </ul>
+ 
+    <h4>Vehículos en Uso</h4>
+    <p>Muestra los vehículos que actualmente están en estado "En Uso", con su número de patrimonio, descripción, marca/modelo, patente y ubicación.</p>
+ 
+    <h4>Próximos Eventos</h4>
+    <p>Lista los eventos programados más cercanos con su fecha, ubicación y secretaría organizadora.</p>
+ 
+    <h3>Personalizar el Dashboard</h3>
+    <ol class="steps">
+        <li>Haga clic en <strong>"Personalizar panel"</strong> (esquina superior derecha).</li>
+        <li>Se abrirá una ventana con casillas de verificación para cada tarjeta y widget.</li>
+        <li>Active o desactive los elementos que desee ver.</li>
+        <li>Haga clic en <strong>"Guardar"</strong>.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Personalizar panel" mostrando las casillas de verificación para tarjetas de resumen y widgets de alertas</div>
+    </div>
+ 
+    <div class="tip">
+        <strong>Consejo:</strong> Sus preferencias de personalización se guardan automáticamente y se mantendrán en futuras sesiones.
+    </div>
+</div>
+ 
+<!-- ==================== 5. INSUMOS ==================== -->
+<div class="section" id="sec5">
+    <h2 class="section-title"><span class="section-number">5.</span> Insumos</h2>
+ 
+    <p>La sección de Insumos permite gestionar todos los materiales, repuestos y consumibles del inventario de los corralones.</p>
+ 
+    <h3>Ver insumos</h3>
+    <p>Al ingresar se muestra una tabla con todos los insumos a los que tiene acceso:</p>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Insumo</strong></td><td>Nombre del insumo</td></tr>
+            <tr><td><strong>Categoría</strong></td><td>Categoría (etiqueta azul)</td></tr>
+            <tr><td><strong>Stock Actual</strong></td><td>Cantidad en stock. <span class="badge badge-red">Se muestra en rojo</span> si está por debajo del mínimo</td></tr>
+            <tr><td><strong>Unidad</strong></td><td>Unidad de medida (Unidad, Litros, Metro, Tambor, etc.)</td></tr>
+            <tr><td><strong>Stock Mínimo</strong></td><td>Cantidad mínima deseada para alertas</td></tr>
+            <tr><td><strong>Depósito</strong></td><td>Depósito donde se almacena</td></tr>
+            <tr><td><strong>Corralón</strong></td><td>Corralón al que pertenece (etiqueta azul)</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="warning">
+        <strong>Atención:</strong> Los insumos con stock por debajo del mínimo se resaltan con fondo rojo claro para facilitar su identificación rápida.
+    </div>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Tabla de insumos mostrando varias filas, incluyendo al menos una con stock bajo mínimo resaltada en rojo</div>
+    </div>
+ 
+    <h3>Filtrar insumos</h3>
+    <p>Puede buscar y filtrar insumos de varias formas:</p>
+    <ul>
+        <li><strong>Búsqueda rápida:</strong> Escriba en el campo "Buscar insumos..." para filtrar por nombre en tiempo real.</li>
+        <li><strong>Filtros avanzados:</strong> Haga clic en el botón <strong>"Filtros"</strong> para desplegar el panel con:
+            <ul>
+                <li><strong>Categoría:</strong> Filtra por categoría de insumo.</li>
+                <li><strong>Unidad de Medida:</strong> Filtra por tipo de unidad.</li>
+                <li><strong>Depósito:</strong> Filtra por depósito.</li>
+                <li><strong>Solo stock bajo mínimo:</strong> Muestra únicamente los insumos con stock bajo.</li>
+            </ul>
+        </li>
+    </ul>
+    <p>Para quitar todos los filtros, haga clic en <strong>"Limpiar filtros"</strong>.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Panel de filtros expandido mostrando los selectores de Categoría, Unidad, Depósito y la casilla "Solo stock bajo mínimo"</div>
+    </div>
+ 
+    <h3>Crear un insumo</h3>
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nuevo Insumo"</strong> (botón azul, esquina superior derecha).</li>
+        <li>Complete el formulario:
+            <ul>
+                <li><strong>Insumo</strong> (obligatorio): Nombre descriptivo del material.</li>
+                <li><strong>Categoría</strong> (obligatorio): Seleccione de la lista desplegable.</li>
+                <li><strong>Unidad</strong> (obligatorio): Unidad de medida (Unidad, Litros, Tambor, Metro, Rollo x 100 mt, Paquete, Bolsa, Balde).</li>
+                <li><strong>Stock Inicial</strong> (opcional): Cantidad inicial. Si se ingresa un valor, se genera automáticamente un movimiento de inventario inicial.</li>
+                <li><strong>Stock Mínimo</strong> (obligatorio): Cantidad mínima para generar alertas.</li>
+                <li><strong>Depósito</strong> (obligatorio): Seleccione el depósito donde se almacenará.</li>
+            </ul>
+        </li>
+        <li>Haga clic en <strong>"Crear"</strong>.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de creación de insumo con todos los campos visibles: Insumo, Categoría, Unidad, Stock Inicial, Stock Mínimo, Depósito</div>
+    </div>
+ 
+    <h3>Editar un insumo</h3>
+    <ol class="steps">
+        <li>Haga clic en el botón <strong>editar</strong> (ícono de lápiz azul) en la fila del insumo.</li>
+        <li>Modifique los campos necesarios. El stock actual se muestra como <strong>solo lectura</strong>.</li>
+        <li>Haga clic en <strong>"Actualizar"</strong>.</li>
+    </ol>
+ 
+    <h3>Eliminar un insumo</h3>
+    <ol class="steps">
+        <li>Haga clic en el botón <strong>eliminar</strong> (ícono de papelera rojo) en la fila del insumo.</li>
+        <li>Confirme la eliminación en el diálogo que aparece.</li>
+    </ol>
+ 
+    <div class="note">
+        <strong>Importante:</strong> El stock de los insumos no se modifica editando el insumo directamente. Para agregar o quitar stock, utilice la sección <strong>Movimientos de Insumos</strong> (sección 13).
+    </div>
+</div>
+ 
+<!-- ==================== 6. MAQUINARIAS ==================== -->
+<div class="section" id="sec6">
+    <h2 class="section-title"><span class="section-number">6.</span> Maquinarias</h2>
+ 
+    <p>Permite gestionar los equipos y maquinarias de los corralones municipales.</p>
+ 
+    <h3>Ver maquinarias</h3>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Maquinaria</strong></td><td>Nombre del equipo</td></tr>
+            <tr><td><strong>Categoría</strong></td><td>Categoría (etiqueta azul)</td></tr>
+            <tr><td><strong>Cantidad</strong></td><td><span class="badge badge-green">Verde</span> si hay stock, <span class="badge badge-red">rojo</span> si es 0</td></tr>
+            <tr><td><strong>Estado</strong></td><td><span class="badge badge-green">Disponible</span> o <span class="badge badge-red">No Disponible</span></td></tr>
+            <tr><td><strong>Depósito</strong></td><td>Depósito asignado</td></tr>
+            <tr><td><strong>Corralón</strong></td><td>Corralón (etiqueta azul)</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Tabla de maquinarias mostrando varias filas con distintos estados (Disponible / No Disponible)</div>
+    </div>
+ 
+    <h3>Filtrar maquinarias</h3>
+    <ul>
+        <li><strong>Búsqueda rápida:</strong> Campo "Buscar maquinarias..."</li>
+        <li><strong>Filtros avanzados:</strong> Categoría, Estado (Disponible / No Disponible), Depósito.</li>
+    </ul>
+ 
+    <h3>Crear una maquinaria</h3>
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nueva Maquinaria"</strong>.</li>
+        <li>Complete el formulario:
+            <ul>
+                <li><strong>Maquinaria</strong> (obligatorio): Nombre del equipo.</li>
+                <li><strong>Categoría</strong> (obligatorio): Seleccione de la lista.</li>
+                <li><strong>Cantidad</strong> (obligatorio): Cantidad total de unidades.</li>
+                <li><strong>Estado</strong> (obligatorio): Disponible o No Disponible.</li>
+                <li><strong>Corralón</strong> (obligatorio): Al seleccionar un corralón, se habilita el campo Depósito.</li>
+                <li><strong>Depósito</strong> (obligatorio): Seleccione el depósito dentro del corralón elegido.</li>
+            </ul>
+        </li>
+        <li>Haga clic en <strong>"Crear"</strong>.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de creación de maquinaria con todos los campos: nombre, categoría, cantidad, estado, corralón y depósito</div>
+    </div>
+ 
+    <h3>Editar una maquinaria</h3>
+    <p>Al editar, el campo <strong>Cantidad</strong> aparece como solo lectura (con ícono de candado). La cantidad se modifica a través de movimientos de maquinaria.</p>
+ 
+    <div class="note">
+        <strong>Nota:</strong> La cantidad disponible se calcula descontando las unidades actualmente en uso (asignadas y no devueltas). Para mover o asignar maquinarias, use la sección <strong>Movimientos de Maquinarias</strong> (sección 14).
+    </div>
+</div>
+ 
+<!-- ==================== 7. VEHÍCULOS ==================== -->
+<div class="section" id="sec7">
+    <h2 class="section-title"><span class="section-number">7.</span> Vehículos</h2>
+ 
+    <p>Gestiona la flota vehicular de los corralones, incluyendo documentación, vencimientos de VTV y pólizas de seguro.</p>
+ 
+    <h3>Ver vehículos</h3>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Nro. Patrimonio</strong></td><td>Número de patrimonio del vehículo</td></tr>
+            <tr><td><strong>Vehículo</strong></td><td>Descripción del vehículo</td></tr>
+            <tr><td><strong>Patente</strong></td><td>Patente/matrícula</td></tr>
+            <tr><td><strong>Estado</strong></td><td>Estado actual (ver tabla de estados abajo)</td></tr>
+            <tr><td><strong>Corralón</strong></td><td>Corralón asignado (etiqueta azul)</td></tr>
+            <tr><td><strong>Venc. VTV</strong></td><td>Fecha de vencimiento de la VTV</td></tr>
+            <tr><td><strong>Documentos</strong></td><td>Botón con cantidad de documentos adjuntos</td></tr>
+        </tbody>
+    </table>
+ 
+    <h4>Estados de vehículos</h4>
+    <table>
+        <thead>
+            <tr><th>Estado</th><th>Color</th><th>Significado</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Disponible</td><td><span class="badge badge-green">Verde</span></td><td>Listo para usar</td></tr>
+            <tr><td>En Uso</td><td><span class="badge badge-blue">Azul</span></td><td>Actualmente en circulación</td></tr>
+            <tr><td>Mantenimiento</td><td><span class="badge badge-yellow">Amarillo</span></td><td>En reparación o servicio</td></tr>
+            <tr><td>Fuera de Servicio</td><td><span class="badge badge-red">Rojo</span></td><td>No operativo</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Tabla de vehículos mostrando filas con distintos estados y el botón de documentos</div>
+    </div>
+ 
+    <h3>Crear un vehículo</h3>
+    <p>El formulario de vehículo está organizado en secciones:</p>
+ 
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nuevo Vehículo"</strong>.</li>
+        <li>Complete las secciones del formulario:</li>
+    </ol>
+ 
+    <h4>Información Básica</h4>
+    <ul>
+        <li><strong>Nro. Patrimonio:</strong> Número de patrimonio.</li>
+        <li><strong>Vehículo</strong> (obligatorio): Descripción del vehículo.</li>
+        <li><strong>Marca/Modelo</strong> (obligatorio): Marca y modelo.</li>
+        <li><strong>Año:</strong> Año de fabricación.</li>
+        <li><strong>Patente:</strong> Número de patente.</li>
+        <li><strong>Tipo de Combustible:</strong> Nafta, Diésel o Gas.</li>
+        <li><strong>Vencimiento Oblea:</strong> Solo aparece si seleccionó Gas como combustible.</li>
+    </ul>
+ 
+    <h4>Identificación Técnica</h4>
+    <ul>
+        <li><strong>Nro. Motor</strong> y <strong>Nro. Chasis</strong></li>
+    </ul>
+ 
+    <h4>Seguro y Vencimientos</h4>
+    <ul>
+        <li><strong>Nro. Póliza:</strong> Número de póliza de seguro.</li>
+        <li><strong>Vencimiento Póliza:</strong> Fecha de vencimiento del seguro.</li>
+        <li><strong>Vencimiento VTV:</strong> Fecha de vencimiento de la verificación técnica.</li>
+    </ul>
+ 
+    <h4>Origen y Telepase</h4>
+    <ul>
+        <li><strong>Origen, Jurisdicción de Procedencia, Nro. Telepase</strong></li>
+    </ul>
+ 
+    <h4>Estado y Ubicación</h4>
+    <ul>
+        <li><strong>Estado</strong> (obligatorio): Seleccione el estado del vehículo.</li>
+        <li><strong>Depósito</strong> (obligatorio): Seleccione el depósito.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de creación/edición de vehículo mostrando las secciones del formulario (Información Básica, Identificación Técnica, Seguro, etc.)</div>
+    </div>
+ 
+    <h3>Documentos de un vehículo</h3>
+    <p>Cada vehículo puede tener documentos adjuntos (seguros, títulos, permisos, etc.):</p>
+ 
+    <ol class="steps">
+        <li>En la tabla de vehículos, haga clic en el botón de <strong>documentos</strong> (ícono de documento con número) de la fila correspondiente.</li>
+        <li>Se abre una ventana que muestra los documentos existentes.</li>
+        <li>Si tiene permisos de edición, puede agregar nuevos documentos con una descripción.</li>
+        <li>Use los botones de <strong>ver</strong> (abre en el navegador) o <strong>descargar</strong> para acceder a cada documento.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de documentos de un vehículo mostrando la lista de documentos y el formulario para agregar uno nuevo</div>
+    </div>
+</div>
+ 
+<!-- ==================== 8. CHOFERES ==================== -->
+<div class="section" id="sec8">
+    <h2 class="section-title"><span class="section-number">8.</span> Choferes</h2>
+ 
+    <p>Gestiona los conductores de la flota vehicular, incluyendo sus licencias, categorías habilitantes y vehículos asignados.</p>
+ 
+    <h3>Ver choferes</h3>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Legajo</strong></td><td>Número de empleado (etiqueta azul)</td></tr>
+            <tr><td><strong>Nombre</strong></td><td>Nombre completo del chofer</td></tr>
+            <tr><td><strong>DNI</strong></td><td>Documento de identidad</td></tr>
+            <tr><td><strong>Licencia</strong></td><td>Tipo de licencia (Profesional o Común)</td></tr>
+            <tr><td><strong>Venc. Licencia</strong></td><td>Fecha de vencimiento. <span class="badge badge-red">Rojo</span> si venció, <span class="badge badge-yellow">amarillo</span> si vence en 30 días</td></tr>
+            <tr><td><strong>Área</strong></td><td>Área de trabajo</td></tr>
+            <tr><td><strong>Vehículos</strong></td><td>Vehículos asignados (etiquetas verdes con patente). "Sin asignar" si no tiene</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Tabla de choferes mostrando distintos estados de licencia (vigente, próxima a vencer, vencida) y vehículos asignados</div>
+    </div>
+ 
+    <h3>Crear / Editar un chofer</h3>
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nuevo Chofer"</strong> o en el botón <strong>editar</strong> de la fila.</li>
+        <li>Complete los datos personales:
+            <ul>
+                <li><strong>Nombre y Apellido</strong> (obligatorio)</li>
+                <li><strong>DNI</strong> (obligatorio)</li>
+                <li><strong>N° Empleado</strong> (obligatorio)</li>
+                <li><strong>Tipo de Licencia:</strong> Profesional o Común</li>
+                <li><strong>Vencimiento Licencia:</strong> Fecha</li>
+                <li><strong>Categorías:</strong> Categorías habilitantes (ej: "A.1.4 B.2 D.1")</li>
+                <li><strong>Área, Domicilio, Secretaría</strong></li>
+            </ul>
+        </li>
+        <li><strong>Asignar vehículos:</strong> En la parte inferior del formulario hay una lista de vehículos con casillas de verificación. Puede buscar por patente o patrimonio. Marque los vehículos que desea asignar.</li>
+        <li>Haga clic en <strong>"Crear"</strong> o <strong>"Actualizar"</strong>.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de edición de chofer mostrando los campos del formulario y la sección de asignación de vehículos con casillas de verificación</div>
+    </div>
+</div>
+ 
+<!-- ==================== 9. EMPLEADOS ==================== -->
+<div class="section" id="sec9">
+    <h2 class="section-title"><span class="section-number">9.</span> Empleados</h2>
+ 
+    <p>Gestión básica de empleados locales del sistema.</p>
+ 
+    <h3>Ver empleados</h3>
+    <p>Tabla con: <strong>Legajo</strong> (etiqueta azul), <strong>Apellido</strong>, <strong>Nombre</strong> y botones de acciones.</p>
+ 
+    <h3>Crear / Editar un empleado</h3>
+    <p>Campos del formulario:</p>
+    <ul>
+        <li><strong>Legajo</strong> (obligatorio)</li>
+        <li><strong>Apellido</strong> (obligatorio)</li>
+        <li><strong>Nombre</strong> (obligatorio)</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Pantalla de Empleados mostrando la tabla y el modal de creación/edición</div>
+    </div>
+ 
+    <div class="note">
+        <strong>Nota:</strong> Este módulo gestiona empleados locales. Los empleados municipales del sistema INASI aparecen como opción de destino al realizar asignaciones de insumos o maquinarias (ver secciones 13 y 14).
+    </div>
+</div>
+ 
+<!-- ==================== 10. EVENTOS ==================== -->
+<div class="section" id="sec10">
+    <h2 class="section-title"><span class="section-number">10.</span> Eventos</h2>
+ 
+    <p>Gestiona eventos programados como actos, festividades, operativos municipales, etc.</p>
+ 
+    <h3>Ver eventos</h3>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Evento</strong></td><td>Nombre del evento</td></tr>
+            <tr><td><strong>Fecha</strong></td><td>Fecha programada</td></tr>
+            <tr><td><strong>Ubicación</strong></td><td>Lugar del evento</td></tr>
+            <tr><td><strong>Secretaría</strong></td><td>Secretaría organizadora</td></tr>
+            <tr><td><strong>Anual</strong></td><td><span class="badge badge-green">Sí</span> si se repite cada año, <span class="badge badge-gray">No</span> si no</td></tr>
+        </tbody>
+    </table>
+ 
+    <h3>Crear / Editar un evento</h3>
+    <ul>
+        <li><strong>Evento</strong> (obligatorio): Nombre del evento.</li>
+        <li><strong>Fecha</strong> (obligatorio): Fecha programada.</li>
+        <li><strong>Ubicación</strong> (obligatorio): Lugar.</li>
+        <li><strong>Secretaría:</strong> Seleccione de la lista (opcional).</li>
+        <li><strong>Evento Anual:</strong> Marque si se repite cada año.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Pantalla de Eventos mostrando la tabla con eventos y el modal de creación</div>
+    </div>
+</div>
+ 
+<!-- ==================== 11. DEPÓSITOS ==================== -->
+<div class="section" id="sec11">
+    <h2 class="section-title"><span class="section-number">11.</span> Depósitos</h2>
+ 
+    <p>Los depósitos son subdivisiones dentro de cada corralón. Representan ubicaciones físicas donde se almacenan insumos, maquinarias y vehículos.</p>
+ 
+    <h3>Ver depósitos</h3>
+    <p>Tabla con: <strong>ID</strong>, <strong>Depósito</strong> (nombre), <strong>Corralón</strong>, <strong>Ubicación</strong> y acciones. Si tiene acceso a múltiples corralones, aparece un filtro selector de corralón.</p>
+ 
+    <h3>Crear / Editar un depósito</h3>
+    <ul>
+        <li><strong>Depósito</strong> (obligatorio): Nombre descriptivo.</li>
+        <li><strong>Corralón</strong> (obligatorio): Seleccione a qué corralón pertenece.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Pantalla de Depósitos mostrando la tabla y el modal de creación</div>
+    </div>
+</div>
+ 
+<!-- ==================== 12. CATEGORÍAS ==================== -->
+<div class="section" id="sec12">
+    <h2 class="section-title"><span class="section-number">12.</span> Categorías de Insumos y Maquinarias</h2>
+ 
+    <p>Estas secciones permiten organizar los insumos y las maquinarias en categorías para facilitar su clasificación y búsqueda. Ambas pantallas funcionan de la misma manera.</p>
+ 
+    <h3>Ver categorías</h3>
+    <p>Tabla con: <strong>ID</strong>, <strong>Nombre</strong>, <strong>Descripción</strong> (truncada a 60 caracteres) y acciones.</p>
+ 
+    <h3>Crear / Editar una categoría</h3>
+    <ul>
+        <li><strong>Nombre</strong> (obligatorio): Nombre de la categoría.</li>
+        <li><strong>Descripción</strong> (opcional): Texto descriptivo.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Pantalla de Categorías de Insumos (o Maquinarias) mostrando la tabla y el modal de creación</div>
+    </div>
+</div>
+ 
+<!-- ==================== 13. MOVIMIENTOS DE INSUMOS ==================== -->
+<div class="section" id="sec13">
+    <h2 class="section-title"><span class="section-number">13.</span> Movimientos de Insumos</h2>
+ 
+    <p>Esta es una de las secciones más importantes del sistema. Aquí se registran <strong>todos los movimientos</strong> que afectan el stock de los insumos: entradas, salidas, transferencias entre depósitos y asignaciones a vehículos, eventos o empleados.</p>
+ 
+    <h3>Pantalla principal</h3>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Vista general de Movimientos de Insumos mostrando la barra superior (búsqueda, filtros, botones Nueva Transferencia y Nuevo Movimiento) y la tabla de movimientos</div>
+    </div>
+ 
+    <p>La tabla muestra todos los movimientos registrados:</p>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Fecha</strong></td><td>Fecha y hora del movimiento</td></tr>
+            <tr><td><strong>Detalles</strong></td><td>Nombre del insumo (haciendo clic se abre el modal de nuevo movimiento con ese insumo preseleccionado). Para transferencias múltiples muestra una etiqueta con la cantidad de insumos</td></tr>
+            <tr><td><strong>Cantidad</strong></td><td>Cantidad movida, con flecha verde (entrada) o roja (salida)</td></tr>
+            <tr><td><strong>Origen</strong></td><td>Depósito de origen (etiqueta roja)</td></tr>
+            <tr><td><strong>Destino</strong></td><td>Depósito destino o entidad asignada (etiqueta verde)</td></tr>
+            <tr><td><strong>Tipo</strong></td><td>Tipo de movimiento (etiqueta con color según tipo)</td></tr>
+            <tr><td><strong>Usuario</strong></td><td>Usuario que registró el movimiento</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="tip">
+        <strong>Consejo:</strong> Las transferencias con múltiples insumos se pueden expandir haciendo clic en la flecha a la izquierda de la fila para ver el detalle de cada insumo incluido.
+    </div>
+ 
+    <h3>Filtrar movimientos</h3>
+    <p>Haga clic en <strong>"Filtros"</strong> para acceder a:</p>
+    <ul>
+        <li><strong>Fecha Desde / Fecha Hasta:</strong> Rango de fechas.</li>
+        <li><strong>Depósito:</strong> Filtrar por depósito.</li>
+        <li><strong>Tipo de Movimiento:</strong> Filtrar por tipo específico.</li>
+        <li><strong>Usuario:</strong> Filtrar por quien registró el movimiento.</li>
+        <li><strong>Insumo:</strong> Buscar por nombre de insumo.</li>
+        <li><strong>Categoría:</strong> Filtrar por categoría del insumo.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Panel de filtros expandido de Movimientos de Insumos mostrando los 7 campos de filtro</div>
+    </div>
+ 
+    <h3>Crear un movimiento individual</h3>
+    <p>Los movimientos individuales registran entradas, salidas y asignaciones de un insumo.</p>
+ 
+    <ol class="steps">
+        <li><strong>Haga clic en "Nuevo Movimiento"</strong> (botón azul).</li>
+        <li><strong>Paso 1 — Seleccionar Insumo:</strong> Busque por nombre y seleccione el insumo de la lista.</li>
+        <li><strong>Paso 2 — Tipo de Movimiento:</strong> Elija la operación a realizar (ver tabla abajo).</li>
+        <li><strong>Paso 3 — Completar datos:</strong> Ingrese la cantidad y datos adicionales según el tipo elegido.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Nuevo Movimiento" en el Paso 1 mostrando el campo de búsqueda de insumo y la lista de resultados</div>
+    </div>
+ 
+    <h4>Tipos de movimiento disponibles</h4>
+ 
+    <table>
+        <thead>
+            <tr><th>Tipo</th><th>Efecto en Stock</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Carga de Stock</strong></td><td><span class="badge badge-green">Suma</span></td><td>Ingreso de mercadería nueva al depósito</td></tr>
+            <tr><td><strong>Ajuste Positivo</strong></td><td><span class="badge badge-green">Suma</span></td><td>Corrección de inventario a favor</td></tr>
+            <tr><td><strong>Inventario Inicial</strong></td><td><span class="badge badge-green">Suma</span></td><td>Registro de stock al iniciar el sistema</td></tr>
+            <tr><td><strong>Devolución</strong></td><td><span class="badge badge-green">Suma</span></td><td>Devolución de material</td></tr>
+            <tr><td><strong>Ajuste Negativo</strong></td><td><span class="badge badge-red">Resta</span></td><td>Corrección de inventario en contra</td></tr>
+            <tr><td><strong>Asignación con Reposición</strong></td><td><span class="badge badge-red">Resta</span></td><td>Salida temporal: se espera devolución</td></tr>
+            <tr><td><strong>Asignación sin Reposición</strong></td><td><span class="badge badge-red">Resta</span></td><td>Salida definitiva: no se espera devolución</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Nuevo Movimiento" en el Paso 2 mostrando la lista de tipos de movimiento disponibles</div>
+    </div>
+ 
+    <h4>Paso 3 según el tipo de movimiento</h4>
+ 
+    <p><strong>Para Carga de Stock y Ajuste Positivo:</strong></p>
+    <ul>
+        <li><strong>Cantidad:</strong> Unidades a ingresar.</li>
+        <li><strong>N° Orden de Compra</strong> (opcional): Número de la orden de compra o suministro.</li>
+        <li><strong>Comprobantes</strong> (opcional): Adjunte hasta 5 archivos (PDF, JPG o PNG, máximo 5 MB cada uno) como respaldo documental.</li>
+    </ul>
+ 
+    <p><strong>Para Asignaciones (con o sin reposición):</strong></p>
+    <ul>
+        <li><strong>Tipo de destino:</strong> Seleccione <strong>Vehículo</strong>, <strong>Evento</strong> o <strong>Empleado</strong>.</li>
+        <li><strong>Buscar y seleccionar</strong> el registro de destino.</li>
+        <li><strong>Cantidad:</strong> Unidades a asignar.</li>
+    </ul>
+ 
+    <div class="warning">
+        <strong>Atención:</strong> La "Asignación sin Reposición" solo permite como destino <strong>Vehículos</strong> y <strong>Eventos</strong>. No se pueden asignar insumos sin reposición a empleados.
+    </div>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Nuevo Movimiento" en el Paso 3 para una asignación, mostrando la selección de tipo de destino (Vehículo/Evento/Empleado), el campo de búsqueda y la cantidad</div>
+    </div>
+ 
+    <h3>Crear una transferencia</h3>
+    <p>Las transferencias mueven insumos de un depósito a otro, incluso entre corralones distintos.</p>
+ 
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nueva Transferencia"</strong> (botón violeta).</li>
+        <li>Seleccione el <strong>Corralón y Depósito de origen</strong>.</li>
+        <li>Seleccione el <strong>Corralón y Depósito de destino</strong>.</li>
+        <li>Ingrese la <strong>Fecha</strong> y <strong>Observaciones</strong> (opcional).</li>
+        <li>Agregue insumos a transferir: seleccione el insumo de la lista e ingrese la cantidad. Puede agregar <strong>múltiples insumos</strong> en una sola transferencia.</li>
+        <li>Confirme la transferencia.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Nueva Transferencia" mostrando los campos de origen/destino, fecha, observaciones y la lista de insumos a transferir</div>
+    </div>
+ 
+    <h3>Atajos rápidos</h3>
+ 
+    <div class="tip">
+        <strong>Atajo 1 — Nuevo movimiento preseleccionado:</strong> Haga clic en el <strong>nombre del insumo</strong> en cualquier fila de la lista de movimientos. Se abrirá el modal de "Nuevo Movimiento" con ese insumo ya seleccionado, saltando directamente al Paso 2.
+    </div>
+ 
+    <div class="tip">
+        <strong>Atajo 2 — Nueva transferencia desde movimiento:</strong> Haga clic en el <strong>botón con flechas</strong> en una fila de la lista. Se abrirá el modal de transferencia tomando como origen el depósito destino del movimiento seleccionado y precargando los mismos insumos.
+    </div>
+ 
+    <h3>Panel de Asignaciones Pendientes de Reposición</h3>
+ 
+    <p>Encima de la lista de movimientos hay un <strong>panel colapsable</strong> (botón naranja: "Asignaciones Pendientes de Reposición") que muestra todas las asignaciones con reposición que aún no fueron devueltas ni dadas de baja.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Panel "Asignaciones Pendientes de Reposición" expandido, mostrando la tabla con insumos pendientes, destinos, cantidades y los botones Devolver / Dar de baja</div>
+    </div>
+ 
+    <p>Cada fila del panel muestra:</p>
+    <ul>
+        <li><strong>Insumo</strong> y depósito.</li>
+        <li><strong>Asignado a:</strong> Vehículo, Evento o Empleado (con nombre e identificación).</li>
+        <li><strong>Pendiente:</strong> Cantidad pendiente de devolución.</li>
+        <li><strong>Campo de cantidad:</strong> Ingrese cuántas unidades devolver.</li>
+    </ul>
+ 
+    <h4>Acciones disponibles</h4>
+ 
+    <table>
+        <thead>
+            <tr><th>Acción</th><th>Botón</th><th>Efecto</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Devolver</strong></td>
+                <td><span class="badge badge-green">Verde</span></td>
+                <td>Registra una devolución (Entrada Reposición). El stock del insumo <strong>sube</strong>. Debe ingresar la cantidad a devolver.</td>
+            </tr>
+            <tr>
+                <td><strong>Dar de baja</strong></td>
+                <td><span class="badge badge-red">Rojo</span></td>
+                <td>Cancela la pendencia sin devolver el material (Baja Reposición). El stock <strong>no se modifica</strong>. Se pide confirmación antes de ejecutar.</td>
+            </tr>
+        </tbody>
+    </table>
+ 
+    <div class="note">
+        <strong>Ejemplo de uso:</strong> Se asignaron 10 litros de aceite a un vehículo "con reposición". El chofer devuelve 7 litros. Usted ingresa 7 en el campo de cantidad y hace clic en "Devolver". Quedan 3 litros pendientes. Si determina que esos 3 litros ya se consumieron y no se devolverán, hace clic en "Dar de baja" para cerrar la pendencia.
+    </div>
+ 
+    <h3>Comprobantes adjuntos</h3>
+ 
+    <p>Los movimientos de tipo <strong>Carga de Stock</strong> y <strong>Ajuste Positivo</strong> permiten adjuntar comprobantes (órdenes de compra, recibos, facturas) como respaldo documental.</p>
+ 
+    <ul>
+        <li>En la lista de movimientos, los que tienen comprobantes muestran un <strong>ícono de clip</strong>.</li>
+        <li>Haga clic en el ícono para ver los archivos adjuntos en un desplegable.</li>
+        <li>Puede <strong>ver</strong> cada archivo (se abre en el navegador) o <strong>descargarlo</strong>.</li>
+        <li>Si el movimiento tiene un N° de Orden de Compra, se muestra como <strong>"OC: ..."</strong> debajo del tipo de movimiento.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Fila de movimiento con ícono de clip y desplegable de comprobantes mostrando archivos con botones Ver y Descargar. También mostrar "OC: ..." si tiene orden de compra.</div>
+    </div>
+</div>
+ 
+<!-- ==================== 14. MOVIMIENTOS DE MAQUINARIAS ==================== -->
+<div class="section" id="sec14">
+    <h2 class="section-title"><span class="section-number">14.</span> Movimientos de Maquinarias</h2>
+ 
+    <p>Funciona de manera similar a los Movimientos de Insumos, adaptado para el control de maquinarias.</p>
+ 
+    <h3>Pantalla principal</h3>
+    <p>Lista de movimientos con: <strong>Fecha</strong>, <strong>Maquinaria</strong> (nombre y categoría), <strong>Cantidad</strong> (con indicador de entrada/salida), <strong>Origen</strong>, <strong>Destino</strong>, <strong>Estado</strong>, <strong>Tipo</strong> y <strong>Usuario</strong>.</p>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Vista general de Movimientos de Maquinarias mostrando la tabla de movimientos con sus columnas</div>
+    </div>
+ 
+    <h3>Filtros disponibles</h3>
+    <p>Mismos filtros que Movimientos de Insumos: Fecha Desde/Hasta, Depósito, Tipo de Movimiento, Usuario, Maquinaria (búsqueda por nombre) y Categoría.</p>
+ 
+    <h3>Crear un movimiento de maquinaria</h3>
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nuevo Movimiento"</strong>.</li>
+        <li>Seleccione la maquinaria.</li>
+        <li>Elija el tipo de movimiento.</li>
+        <li>Complete los datos (cantidad, destino, etc.).</li>
+    </ol>
+ 
+    <h4>Tipos de movimiento de maquinarias</h4>
+ 
+    <table>
+        <thead>
+            <tr><th>Tipo</th><th>Efecto</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Carga de Stock</strong></td><td><span class="badge badge-green">Suma</span></td><td>Ingreso de maquinaria nueva</td></tr>
+            <tr><td><strong>Inventario Inicial Maquinaria</strong></td><td><span class="badge badge-green">Suma</span></td><td>Registro de stock inicial</td></tr>
+            <tr><td><strong>Devolución</strong></td><td><span class="badge badge-green">Suma</span></td><td>Devolución de maquinaria</td></tr>
+            <tr><td><strong>Entrada Reposición Maquinaria</strong></td><td><span class="badge badge-green">Suma</span></td><td>Devolución de asignación con reposición</td></tr>
+            <tr><td><strong>Asignación Maquinaria con Reposición</strong></td><td><span class="badge badge-red">Resta</span></td><td>Salida temporal, se espera devolución</td></tr>
+            <tr><td><strong>Asignación Maquinaria sin Reposición</strong></td><td><span class="badge badge-red">Resta</span></td><td>Salida definitiva</td></tr>
+            <tr><td><strong>Mantenimiento Maquinaria</strong></td><td><span class="badge badge-red">Resta</span></td><td>Envío a mantenimiento</td></tr>
+            <tr><td><strong>Transferencia Salida Maquinaria</strong></td><td><span class="badge badge-red">Resta</span></td><td>Traslado a otro depósito (salida)</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="warning">
+        <strong>Atención:</strong> Al igual que con insumos, la "Asignación Maquinaria sin Reposición" solo permite como destino <strong>Vehículos</strong> y <strong>Eventos</strong> (no empleados).
+    </div>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal "Nuevo Movimiento" de maquinarias mostrando la selección de maquinaria y tipo de movimiento</div>
+    </div>
+ 
+    <h3>Panel de Asignaciones Pendientes (Maquinarias)</h3>
+    <p>Funciona igual que el panel de insumos. Muestra maquinarias asignadas con reposición que están pendientes de devolución.</p>
+ 
+    <ul>
+        <li><strong>Devolver</strong> (botón verde): Registra la devolución. El stock sube.</li>
+        <li><strong>Dar de baja</strong> (botón rojo): Cancela la pendencia. El stock no se modifica.</li>
+    </ul>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Panel "Asignaciones Pendientes de Reposición" de maquinarias expandido, mostrando registros pendientes con botones Devolver y Baja</div>
+    </div>
+</div>
+ 
+<!-- ==================== 15. ADMINISTRACIÓN DE USUARIOS ==================== -->
+<div class="section" id="sec15">
+    <h2 class="section-title"><span class="section-number">15.</span> Administración de Usuarios y Permisos</h2>
+ 
+    <p>Esta sección permite gestionar los usuarios del sistema y configurar sus permisos de acceso de forma granular. Solo accesible para usuarios con permiso en el módulo "Usuarios".</p>
+ 
+    <h3>Ver usuarios</h3>
+ 
+    <table>
+        <thead>
+            <tr><th>Columna</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Nombre</strong></td><td>Nombre completo (columna ordenable, haga clic en el encabezado)</td></tr>
+            <tr><td><strong>Email</strong></td><td>Correo electrónico (columna ordenable)</td></tr>
+            <tr><td><strong>Rol</strong></td><td>Rol asignado. <span class="badge badge-purple">Administrador</span> se destaca en violeta</td></tr>
+            <tr><td><strong>Permisos</strong></td><td>Resumen: <span class="badge badge-green">Acceso total</span> para administradores; para otros roles muestra corralones con cantidad de módulos y módulos globales</td></tr>
+        </tbody>
+    </table>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Tabla de usuarios mostrando filas con distintos roles (Administrador con "Acceso total", otros con detalle de permisos por corralón)</div>
+    </div>
+ 
+    <h3>Filtros</h3>
+    <ul>
+        <li><strong>Rol:</strong> Filtrar por rol asignado.</li>
+        <li><strong>Tipo de Acceso:</strong> Todos / Administradores / Acceso limitado.</li>
+        <li><strong>Corralón:</strong> Filtrar por corralón asignado.</li>
+    </ul>
+ 
+    <h3>Crear / Editar un usuario</h3>
+ 
+    <ol class="steps">
+        <li>Haga clic en <strong>"Nuevo Usuario"</strong> o en el botón editar de la fila.</li>
+        <li>Complete los <strong>datos básicos</strong>: Nombre y Email.</li>
+        <li>Seleccione el <strong>Rol</strong>: cada rol se presenta como una tarjeta con nombre y descripción.</li>
+        <li>Ingrese la <strong>contraseña</strong> (al crear es obligatoria; al editar, déjela en blanco para mantener la actual).</li>
+        <li>Si el rol NO es Administrador, configure los <strong>permisos</strong> (ver abajo).</li>
+        <li>Haga clic en <strong>"Crear Usuario"</strong> o <strong>"Guardar Cambios"</strong>.</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Modal de creación/edición de usuario mostrando los campos básicos (Nombre, Email), la selección de Rol como tarjetas y los campos de contraseña</div>
+    </div>
+ 
+    <h3>Configuración de permisos</h3>
+ 
+    <p>Si el usuario tiene un rol distinto a <strong>Administrador</strong>, aparece la sección <strong>"Permisos de Acceso"</strong> con dos paneles:</p>
+ 
+    <h4>Módulos Globales</h4>
+    <p>Son módulos que no dependen de una ubicación específica:</p>
+ 
+    <table>
+        <thead>
+            <tr><th>Módulo</th><th>Descripción</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>Empleados</td><td>Gestión de empleados locales</td></tr>
+            <tr><td>Choferes</td><td>Gestión de conductores</td></tr>
+            <tr><td>Eventos</td><td>Gestión de eventos</td></tr>
+            <tr><td>Categorías Insumos</td><td>Categorías para insumos</td></tr>
+            <tr><td>Categorías Maquinarias</td><td>Categorías para maquinarias</td></tr>
+            <tr><td>Usuarios</td><td>Administración de usuarios</td></tr>
+        </tbody>
+    </table>
+ 
+    <p>Para cada módulo, puede configurar:</p>
+    <ul>
+        <li><strong>Ver:</strong> El usuario puede consultar datos pero no crear, editar ni eliminar.</li>
+        <li><strong>Editar:</strong> El usuario puede realizar todas las operaciones (crear, editar, eliminar).</li>
+        <li><strong>Sin seleccionar:</strong> El usuario no tiene acceso al módulo (no aparece en su menú).</li>
+    </ul>
+ 
+    <h4>Permisos por Corralón</h4>
+    <p>Permite asignar acceso a módulos específicos dentro de cada corralón:</p>
+ 
+    <ol class="steps">
+        <li><strong>Seleccione los corralones</strong> a los que el usuario tendrá acceso (botones azules que se activan/desactivan).</li>
+        <li>Para cada corralón seleccionado, configure los módulos disponibles:
+            <ul>
+                <li>Insumos</li>
+                <li>Maquinarias</li>
+                <li>Vehículos</li>
+                <li>Depósitos</li>
+                <li>Movimientos Insumos</li>
+                <li>Movimientos Maquinarias</li>
+            </ul>
+        </li>
+        <li>Cada módulo puede ser <strong>Ver</strong> (solo lectura) o <strong>Editar</strong> (lectura y escritura).</li>
+    </ol>
+ 
+    <div class="screenshot-placeholder">
+        <div class="icon">&#128248;</div>
+        <div class="label">Captura de pantalla</div>
+        <div class="description">Sección de permisos del modal de usuario mostrando: panel de Módulos Globales con toggles Ver/Editar, y panel de Permisos por Corralón con corralones seleccionados y módulos configurados</div>
+    </div>
+ 
+    <div class="note">
+        <strong>Ejemplo práctico:</strong> Un usuario "Operador" podría tener configurado:<br>
+        &bull; <strong>Módulos globales:</strong> Ver Empleados, Ver Choferes<br>
+        &bull; <strong>Corralón Central:</strong> Editar Insumos, Editar Movimientos Insumos, Ver Maquinarias<br>
+        &bull; <strong>Corralón Norte:</strong> Ver Insumos<br><br>
+        Este usuario podrá gestionar insumos y movimientos solo en el Corralón Central, consultar maquinarias del Central y solo ver insumos del Norte.
+    </div>
+ 
+    <div class="warning">
+        <strong>Importante:</strong> Los usuarios con rol <strong>Administrador</strong> tienen acceso total automático a todas las secciones y corralones. No es necesario (ni posible) configurar permisos individuales para administradores.
+    </div>
+</div>
+ 
+<!-- ==================== 16. PREGUNTAS FRECUENTES ==================== -->
+<div class="section" id="sec16">
+    <h2 class="section-title"><span class="section-number">16.</span> Preguntas Frecuentes</h2>
+ 
+    <h3>Acceso y navegación</h3>
+ 
+    <h4>No puedo ver alguna sección del menú</h4>
+    <p>Su usuario no tiene permisos asignados para esa sección. Contacte al administrador del sistema para solicitar acceso.</p>
+ 
+    <h4>Los datos que veo parecen incompletos</h4>
+    <p>El sistema filtra automáticamente los datos según los corralones y depósitos a los que usted tiene acceso. Si necesita ver más datos, solicite permisos adicionales al administrador.</p>
+ 
+    <h4>Olvidé mi contraseña</h4>
+    <p>Contacte al administrador del sistema. Él puede editar su usuario y asignarle una nueva contraseña.</p>
+ 
+    <h3>Insumos y stock</h3>
+ 
+    <h4>¿Cómo agrego stock a un insumo?</h4>
+    <p>Vaya a <strong>Movimientos Insumos</strong> &rarr; <strong>Nuevo Movimiento</strong> &rarr; seleccione el insumo &rarr; elija <strong>"Carga de Stock"</strong> &rarr; ingrese la cantidad. El stock se actualiza automáticamente.</p>
+ 
+    <h4>¿Puedo modificar el stock directamente?</h4>
+    <p>No. El stock se calcula automáticamente a partir de los movimientos registrados. Esto garantiza la trazabilidad completa de todas las operaciones. Si necesita corregir el stock, use "Ajuste Positivo" o "Ajuste Negativo".</p>
+ 
+    <h4>¿Qué significa "Stock bajo mínimo"?</h4>
+    <p>Significa que la cantidad actual del insumo está por debajo del nivel mínimo configurado. Aparece como alerta en el Dashboard y se resalta en rojo en la lista de insumos.</p>
+ 
+    <h4>¿Qué diferencia hay entre "Asignación con Reposición" y "sin Reposición"?</h4>
+    <p>La <strong>con reposición</strong> es una salida temporal &mdash; se espera que el material se devuelva (aparece en el panel de Asignaciones Pendientes). La <strong>sin reposición</strong> es una salida definitiva &mdash; no se espera devolución.</p>
+ 
+    <h3>Transferencias</h3>
+ 
+    <h4>¿Puedo transferir múltiples insumos a la vez?</h4>
+    <p>Sí. Use el botón <strong>"Nueva Transferencia"</strong> (violeta) para crear una transferencia con varios insumos en una sola operación.</p>
+ 
+    <h4>¿Qué hace el botón de flechas en la lista de movimientos?</h4>
+    <p>Permite crear rápidamente una nueva transferencia tomando como origen el destino del movimiento seleccionado y precargando los mismos insumos. Es útil para reenviar materiales que acaban de llegar.</p>
+ 
+    <h3>Vehículos</h3>
+ 
+    <h4>¿Cómo veo los documentos de un vehículo?</h4>
+    <p>En la tabla de vehículos, haga clic en el botón de <strong>documentos</strong> (ícono de documento con número) en la fila del vehículo. Se abre una ventana con todos los documentos adjuntos.</p>
+ 
+    <h4>¿Qué significan los colores en el vencimiento de VTV?</h4>
+    <p><span class="badge badge-red">Rojo</span> = ya vencida. <span class="badge badge-orange">Naranja</span> = vence en menos de 7 días. <span class="badge badge-yellow">Amarillo</span> = vence en menos de 30 días.</p>
+ 
+    <h3>Usuarios y permisos</h3>
+ 
+    <h4>¿Puedo eliminar mi propio usuario?</h4>
+    <p>No. El sistema no permite que un usuario se elimine a sí mismo por seguridad.</p>
+ 
+    <h4>¿Qué pasa si asigno el rol Administrador?</h4>
+    <p>Los administradores tienen acceso total a todas las secciones y todos los corralones automáticamente. No es necesario ni posible configurar permisos individuales para este rol.</p>
+ 
+    <h4>Un usuario no puede ver datos de un corralón</h4>
+    <p>Verifique que en la sección de permisos del usuario se haya seleccionado el corralón correspondiente y se hayan activado los módulos necesarios con nivel "Ver" o "Editar".</p>
+</div>
+ 
+<!-- ==================== PIE DE PÁGINA ==================== -->
+<div class="page-footer" style="margin-top: 4rem;">
+    <hr>
+    <p><strong>Sistema de Gestión de Stock</strong> &mdash; Manual de Usuario v1.0</p>
+    <p>Municipalidad de Mercedes &mdash; Mayo 2026</p>
+    <p>Uso interno &mdash; Documento confidencial</p>
+</div>
+ 
+</body>
+</html>
