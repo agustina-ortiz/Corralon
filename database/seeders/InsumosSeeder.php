@@ -7,52 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class InsumosSeeder extends Seeder
 {
-    /**
-     * Seeder de insumos — inventario inicial tomado el 05/02/2026.
-     *
-     * Antes de correr este seeder asegurate de que existan:
-     *   - Las categorías con IDs 17 (Electromecanica) y 18 (Espacios Verdes)
-     *   - Los depósitos con IDs 10 (Baterías) y 20 (Hormigón)
-     *
-     * Todos esos registros son creados por este seeder si aún no existen.
-     *
-     * IMPORTANTE: Este seeder usa INSERT con IDs explícitos para preservar
-     * las referencias originales. Si la tabla ya tiene datos ejecutá primero:
-     *   php artisan db:seed --class=InsumosSeeder
-     * sobre una tabla vacía, o adaptá el método a tu flujo de migración.
-     */
+
     public function run(): void
     {
-        // ----------------------------------------------------------------
-        // 1. Categorías nuevas (Electromecanica y Espacios Verdes)
-        // ----------------------------------------------------------------
-        $categoriasNuevas = [
-            ['id' => 17, 'nombre' => 'Electromecanica', 'descripcion' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 18, 'nombre' => 'Espacios Verdes',  'descripcion' => null, 'created_at' => now(), 'updated_at' => now()],
-        ];
-
-        foreach ($categoriasNuevas as $cat) {
-            DB::table('categorias_insumos')->updateOrInsert(
-                ['id' => $cat['id']],
-                $cat
-            );
-        }
-
-        // ----------------------------------------------------------------
-        // 2. Depósitos nuevos (Baterías id=10, Hormigón id=20)
-        //    Se detecta automáticamente el id_corralon del corralon 1
-        // ----------------------------------------------------------------
-        $depositosNuevos = [
-            ['id' => 10, 'deposito' => 'Baterías',  'id_corralon' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 20, 'deposito' => 'Hormigón',  'id_corralon' => 2, 'created_at' => now(), 'updated_at' => now()],
-        ];
-
-        foreach ($depositosNuevos as $dep) {
-            DB::table('depositos')->updateOrInsert(
-                ['id' => $dep['id']],
-                $dep
-            );
-        }
 
         // ----------------------------------------------------------------
         // 3. Insumos — lote principal
@@ -1013,5 +970,55 @@ class InsumosSeeder extends Seeder
 
         $total = count($insumos);
         $this->command->info("✓ {$total} insumos insertados correctamente.");
+
+        // ----------------------------------------------------------------
+        // 4. Movimientos de Inventario Inicial para cada insumo con stock > 0
+        // ----------------------------------------------------------------
+        $tipoInventarioInicial = DB::table('tipo_movimientos')
+            ->where('tipo_movimiento', 'Inventario Inicial')
+            ->value('id');
+
+        if (!$tipoInventarioInicial) {
+            $this->command->warn('⚠ Tipo de movimiento "Inventario Inicial" no encontrado. No se crearon movimientos.');
+            return;
+        }
+
+        $insumosConStock = DB::table('insumos')
+            ->whereIn('id_deposito', collect($insumos)->pluck('id_deposito')->unique()->toArray())
+            ->where('stock_actual', '>', 0)
+            ->get();
+
+        $movimientos = 0;
+        $fecha = '2026-05-15';
+
+        foreach ($insumosConStock as $insumo) {
+            $encabezadoId = DB::table('movimiento_encabezados')->insertGetId([
+                'fecha'              => $fecha,
+                'id_deposito_origen' => $insumo->id_deposito,
+                'id_deposito_destino'=> $insumo->id_deposito,
+                'observaciones'      => 'Inventario inicial - Seeder',
+                'id_usuario'         => 1,
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ]);
+
+            DB::table('movimiento_insumos')->insert([
+                'id_movimiento_encabezado' => $encabezadoId,
+                'id_insumo'          => $insumo->id,
+                'id_tipo_movimiento' => $tipoInventarioInicial,
+                'cantidad'           => $insumo->stock_actual,
+                'fecha'              => $fecha,
+                'id_usuario'         => 1,
+                'id_deposito_entrada'=> $insumo->id_deposito,
+                'id_referencia'      => 0,
+                'tipo_referencia'    => 'inventario',
+                'created_at'         => now(),
+                'updated_at'         => now(),
+            ]);
+
+            $movimientos++;
+        }
+
+        $this->command->info("✓ {$movimientos} movimientos de inventario inicial creados.");
     }
 }
