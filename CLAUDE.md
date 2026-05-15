@@ -256,14 +256,13 @@ Los movimientos (`movimiento_insumos`, `movimiento_maquinarias`) tienen:
 | `DepositosSeeder` | Depósitos vinculados a corralones |
 | `CategoriasInsumosSeeder` | Categorías de insumos |
 | `CategoriasMaquinariasSeeder` | Categorías de maquinaria |
-| `InsumosSeeder` | Insumos con movimientos iniciales de stock |
-| `InsumosEconomiaSeeder` | Insumos específicos de la secretaría de economía |
-| `MaquinariasSeeder` | Maquinarias de prueba |
+| `InsumosSeeder` | Insumos con movimientos de Inventario Inicial (crea `MovimientoEncabezado` + `MovimientoInsumo` por cada insumo con stock > 0) |
+| `InsumosEconomiaSeeder` | Insumos de la secretaría de economía con movimientos de Inventario Inicial |
+| `MaquinariasSeeder` | Maquinarias con movimientos de Inventario Inicial Maquinaria (crea `MovimientoMaquinaria` por cada maquinaria con cantidad > 0) |
 | `VehiculosSeeder` | Vehículos con fechas de VTV y póliza |
 | `ChoferesSeeder` | Choferes con licencias y asignaciones de vehículos |
-| `MovimientosInventarioInicialSeeder` | Crea un `MovimientoEncabezado` + `MovimientoInsumo` por cada insumo con stock > 0, usando tipo_movimiento id=7 (Inventario Inicial). Idempotente: no duplica si ya existe. Fecha de relevamiento: 2026-02-05 |
 
-Orden de ejecución: Corralones → Depositos → Categorías → Insumos → Maquinarias → Vehículos → Choferes → MovimientosInventarioInicial
+Orden de ejecución: Corralones → Depositos → Categorías → Insumos → InsumosEconomia → Maquinarias → Vehículos → Choferes
 
 ---
 
