@@ -992,18 +992,7 @@ class InsumosSeeder extends Seeder
         $fecha = '2026-05-15';
 
         foreach ($insumosConStock as $insumo) {
-            $encabezadoId = DB::table('movimiento_encabezados')->insertGetId([
-                'fecha'              => $fecha,
-                'id_deposito_origen' => $insumo->id_deposito,
-                'id_deposito_destino'=> $insumo->id_deposito,
-                'observaciones'      => 'Inventario inicial - Seeder',
-                'id_usuario'         => 1,
-                'created_at'         => now(),
-                'updated_at'         => now(),
-            ]);
-
             DB::table('movimiento_insumos')->insert([
-                'id_movimiento_encabezado' => $encabezadoId,
                 'id_insumo'          => $insumo->id,
                 'id_tipo_movimiento' => $tipoInventarioInicial,
                 'cantidad'           => $insumo->stock_actual,
