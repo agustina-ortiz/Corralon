@@ -286,15 +286,16 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto w-full lg:w-auto">
             <!-- Header -->
-            <header class="bg-white shadow-sm">
-                <div class="px-4 sm:px-6 flex items-center">
+            <header class="bg-white shadow-sm lg:hidden">
+                <div class="px-4 py-3 flex items-center">
                     <!-- Botón hamburguesa para móvil -->
-                    <button @click="sidebarOpen = true" 
-                            class="lg:hidden mr-4 text-gray-600 hover:text-gray-900 focus:outline-none">
+                    <button @click="sidebarOpen = true"
+                            class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#77BF43]">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
+                    <span class="ml-3 text-sm font-semibold text-gray-700">Gestión de Stock</span>
                 </div>
             </header>
 
