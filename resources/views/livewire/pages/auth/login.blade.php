@@ -28,7 +28,7 @@ new #[Layout('layouts.guest')] class extends Component
 <div class="min-h-screen flex">
 
     {{-- Panel izquierdo decorativo --}}
-    <div class="hidden lg:flex lg:w-1/2 flex-col justify-between px-16 py-14 relative bg-transparent">
+    <div class="hidden lg:flex lg:w-1/2 flex-col justify-between px-16 py-14 relative rounded-r-3xl" style="background-color: #5a8c0b;">
 
         {{-- Patrón de puntos decorativo --}}
         <div class="absolute inset-0 opacity-10 pointer-events-none"
@@ -87,7 +87,7 @@ new #[Layout('layouts.guest')] class extends Component
     </div>
 
     {{-- Panel derecho — formulario --}}
-    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center px-10 py-14 bg-transparent">
+    <div class="w-full lg:w-1/2 flex flex-col justify-center items-center px-10 py-14">
 
         {{-- Header mobile --}}
         <div class="lg:hidden text-center mb-10">
@@ -122,7 +122,7 @@ new #[Layout('layouts.guest')] class extends Component
                         wire:model="form.email"
                         id="email"
                         type="email"
-                        class="block w-full pl-9 rounded-lg border-gray-300 focus:border-[#77BF43] focus:ring-[#77BF43]"
+                        class="block w-full pl-9 rounded-lg bg-white border-gray-300 shadow-sm focus:border-[#77BF43] focus:ring-[#77BF43]"
                         required
                         autofocus
                         placeholder="usuario@ejemplo.com"
@@ -145,7 +145,7 @@ new #[Layout('layouts.guest')] class extends Component
                         wire:model="form.password"
                         id="password"
                         x-bind:type="show ? 'text' : 'password'"
-                        class="block w-full pl-9 pr-10 rounded-lg border-gray-300 focus:border-[#77BF43] focus:ring-[#77BF43]"
+                        class="block w-full pl-9 pr-10 rounded-lg bg-white border-gray-300 shadow-sm focus:border-[#77BF43] focus:ring-[#77BF43]"
                         required
                         placeholder="••••••••"
                     />
