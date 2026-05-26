@@ -30,6 +30,25 @@ class VehiculosSeeder extends Seeder
         DB::statement('ALTER TABLE vehiculos AUTO_INCREMENT = 1');
         DB::statement('ALTER TABLE tipos_vehiculos AUTO_INCREMENT = 1');
 
+        // Asegurar que existan todas las secretarías necesarias
+        $secretarias = [
+            1 => 'Servicios Públicos',
+            2 => 'Seguridad',
+            4 => 'Desarrollo de la Comunidad',
+            5 => 'Gobierno',
+            6 => 'Educación',
+        ];
+        foreach ($secretarias as $id => $nombre) {
+            if (!DB::table('secretarias')->where('id', $id)->exists()) {
+                DB::table('secretarias')->insert([
+                    'id' => $id,
+                    'secretaria' => $nombre,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        }
+
         // Insertar tipos de vehículos
         $tipos = [
             ['id' => 1,  'descripcion' => 'Automóvil'],
