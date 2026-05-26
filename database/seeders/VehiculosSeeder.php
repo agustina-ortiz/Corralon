@@ -22,12 +22,13 @@ class VehiculosSeeder extends Seeder
     {
         $now = Carbon::now();
 
-        // Desactivar FK checks para truncar
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        DB::table('choferes_vehiculos')->truncate();
-        DB::table('vehiculos')->truncate();
-        DB::table('tipos_vehiculos')->truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // Vaciar tablas relacionadas y vehiculos
+        DB::table('documentos_vehiculos')->delete();
+        DB::table('choferes_vehiculos')->delete();
+        DB::table('vehiculos')->delete();
+        DB::table('tipos_vehiculos')->delete();
+        DB::statement('ALTER TABLE vehiculos AUTO_INCREMENT = 1');
+        DB::statement('ALTER TABLE tipos_vehiculos AUTO_INCREMENT = 1');
 
         // Insertar tipos de vehículos
         $tipos = [
