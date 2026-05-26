@@ -485,6 +485,7 @@ class VehiculosSeeder extends Seeder
                 'id_secretaria'     => $v[8],
                 'area'              => $v[9],
                 'estado'            => $v[10],
+                'id_deposito'       => null,
                 'created_at'        => $now,
                 'updated_at'        => $now,
             ]);
