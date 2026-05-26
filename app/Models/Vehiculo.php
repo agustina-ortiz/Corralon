@@ -14,6 +14,7 @@ class Vehiculo extends Model
      protected $table = 'vehiculos';
     
     protected $fillable = [
+        'id_tipo_vehiculo',
         'nro_patrimonio',
         'vehiculo',
         'marca_modelo',
@@ -31,6 +32,7 @@ class Vehiculo extends Model
         'nro_telepase',
         'id_secretaria',
         'estado',
+        'area',
         'id_deposito',
     ];
 
@@ -43,6 +45,11 @@ class Vehiculo extends Model
     public function getNombreAttribute()
     {
         return $this->vehiculo;
+    }
+
+    public function tipoVehiculo(): BelongsTo
+    {
+        return $this->belongsTo(TipoVehiculo::class, 'id_tipo_vehiculo');
     }
 
     public function deposito(): BelongsTo
