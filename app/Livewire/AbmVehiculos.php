@@ -24,7 +24,7 @@ class AbmVehiculos extends Component
     // Filtros
     public $filtro_marca_modelo = '';
     public $filtro_estado = '';
-    public $filtro_deposito = '';
+    public $filtro_secretaria = '';
 
     // Campos del formulario
     public $nro_patrimonio;
@@ -120,13 +120,13 @@ class AbmVehiculos extends Component
     public function updatingSearch() { $this->resetPage(); }
     public function updatingFiltroMarcaModelo() { $this->resetPage(); }
     public function updatingFiltroEstado() { $this->resetPage(); }
-    public function updatingFiltroDeposito() { $this->resetPage(); }
+    public function updatingFiltroSecretaria() { $this->resetPage(); }
 
     public function limpiarFiltros()
     {
         $this->filtro_marca_modelo = '';
         $this->filtro_estado = '';
-        $this->filtro_deposito = '';
+        $this->filtro_secretaria = '';
         $this->resetPage();
     }
 
@@ -145,7 +145,7 @@ class AbmVehiculos extends Component
             })
             ->when($this->filtro_marca_modelo, fn($q) => $q->where('marca_modelo', $this->filtro_marca_modelo))
             ->when($this->filtro_estado, fn($q) => $q->where('estado', $this->filtro_estado))
-            ->when($this->filtro_deposito, fn($q) => $q->where('id_deposito', $this->filtro_deposito))
+            ->when($this->filtro_secretaria, fn($q) => $q->where('id_secretaria', $this->filtro_secretaria))
             ->orderBy('vehiculo')
             ->paginate(10);
 
