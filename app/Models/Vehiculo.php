@@ -57,6 +57,11 @@ class Vehiculo extends Model
         return $this->belongsTo(Deposito::class, 'id_deposito');
     }
 
+    public function secretaria(): BelongsTo
+    {
+        return $this->belongsTo(Secretaria::class, 'id_secretaria');
+    }
+
     public function documentos()
     {
         return $this->hasMany(DocumentoVehiculo::class, 'id_vehiculo');

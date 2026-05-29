@@ -102,10 +102,9 @@
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
                         <option value="">Todos los estados</option>
-                        <option value="disponible">Disponible</option>
-                        <option value="en_uso">En Uso</option>
-                        <option value="mantenimiento">Mantenimiento</option>
-                        <option value="fuera_de_servicio">Fuera de Servicio</option>
+                        <option value="EN USO">En Uso</option>
+                        <option value="BAJA">Baja</option>
+                        <option value="MANTENIMIENTO">Mantenimiento</option>
                     </select>
                 </div>
 
@@ -156,7 +155,7 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Corralón</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Secretaría</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vencimiento VTV</th>
                         <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Documentos</th>
                         @if($puedeEditar || $puedeEliminar)
@@ -179,16 +178,14 @@
                             <td class="px-6 py-4">
                                 @php
                                     $estadoClasses = [
-                                        'disponible' => 'from-green-50 to-green-100 text-green-700 border-green-200',
-                                        'en_uso' => 'from-blue-50 to-blue-100 text-blue-700 border-blue-200',
-                                        'mantenimiento' => 'from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
-                                        'fuera_de_servicio' => 'from-red-50 to-red-100 text-red-700 border-red-200',
+                                        'EN USO' => 'from-blue-50 to-blue-100 text-blue-700 border-blue-200',
+                                        'BAJA' => 'from-red-50 to-red-100 text-red-700 border-red-200',
+                                        'MANTENIMIENTO' => 'from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
                                     ];
                                     $estadoNombres = [
-                                        'disponible' => 'Disponible',
-                                        'en_uso' => 'En Uso',
-                                        'mantenimiento' => 'Mantenimiento',
-                                        'fuera_de_servicio' => 'Fuera de Servicio',
+                                        'EN USO' => 'En Uso',
+                                        'BAJA' => 'Baja',
+                                        'MANTENIMIENTO' => 'Mantenimiento',
                                     ];
                                 @endphp
                                 <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r {{ $estadoClasses[$item->estado] ?? 'from-gray-50 to-gray-100 text-gray-700 border-gray-200' }} border">
@@ -197,7 +194,7 @@
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
                                 <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                                    {{ $item->deposito?->corralon?->descripcion ?? 'Sin corralón' }}
+                                    {{ $item->secretaria?->secretaria ?? 'Sin secretaría' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
@@ -553,27 +550,26 @@
                                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                             >
                                                 <option value="">Seleccione un estado</option>
-                                                <option value="disponible">Disponible</option>
-                                                <option value="en_uso">En Uso</option>
-                                                <option value="mantenimiento">Mantenimiento</option>
-                                                <option value="fuera_de_servicio">Fuera de Servicio</option>
+                                                <option value="EN USO">En Uso</option>
+                                                <option value="BAJA">Baja</option>
+                                                <option value="MANTENIMIENTO">Mantenimiento</option>
                                             </select>
                                             @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
 
-                                        <!-- Depósito -->
+                                        <!-- Secretaría -->
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
-                                            <select 
-                                                wire:model="id_deposito"
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
+                                            <select
+                                                wire:model="id_secretaria"
                                                 class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                                             >
-                                                <option value="">Seleccione un depósito</option>
-                                                @foreach($depositos as $deposito)
-                                                    <option value="{{ $deposito->id }}">{{ $deposito->deposito }} ({{ $deposito->corralon?->descripcion ?? 'Sin corralón' }})</option>
+                                                <option value="">Seleccione una secretaría</option>
+                                                @foreach($secretarias as $secretaria)
+                                                    <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
                                                 @endforeach
                                             </select>
-                                            @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
                                 </div>

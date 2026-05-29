@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use App\Models\Vehiculo;
 use App\Models\Deposito;
 use App\Models\DocumentoVehiculo;
+use App\Models\Secretaria;
 use Illuminate\Support\Facades\Storage;
 
 class AbmVehiculos extends Component
@@ -44,6 +45,7 @@ class AbmVehiculos extends Component
     public $nro_telepase;
     public $estado;
     public $id_deposito;
+    public $id_secretaria;
 
     // Documentos
     public $nuevo_documento;
@@ -76,8 +78,9 @@ class AbmVehiculos extends Component
             'origen' => 'nullable|string|max:255',
             'jurisdiccion_procedencia' => 'nullable|string|max:255',
             'nro_telepase' => 'nullable|string|max:255',
-            'estado' => 'required|in:disponible,en_uso,mantenimiento,fuera_de_servicio',
+            'estado' => 'required|in:EN USO,BAJA,MANTENIMIENTO',
             'id_deposito' => 'nullable|exists:depositos,id',
+            'id_secretaria' => 'nullable|exists:secretarias,id',
         ];
     }
 
@@ -131,7 +134,7 @@ class AbmVehiculos extends Component
     {
         $user = auth()->user();
 
-        $vehiculos = Vehiculo::with(['deposito'])
+        $vehiculos = Vehiculo::with(['deposito', 'secretaria'])
             ->withCount('documentos')
             ->porCorralonesPermitidos()
             ->where(function($query) {
@@ -154,10 +157,13 @@ class AbmVehiculos extends Component
 
         $marcasModelos = Vehiculo::select('marca_modelo')->distinct()->whereNotNull('marca_modelo')->orderBy('marca_modelo')->pluck('marca_modelo');
 
+        $secretarias = Secretaria::orderBy('secretaria')->get();
+
         return view('livewire.abm-vehiculos', [
             'vehiculos' => $vehiculos,
             'depositos' => $depositos,
             'marcasModelos' => $marcasModelos,
+            'secretarias' => $secretarias,
             'puedeCrear' => $user->puedeCrearVehiculos(),
             'puedeEditar' => $user->puedeEditarVehiculos(),
             'puedeEliminar' => $user->puedeEliminarVehiculos(),
@@ -239,6 +245,7 @@ class AbmVehiculos extends Component
         $this->nro_telepase = $vehiculo->nro_telepase;
         $this->estado = $vehiculo->estado;
         $this->id_deposito = $vehiculo->id_deposito;
+        $this->id_secretaria = $vehiculo->id_secretaria;
 
         $this->editMode = true;
         $this->showModal = true;
@@ -284,7 +291,7 @@ class AbmVehiculos extends Component
             'origen' => $this->origen,
             'jurisdiccion_procedencia' => $this->jurisdiccion_procedencia,
             'nro_telepase' => $this->nro_telepase,
-            'id_secretaria' => null,
+            'id_secretaria' => $this->id_secretaria ?: null,
             'estado' => $this->estado,
             'id_deposito' => $this->id_deposito,
         ];
@@ -418,7 +425,8 @@ class AbmVehiculos extends Component
             'jurisdiccion_procedencia',
             'nro_telepase',
             'estado',
-            'id_deposito'
+            'id_deposito',
+            'id_secretaria'
         ]);
         $this->editMode = false;
         $this->resetErrorBag();
