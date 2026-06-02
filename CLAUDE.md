@@ -59,8 +59,8 @@ routes/
 | `Evento` | `eventos` | Eventos programados |
 | `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relación `areas()` |
 | `Area` | `areas` | Áreas dentro de una secretaría (`id_secretaria`, `area`) |
-| `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock. Campos opcionales `id_secretaria` y `area` para Ajuste Negativo |
-| `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos. Campos opcionales `id_secretaria` y `area` para Ajuste Negativo |
+| `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock. Campos opcionales `id_secretaria` y `area` (Ajuste Negativo), `nro_orden_compra` y `observaciones` |
+| `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos. Campos opcionales `id_secretaria` y `area` (Ajuste Negativo), `nro_orden_compra` y `observaciones` |
 | `TipoMovimiento` | `tipo_movimientos` | Tipos de movimiento (columna `tipo`: I=Insumos, M=Maquinaria, IM=ambos) |
 | `CategoriaInsumo` | `categorias_insumos` | Categorías de insumos |
 | `CategoriaMaquinaria` | `categoria_maquinarias` | Categorías de maquinaria |
@@ -70,6 +70,7 @@ routes/
 | `Cuadrilla` | `cuadrillas` | Cuadrillas de trabajo (ligadas a corralon y deposito) |
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 | `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
+| `ComprobanteMovimientoMaquinaria` | `comprobantes_movimiento_maquinaria` | Archivos adjuntos a movimientos de maquinarias (FK a `movimiento_maquinarias`) |
 | `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Scope `activos()`, accessor `nombre_formateado` |
 
 ---
@@ -94,6 +95,8 @@ routes/
 | `/transferencias-maquinarias` | TransferenciasMaquinarias | `movimientos_maquinarias` |
 | `/comprobantes/{id}/ver` | Closure (ruta) | autenticado |
 | `/comprobantes/{id}/descargar` | Closure (ruta) | autenticado |
+| `/comprobantes-maquinaria/{id}/ver` | Closure (ruta) | autenticado |
+| `/comprobantes-maquinaria/{id}/descargar` | Closure (ruta) | autenticado |
 
 ---
 
@@ -194,16 +197,26 @@ Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) qu
 
 ### Comprobantes adjuntos en movimientos
 
-Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** permiten adjuntar comprobantes (órdenes de compra, recibos, etc.):
+Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** (insumos **y** maquinarias) permiten adjuntar comprobantes (órdenes de compra, recibos, etc.):
 
-- **Modelo:** `ComprobanteMovimiento` — tabla `comprobantes_movimiento` con FK a `movimiento_insumos`
-- **Almacenamiento:** disco `local` (privado, `storage/app/private/comprobantes/`), no accesible por URL directa
+- **Modelos:** `ComprobanteMovimiento` (tabla `comprobantes_movimiento`, FK a `movimiento_insumos`) y `ComprobanteMovimientoMaquinaria` (tabla `comprobantes_movimiento_maquinaria`, FK a `movimiento_maquinarias`)
+- **Almacenamiento:** disco `local` (privado), insumos en `storage/app/private/comprobantes/` y maquinarias en `storage/app/private/comprobantes-maquinaria/`, no accesibles por URL directa
 - **Archivos permitidos:** PDF, JPG, PNG — máximo 5 archivos por movimiento, 5 MB cada uno
 - **Campo opcional** en paso 3 del modal de nuevo movimiento
-- **`nro_orden_compra`:** campo opcional en `movimiento_insumos` para registrar el número de orden de compra o suministro (solo Carga de Stock y Ajuste Positivo). Se muestra en la lista como "OC: ..." debajo del tipo de movimiento.
+- **`nro_orden_compra`:** campo opcional en `movimiento_insumos` y `movimiento_maquinarias` para registrar el número de orden de compra o suministro (solo Carga de Stock y Ajuste Positivo). Se muestra en la lista como "OC: ..." debajo del tipo de movimiento.
+- **`observaciones`:** campo opcional (text nullable) en ambas tablas de movimientos; se guarda al crear Carga de Stock / Ajuste Positivo.
 - **Visualización:** ícono de clip en la lista de movimientos, con dropdown que muestra los archivos adjuntos
-- **Acciones:** ver (abre inline en el navegador) y descargar (fuerza descarga) — ambas rutas protegidas por autenticación
-- El componente usa `WithFileUploads` de Livewire para la subida de archivos
+- **Acciones:** ver (abre inline en el navegador) y descargar (fuerza descarga) — rutas protegidas por autenticación (`comprobantes.*` y `comprobantes-maquinaria.*`)
+- Ambos componentes (`TransferenciasInsumos`, `TransferenciasMaquinarias`) usan `WithFileUploads` de Livewire para la subida de archivos
+
+### Edición de movimientos (Carga de Stock / Ajuste Positivo)
+
+Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista muestra un **botón de edición (lápiz ámbar)** en la columna Usuario (solo visible con permiso de crear movimientos). Abre un modal que permite editar **únicamente**:
+- `nro_orden_compra`
+- `observaciones`
+- Comprobantes adjuntos: agregar nuevos, ver y eliminar existentes (tope total de 5 archivos)
+
+Métodos en ambos componentes: `abrirEdicion($id)`, `guardarEdicion()`, `eliminarComprobanteExistente($id)`, `removeEditComprobante($index)`, `cerrarEdicion()`. Propiedades con prefijo `edit_*`. La edición valida que el tipo de movimiento esté en `TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo']`. El resto de los tipos (Inventario Inicial, asignaciones, ajuste negativo, transferencias) **no** muestran el botón.
 
 ### Ajuste Negativo — Secretaría y Área
 
