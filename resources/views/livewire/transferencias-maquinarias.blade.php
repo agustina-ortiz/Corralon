@@ -480,11 +480,48 @@
                             <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
                                 {{ $movimiento->tipoMovimiento->tipo_movimiento }}
                             </span>
+                            @if($movimiento->nro_orden_compra)
+                                <div class="text-xs text-gray-500 text-center mt-1">OC: {{ $movimiento->nro_orden_compra }}</div>
+                            @endif
                         </td>
-                        
+
                         <!-- Usuario -->
                         <td class="px-6 py-4 text-sm text-gray-500">
-                            {{ $movimiento->usuario->name }}
+                            <div class="flex items-center gap-2">
+                                <span>{{ $movimiento->usuario->name }}</span>
+                                @if($movimiento->comprobantes->count() > 0)
+                                    <div x-data="{ open: false }" class="relative">
+                                        <button type="button" @click="open = !open" class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Ver comprobantes ({{ $movimiento->comprobantes->count() }})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+                                            </svg>
+                                        </button>
+                                        <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-50 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
+                                            <div class="text-xs font-semibold text-gray-700 mb-2">Comprobantes adjuntos</div>
+                                            @foreach($movimiento->comprobantes as $comp)
+                                                <div class="flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50">
+                                                    <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
+                                                    <div class="flex items-center gap-1 flex-shrink-0">
+                                                        <a href="{{ route('comprobantes-maquinaria.ver', $comp->id) }}" target="_blank" title="Ver" class="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                        </a>
+                                                        <a href="{{ route('comprobantes-maquinaria.descargar', $comp->id) }}" title="Descargar" class="p-1 text-green-600 hover:bg-green-100 rounded transition-colors">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                                @if($puedeCrear && in_array($movimiento->tipoMovimiento->tipo_movimiento, ['Carga de Stock', 'Ajuste Positivo']))
+                                    <button type="button" wire:click="abrirEdicion({{ $movimiento->id }})" class="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Editar N° orden, observaciones y comprobantes">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -1261,10 +1298,50 @@
                                             </div>
                                         @endif
 
+                                        @if(in_array($tipo_movimiento, ['carga_stock', 'ajuste_positivo']))
+                                            <!-- N° Orden de Compra -->
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
+                                                <input
+                                                    type="text"
+                                                    wire:model="nro_orden_compra"
+                                                    placeholder="Opcional"
+                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                >
+                                                @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                            </div>
+
+                                            <!-- Comprobantes -->
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Comprobantes (PDF, JPG, PNG — máx. 5 archivos, 5 MB c/u)</label>
+                                                <input
+                                                    type="file"
+                                                    wire:model="comprobantes"
+                                                    multiple
+                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                    class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                                >
+                                                @error('comprobantes') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                @error('comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                <div wire:loading wire:target="comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
+
+                                                @if(count($comprobantes) > 0)
+                                                    <ul class="mt-2 space-y-1">
+                                                        @foreach($comprobantes as $index => $file)
+                                                            <li class="flex items-center justify-between gap-2 px-3 py-2 bg-blue-50 rounded-lg">
+                                                                <span class="text-sm text-gray-700 truncate flex-1">{{ $file->getClientOriginalName() }}</span>
+                                                                <button type="button" wire:click="removeComprobante({{ $index }})" class="text-red-500 hover:text-red-700 text-xs">Quitar</button>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                @endif
+                                            </div>
+                                        @endif
+
                                         <!-- Observaciones -->
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                                            <textarea 
+                                            <textarea
                                                 wire:model="observaciones"
                                                 rows="3"
                                                 placeholder="Motivo del movimiento (opcional)"
@@ -1311,6 +1388,100 @@
                                     </button>
                                 @endif
                             </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Edición de Movimiento (N° OC, observaciones, comprobantes) --}}
+    @if($showEditModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarEdicion"></div>
+
+                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-visible shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <form wire:submit.prevent="guardarEdicion">
+                        <div class="bg-white px-6 pt-6 pb-4 rounded-t-2xl">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="p-3 bg-amber-100 rounded-lg">
+                                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Editar Movimiento</h3>
+                                    <p class="text-sm text-gray-500">{{ $edit_movimiento_tipo }}</p>
+                                </div>
+                            </div>
+
+                            {{-- N° Orden de Compra --}}
+                            <div class="mb-5">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
+                                <input type="text" wire:model="edit_nro_orden_compra" placeholder="Opcional"
+                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-200">
+                                @error('edit_nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            {{-- Observaciones --}}
+                            <div class="mb-5">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                                <textarea wire:model="edit_observaciones" rows="3" placeholder="Opcional"
+                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-200"></textarea>
+                                @error('edit_observaciones') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+
+                            {{-- Comprobantes existentes --}}
+                            @if($comprobantesEdicion->count() > 0)
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Comprobantes adjuntos</label>
+                                    <div class="space-y-1">
+                                        @foreach($comprobantesEdicion as $comp)
+                                            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                                                <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
+                                                <div class="flex items-center gap-1 flex-shrink-0">
+                                                    <a href="{{ route('comprobantes-maquinaria.ver', $comp->id) }}" target="_blank" title="Ver" class="p-1 text-blue-600 hover:bg-blue-100 rounded">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                                    </a>
+                                                    <button type="button" wire:click="eliminarComprobanteExistente({{ $comp->id }})" wire:confirm="¿Eliminar este comprobante?" title="Eliminar" class="p-1 text-red-600 hover:bg-red-100 rounded">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Agregar nuevos comprobantes --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Agregar comprobantes (PDF, JPG, PNG — máx. 5 MB c/u)</label>
+                                <input type="file" wire:model="edit_comprobantes" multiple accept=".pdf,.jpg,.jpeg,.png"
+                                    class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                                @error('edit_comprobantes') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                @error('edit_comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                <div wire:loading wire:target="edit_comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
+
+                                @if(count($edit_comprobantes) > 0)
+                                    <ul class="mt-2 space-y-1">
+                                        @foreach($edit_comprobantes as $index => $file)
+                                            <li class="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 rounded-lg">
+                                                <span class="text-sm text-gray-700 truncate flex-1">{{ $file->getClientOriginalName() }}</span>
+                                                <button type="button" wire:click="removeEditComprobante({{ $index }})" class="text-red-500 hover:text-red-700 text-xs">Quitar</button>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 rounded-b-2xl">
+                            <button type="button" wire:click="cerrarEdicion" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium">Cancelar</button>
+                            <button type="submit" wire:loading.attr="disabled" wire:target="guardarEdicion,edit_comprobantes"
+                                class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30 transition-all duration-200 font-medium">
+                                Guardar Cambios
+                            </button>
                         </div>
                     </form>
                 </div>

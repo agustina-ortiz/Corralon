@@ -14,14 +14,16 @@ use App\Models\Evento;
 use App\Models\EmpleadoMunicipal;
 use App\Models\Secretaria;
 use App\Models\Area;
+use App\Models\ComprobanteMovimientoMaquinaria;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class TransferenciasMaquinarias extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public $search = '';
     public $showModal = false;
@@ -52,7 +54,17 @@ class TransferenciasMaquinarias extends Component
     public $id_deposito_destino = '';
     public $id_deposito_origen = '';
     public $observaciones = '';
+    public $nro_orden_compra = '';
+    public $comprobantes = [];
     public $fecha_devolucion_esperada = '';
+
+    // Edición de movimiento (solo nro OC, observaciones y comprobantes)
+    public $showEditModal = false;
+    public $edit_movimiento_id = null;
+    public $edit_movimiento_tipo = '';
+    public $edit_nro_orden_compra = '';
+    public $edit_observaciones = '';
+    public $edit_comprobantes = [];
 
     // Búsqueda de maquinarias
     public $search_maquinaria = '';
@@ -180,6 +192,9 @@ class TransferenciasMaquinarias extends Component
         if ($this->tipo_movimiento === 'carga_stock' || $this->tipo_movimiento === 'ajuste_positivo') {
             $rules['id_deposito_origen'] = 'required|exists:depositos,id';
             $rules['cantidad_a_cargar']  = ['required', 'integer', 'min:1', 'max:1000'];
+            $rules['nro_orden_compra']   = 'nullable|string|max:100';
+            $rules['comprobantes']       = 'nullable|array|max:5';
+            $rules['comprobantes.*']     = 'file|mimes:pdf,jpg,jpeg,png|max:5120';
         }
 
         if ($this->tipo_movimiento === 'ajuste_negativo') {
@@ -230,6 +245,9 @@ class TransferenciasMaquinarias extends Component
         'cantidad_a_cargar.max'             => 'La cantidad excede el límite permitido.',
         'tipo_destino.required'             => 'Debe seleccionar el tipo de destino (Vehículo, Evento o Empleado).',
         'id_referencia.required'            => 'Debe seleccionar un vehículo, evento o empleado.',
+        'comprobantes.max'                  => 'Puede adjuntar un máximo de 5 archivos.',
+        'comprobantes.*.mimes'              => 'Solo se permiten archivos PDF, JPG o PNG.',
+        'comprobantes.*.max'                => 'Cada archivo no debe superar los 5 MB.',
     ];
 
     public function mount()
@@ -322,6 +340,7 @@ class TransferenciasMaquinarias extends Component
             'tipoMovimiento',
             'usuario',
             'secretaria',
+            'comprobantes',
         ])
         ->whereHas('maquinaria', function ($query) use ($depositosAccesibles) {
             $query->whereIn('id_deposito', $depositosAccesibles);
@@ -548,8 +567,13 @@ class TransferenciasMaquinarias extends Component
 
         $secretarias = Secretaria::orderBy('secretaria')->get();
 
+        $comprobantesEdicion = $this->showEditModal && $this->edit_movimiento_id
+            ? ComprobanteMovimientoMaquinaria::where('id_movimiento_maquinaria', $this->edit_movimiento_id)->get()
+            : collect();
+
         return view('livewire.transferencias-maquinarias', [
             'movimientos'                          => $movimientos,
+            'comprobantesEdicion'                  => $comprobantesEdicion,
             'maquinarias_filtradas'                => $maquinarias_filtradas,
             'depositos'                            => $depositos,
             'categorias'                           => $categorias,
@@ -816,9 +840,11 @@ class TransferenciasMaquinarias extends Component
             $tipoMovimiento = $this->resolverTipo('Carga de Stock');
             $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
 
-            MovimientoMaquinaria::create([
+            $movimiento = MovimientoMaquinaria::create([
                 'id_maquinaria'      => $maquinaria->id,
                 'cantidad'           => $this->cantidad_a_cargar,
+                'nro_orden_compra'   => $this->nro_orden_compra ?: null,
+                'observaciones'      => $this->observaciones ?: null,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha'              => now(),
                 'fecha_devolucion'   => null,
@@ -827,6 +853,8 @@ class TransferenciasMaquinarias extends Component
                 'id_referencia'      => 0,
                 'tipo_referencia'    => 'deposito',
             ]);
+
+            $this->guardarComprobantes($movimiento->id);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
@@ -852,9 +880,11 @@ class TransferenciasMaquinarias extends Component
             $tipoMovimiento = $this->resolverTipo('Ajuste Positivo');
             $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
 
-            MovimientoMaquinaria::create([
+            $movimiento = MovimientoMaquinaria::create([
                 'id_maquinaria'      => $maquinaria->id,
                 'cantidad'           => $this->cantidad_a_cargar,
+                'nro_orden_compra'   => $this->nro_orden_compra ?: null,
+                'observaciones'      => $this->observaciones ?: null,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'fecha'              => now(),
                 'fecha_devolucion'   => null,
@@ -863,6 +893,8 @@ class TransferenciasMaquinarias extends Component
                 'id_referencia'      => 0,
                 'tipo_referencia'    => 'deposito',
             ]);
+
+            $this->guardarComprobantes($movimiento->id);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
@@ -1610,6 +1642,151 @@ class TransferenciasMaquinarias extends Component
         return $balance;
     }
 
+    // =========================================================
+    // COMPROBANTES
+    // =========================================================
+
+    public function removeComprobante($index)
+    {
+        $comprobantes = $this->comprobantes;
+        unset($comprobantes[$index]);
+        $this->comprobantes = array_values($comprobantes);
+    }
+
+    private function guardarComprobantes($movimientoId)
+    {
+        if (empty($this->comprobantes)) {
+            return;
+        }
+
+        foreach ($this->comprobantes as $file) {
+            $path = $file->store('comprobantes-maquinaria', 'local');
+            ComprobanteMovimientoMaquinaria::create([
+                'id_movimiento_maquinaria' => $movimientoId,
+                'archivo'                  => basename($path),
+                'nombre_original'          => $file->getClientOriginalName(),
+                'tipo_mime'                => $file->getMimeType(),
+            ]);
+        }
+    }
+
+    // =========================================================
+    // EDICIÓN DE MOVIMIENTO (nro OC, observaciones, comprobantes)
+    // =========================================================
+
+    /** Tipos de movimiento editables (los únicos que admiten OC y comprobantes). */
+    private const TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo'];
+
+    public function abrirEdicion($id)
+    {
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            return;
+        }
+
+        $movimiento = MovimientoMaquinaria::with('tipoMovimiento')->find($id);
+
+        if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
+            session()->flash('error', 'Este movimiento no se puede editar.');
+            return;
+        }
+
+        $this->edit_movimiento_id = $movimiento->id;
+        $this->edit_movimiento_tipo = $movimiento->tipoMovimiento->tipo_movimiento;
+        $this->edit_nro_orden_compra = $movimiento->nro_orden_compra;
+        $this->edit_observaciones = $movimiento->observaciones;
+        $this->edit_comprobantes = [];
+        $this->resetErrorBag();
+        $this->showEditModal = true;
+    }
+
+    public function removeEditComprobante($index)
+    {
+        $comprobantes = $this->edit_comprobantes;
+        unset($comprobantes[$index]);
+        $this->edit_comprobantes = array_values($comprobantes);
+    }
+
+    public function eliminarComprobanteExistente($comprobanteId)
+    {
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            return;
+        }
+
+        $comprobante = ComprobanteMovimientoMaquinaria::where('id', $comprobanteId)
+            ->where('id_movimiento_maquinaria', $this->edit_movimiento_id)
+            ->first();
+
+        if ($comprobante) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete('comprobantes-maquinaria/' . $comprobante->archivo);
+            $comprobante->delete();
+            session()->flash('message', 'Comprobante eliminado.');
+        }
+    }
+
+    public function guardarEdicion()
+    {
+        if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
+            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->cerrarEdicion();
+            return;
+        }
+
+        $this->validate([
+            'edit_nro_orden_compra' => 'nullable|string|max:100',
+            'edit_observaciones'    => 'nullable|string|max:500',
+            'edit_comprobantes'     => 'nullable|array|max:5',
+            'edit_comprobantes.*'   => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ], [
+            'edit_comprobantes.max'     => 'Puede adjuntar un máximo de 5 archivos.',
+            'edit_comprobantes.*.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',
+            'edit_comprobantes.*.max'   => 'Cada archivo no debe superar los 5 MB.',
+        ]);
+
+        $movimiento = MovimientoMaquinaria::with('tipoMovimiento')->find($this->edit_movimiento_id);
+
+        if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
+            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->cerrarEdicion();
+            return;
+        }
+
+        $existentes = ComprobanteMovimientoMaquinaria::where('id_movimiento_maquinaria', $movimiento->id)->count();
+        if ($existentes + count($this->edit_comprobantes) > 5) {
+            $this->addError('edit_comprobantes', 'El movimiento no puede superar los 5 comprobantes en total.');
+            return;
+        }
+
+        $movimiento->update([
+            'nro_orden_compra' => $this->edit_nro_orden_compra ?: null,
+            'observaciones'    => $this->edit_observaciones ?: null,
+        ]);
+
+        foreach ($this->edit_comprobantes as $file) {
+            $path = $file->store('comprobantes-maquinaria', 'local');
+            ComprobanteMovimientoMaquinaria::create([
+                'id_movimiento_maquinaria' => $movimiento->id,
+                'archivo'                  => basename($path),
+                'nombre_original'          => $file->getClientOriginalName(),
+                'tipo_mime'                => $file->getMimeType(),
+            ]);
+        }
+
+        session()->flash('message', 'Movimiento actualizado correctamente.');
+        $this->cerrarEdicion();
+    }
+
+    public function cerrarEdicion()
+    {
+        $this->showEditModal = false;
+        $this->edit_movimiento_id = null;
+        $this->edit_movimiento_tipo = '';
+        $this->edit_nro_orden_compra = '';
+        $this->edit_observaciones = '';
+        $this->edit_comprobantes = [];
+        $this->resetErrorBag();
+    }
+
     public function cerrarModal()
     {
         $this->showModal = false;
@@ -1625,6 +1802,8 @@ class TransferenciasMaquinarias extends Component
         $this->id_deposito_destino = '';
         $this->id_deposito_origen = '';
         $this->observaciones = '';
+        $this->nro_orden_compra = '';
+        $this->comprobantes = [];
         $this->fecha_devolucion_esperada = '';
         $this->cantidad_a_transferir = 1;
         $this->cantidad_a_asignar = 1;

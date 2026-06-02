@@ -92,6 +92,18 @@ Route::get('/comprobantes/{comprobante}/descargar', function (App\Models\Comprob
     );
 })->middleware(['auth'])->name('comprobantes.descargar');
 
+Route::get('/comprobantes-maquinaria/{comprobante}/ver', function (App\Models\ComprobanteMovimientoMaquinaria $comprobante) {
+    $path = storage_path('app/private/comprobantes-maquinaria/' . $comprobante->archivo);
+    return response()->file($path, ['Content-Type' => $comprobante->tipo_mime]);
+})->middleware(['auth'])->name('comprobantes-maquinaria.ver');
+
+Route::get('/comprobantes-maquinaria/{comprobante}/descargar', function (App\Models\ComprobanteMovimientoMaquinaria $comprobante) {
+    return response()->download(
+        storage_path('app/private/comprobantes-maquinaria/' . $comprobante->archivo),
+        $comprobante->nombre_original
+    );
+})->middleware(['auth'])->name('comprobantes-maquinaria.descargar');
+
 Route::post('/logout', function (Request $request) {
     Auth::logout();
     $request->session()->invalidate();

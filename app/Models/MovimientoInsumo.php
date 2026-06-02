@@ -16,6 +16,7 @@ class MovimientoInsumo extends Model
         'id_tipo_movimiento',
         'cantidad',
         'nro_orden_compra',
+        'observaciones',
         'fecha',
         'fecha_devolucion',
         'id_usuario',

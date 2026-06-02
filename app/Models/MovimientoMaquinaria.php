@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MovimientoMaquinaria extends Model
 {
@@ -12,6 +13,8 @@ class MovimientoMaquinaria extends Model
     protected $fillable = [
         'id_maquinaria',
         'cantidad',
+        'nro_orden_compra',
+        'observaciones',
         'id_tipo_movimiento',
         'fecha',
         'fecha_devolucion',
@@ -54,6 +57,11 @@ class MovimientoMaquinaria extends Model
     public function secretaria(): BelongsTo
     {
         return $this->belongsTo(Secretaria::class, 'id_secretaria');
+    }
+
+    public function comprobantes(): HasMany
+    {
+        return $this->hasMany(ComprobanteMovimientoMaquinaria::class, 'id_movimiento_maquinaria');
     }
 
     // Calcula el stock acumulado en el depósito específico hasta este movimiento

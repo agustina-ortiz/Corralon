@@ -73,7 +73,15 @@ class TransferenciasInsumos extends Component
     public $nro_orden_compra = '';
     public $observaciones = '';
     public $comprobantes = [];
-    
+
+    // Edición de movimiento (solo nro OC, observaciones y comprobantes)
+    public $showEditModal = false;
+    public $edit_movimiento_id = null;
+    public $edit_movimiento_tipo = '';
+    public $edit_nro_orden_compra = '';
+    public $edit_observaciones = '';
+    public $edit_comprobantes = [];
+
     // Campos para asignaciones (vehículo/evento)
     public $tipo_destino = ''; // 'vehiculo', 'evento' o 'empleado'
     public $id_referencia = '';
@@ -653,8 +661,13 @@ class TransferenciasInsumos extends Component
 
         $secretarias = Secretaria::orderBy('secretaria')->get();
 
+        $comprobantesEdicion = $this->showEditModal && $this->edit_movimiento_id
+            ? ComprobanteMovimiento::where('id_movimiento_insumo', $this->edit_movimiento_id)->get()
+            : collect();
+
         return view('livewire.transferencias-insumos', [
             'movimientos' => $movimientosPaginados,
+            'comprobantesEdicion' => $comprobantesEdicion,
             'insumos_filtrados' => $insumos_filtrados,
             'insumos_disponibles_transferencia' => $insumos_disponibles_transferencia,
             'depositos' => $depositos,
@@ -1221,6 +1234,7 @@ class TransferenciasInsumos extends Component
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
                 'nro_orden_compra' => $this->nro_orden_compra ?: null,
+                'observaciones' => $this->observaciones ?: null,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
@@ -1268,6 +1282,7 @@ class TransferenciasInsumos extends Component
                 'id_tipo_movimiento' => $tipoMovimiento->id,
                 'cantidad' => $this->cantidad,
                 'nro_orden_compra' => $this->nro_orden_compra ?: null,
+                'observaciones' => $this->observaciones ?: null,
                 'fecha' => now(),
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
@@ -1646,6 +1661,124 @@ class TransferenciasInsumos extends Component
     {
         $this->showModalTransferencia = false;
         $this->resetFormTransferencia();
+        $this->dispatch('refreshComponent');
+    }
+
+    // =========================================================
+    // EDICIÓN DE MOVIMIENTO (nro OC, observaciones, comprobantes)
+    // =========================================================
+
+    /** Tipos de movimiento editables (los únicos que admiten OC y comprobantes). */
+    private const TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo'];
+
+    public function abrirEdicion($id)
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            return;
+        }
+
+        $movimiento = MovimientoInsumo::with('tipoMovimiento')->find($id);
+
+        if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
+            session()->flash('error', 'Este movimiento no se puede editar.');
+            return;
+        }
+
+        $this->edit_movimiento_id = $movimiento->id;
+        $this->edit_movimiento_tipo = $movimiento->tipoMovimiento->tipo_movimiento;
+        $this->edit_nro_orden_compra = $movimiento->nro_orden_compra;
+        $this->edit_observaciones = $movimiento->observaciones;
+        $this->edit_comprobantes = [];
+        $this->resetErrorBag();
+        $this->showEditModal = true;
+    }
+
+    public function removeEditComprobante($index)
+    {
+        $comprobantes = $this->edit_comprobantes;
+        unset($comprobantes[$index]);
+        $this->edit_comprobantes = array_values($comprobantes);
+    }
+
+    public function eliminarComprobanteExistente($comprobanteId)
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            return;
+        }
+
+        $comprobante = ComprobanteMovimiento::where('id', $comprobanteId)
+            ->where('id_movimiento_insumo', $this->edit_movimiento_id)
+            ->first();
+
+        if ($comprobante) {
+            \Illuminate\Support\Facades\Storage::disk('local')->delete('comprobantes/' . $comprobante->archivo);
+            $comprobante->delete();
+            session()->flash('message', 'Comprobante eliminado.');
+        }
+    }
+
+    public function guardarEdicion()
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->cerrarEdicion();
+            return;
+        }
+
+        $this->validate([
+            'edit_nro_orden_compra' => 'nullable|string|max:100',
+            'edit_observaciones'    => 'nullable|string|max:500',
+            'edit_comprobantes'     => 'nullable|array|max:5',
+            'edit_comprobantes.*'   => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ], [
+            'edit_comprobantes.max'       => 'Puede adjuntar un máximo de 5 archivos.',
+            'edit_comprobantes.*.mimes'   => 'Solo se permiten archivos PDF, JPG o PNG.',
+            'edit_comprobantes.*.max'     => 'Cada archivo no debe superar los 5 MB.',
+        ]);
+
+        $movimiento = MovimientoInsumo::with('tipoMovimiento')->find($this->edit_movimiento_id);
+
+        if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
+            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->cerrarEdicion();
+            return;
+        }
+
+        $existentes = ComprobanteMovimiento::where('id_movimiento_insumo', $movimiento->id)->count();
+        if ($existentes + count($this->edit_comprobantes) > 5) {
+            $this->addError('edit_comprobantes', 'El movimiento no puede superar los 5 comprobantes en total.');
+            return;
+        }
+
+        $movimiento->update([
+            'nro_orden_compra' => $this->edit_nro_orden_compra ?: null,
+            'observaciones'    => $this->edit_observaciones ?: null,
+        ]);
+
+        foreach ($this->edit_comprobantes as $file) {
+            $path = $file->store('comprobantes', 'local');
+            ComprobanteMovimiento::create([
+                'id_movimiento_insumo' => $movimiento->id,
+                'archivo'              => basename($path),
+                'nombre_original'      => $file->getClientOriginalName(),
+                'tipo_mime'            => $file->getMimeType(),
+            ]);
+        }
+
+        session()->flash('message', 'Movimiento actualizado correctamente.');
+        $this->cerrarEdicion();
+    }
+
+    public function cerrarEdicion()
+    {
+        $this->showEditModal = false;
+        $this->edit_movimiento_id = null;
+        $this->edit_movimiento_tipo = '';
+        $this->edit_nro_orden_compra = '';
+        $this->edit_observaciones = '';
+        $this->edit_comprobantes = [];
+        $this->resetErrorBag();
         $this->dispatch('refreshComponent');
     }
 
