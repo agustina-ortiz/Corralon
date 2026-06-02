@@ -12,6 +12,8 @@ use App\Models\User;
 use App\Models\Vehiculo;
 use App\Models\Evento;
 use App\Models\EmpleadoMunicipal;
+use App\Models\Secretaria;
+use App\Models\Area;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +75,11 @@ class TransferenciasMaquinarias extends Component
     public $search_destino = '';
     public $mostrar_lista_destino = false;
 
+    // Campos para Ajuste Negativo (secretaría y área)
+    public $id_secretaria_ajuste = '';
+    public $area_ajuste = '';
+    public $areas_disponibles = [];
+
     // Panel de asignaciones pendientes
     public $showAsignacionesPendientes = false;
 
@@ -94,6 +101,18 @@ class TransferenciasMaquinarias extends Component
             'descripcion'=> 'Agregar unidades al inventario',
             'icon'       => 'M12 4v16m8-8H4',
             'color'      => 'indigo',
+        ],
+        'Ajuste Positivo' => [
+            'key'        => 'ajuste_positivo',
+            'descripcion'=> 'Corrección por diferencia de inventario (suma)',
+            'icon'       => 'M12 4v16m8-8H4',
+            'color'      => 'blue',
+        ],
+        'Ajuste Negativo' => [
+            'key'        => 'ajuste_negativo',
+            'descripcion'=> 'Corrección por diferencia de inventario (resta)',
+            'icon'       => 'M20 12H4',
+            'color'      => 'red',
         ],
         'Asignación Maquinaria con Reposición' => [
             'key'        => 'asignacion_con_reposicion',
@@ -158,9 +177,16 @@ class TransferenciasMaquinarias extends Component
             $rules['cantidad_a_transferir'] = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
         }
 
-        if ($this->tipo_movimiento === 'carga_stock') {
+        if ($this->tipo_movimiento === 'carga_stock' || $this->tipo_movimiento === 'ajuste_positivo') {
             $rules['id_deposito_origen'] = 'required|exists:depositos,id';
             $rules['cantidad_a_cargar']  = ['required', 'integer', 'min:1', 'max:1000'];
+        }
+
+        if ($this->tipo_movimiento === 'ajuste_negativo') {
+            $cantidadDisponible = $this->maquinaria_seleccionada
+                ? $this->maquinaria_seleccionada->getCantidadTotalDisponible()
+                : 1;
+            $rules['cantidad_a_cargar'] = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion'])) {
@@ -251,6 +277,8 @@ class TransferenciasMaquinarias extends Component
         // Disponibilidad por tipo según contexto de stock
         $disponibilidad = [
             'Carga de Stock'                          => true,
+            'Ajuste Positivo'                         => true,
+            'Ajuste Negativo'                         => $tieneStock,
             'Asignación Maquinaria con Reposición'    => $tieneStock,
             'Asignación Maquinaria sin Reposición'    => $tieneStock,
             'Entrada Reposición Maquinaria'           => true,
@@ -293,6 +321,7 @@ class TransferenciasMaquinarias extends Component
             'depositoEntrada',
             'tipoMovimiento',
             'usuario',
+            'secretaria',
         ])
         ->whereHas('maquinaria', function ($query) use ($depositosAccesibles) {
             $query->whereIn('id_deposito', $depositosAccesibles);
@@ -517,6 +546,8 @@ class TransferenciasMaquinarias extends Component
             }
         }
 
+        $secretarias = Secretaria::orderBy('secretaria')->get();
+
         return view('livewire.transferencias-maquinarias', [
             'movimientos'                          => $movimientos,
             'maquinarias_filtradas'                => $maquinarias_filtradas,
@@ -524,6 +555,7 @@ class TransferenciasMaquinarias extends Component
             'categorias'                           => $categorias,
             'usuarios'                             => $usuarios,
             'tipos_movimiento'                     => $tipos_movimiento,
+            'secretarias'                          => $secretarias,
             'puedeCrear'                           => $user->puedeCrearMovimientosMaquinarias(),
             'puedeCrearTransferencias'             => $user->puedeCrearTransferenciasMaquinarias(),
             'tieneMultiplesCorralones'             => $tieneMultiplesCorralones,
@@ -600,8 +632,13 @@ class TransferenciasMaquinarias extends Component
             }
         } elseif ($this->tipo_movimiento === 'entrada_reposicion') {
             $this->cantidad_a_asignar++;
-        } elseif ($this->tipo_movimiento === 'carga_stock') {
+        } elseif (in_array($this->tipo_movimiento, ['carga_stock', 'ajuste_positivo'])) {
             if ($this->cantidad_a_cargar < 1000) {
+                $this->cantidad_a_cargar++;
+            }
+        } elseif ($this->tipo_movimiento === 'ajuste_negativo') {
+            $max = $this->maquinaria_seleccionada ? $this->maquinaria_seleccionada->getCantidadTotalDisponible() : 1;
+            if ($this->cantidad_a_cargar < $max) {
                 $this->cantidad_a_cargar++;
             }
         }
@@ -613,7 +650,7 @@ class TransferenciasMaquinarias extends Component
             if ($this->cantidad_a_transferir > 1) $this->cantidad_a_transferir--;
         } elseif (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
             if ($this->cantidad_a_asignar > 1) $this->cantidad_a_asignar--;
-        } elseif ($this->tipo_movimiento === 'carga_stock') {
+        } elseif (in_array($this->tipo_movimiento, ['carga_stock', 'ajuste_positivo', 'ajuste_negativo'])) {
             if ($this->cantidad_a_cargar > 1) $this->cantidad_a_cargar--;
         }
     }
@@ -663,8 +700,12 @@ class TransferenciasMaquinarias extends Component
             $this->cantidad_a_asignar = 1;
         }
 
-        if ($tipo === 'carga_stock') {
+        if (in_array($tipo, ['carga_stock', 'ajuste_positivo'])) {
             $this->id_deposito_origen = $this->maquinaria_seleccionada->id_deposito;
+            $this->cantidad_a_cargar = 1;
+        }
+
+        if ($tipo === 'ajuste_negativo') {
             $this->cantidad_a_cargar = 1;
         }
 
@@ -690,6 +731,14 @@ class TransferenciasMaquinarias extends Component
     public function updatedSearchDestino()
     {
         $this->mostrar_lista_destino = true;
+    }
+
+    public function updatedIdSecretariaAjuste()
+    {
+        $this->area_ajuste = '';
+        $this->areas_disponibles = $this->id_secretaria_ajuste
+            ? Area::where('id_secretaria', $this->id_secretaria_ajuste)->orderBy('area')->pluck('area')->toArray()
+            : [];
     }
 
     public function seleccionarDestino($id)
@@ -739,6 +788,8 @@ class TransferenciasMaquinarias extends Component
 
             switch ($this->tipo_movimiento) {
                 case 'carga_stock':                return $this->guardarCargaStock();
+                case 'ajuste_positivo':            return $this->guardarAjustePositivo();
+                case 'ajuste_negativo':            return $this->guardarAjusteNegativo();
                 case 'asignacion_con_reposicion':
                 case 'asignacion_sin_reposicion':  return $this->guardarAsignacionNueva();
                 case 'entrada_reposicion':         return $this->guardarEntradaReposicionMaquinaria();
@@ -791,6 +842,85 @@ class TransferenciasMaquinarias extends Component
             session()->flash('error', 'Error al realizar la carga de stock: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarCargaStock: ' . $e->getMessage());
+        }
+    }
+
+    private function guardarAjustePositivo()
+    {
+        DB::beginTransaction();
+        try {
+            $tipoMovimiento = $this->resolverTipo('Ajuste Positivo');
+            $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
+
+            MovimientoMaquinaria::create([
+                'id_maquinaria'      => $maquinaria->id,
+                'cantidad'           => $this->cantidad_a_cargar,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha'              => now(),
+                'fecha_devolucion'   => null,
+                'id_usuario'         => Auth::id(),
+                'id_deposito_entrada'=> $this->id_deposito_origen,
+                'id_referencia'      => 0,
+                'tipo_referencia'    => 'deposito',
+            ]);
+
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
+            DB::commit();
+
+            $deposito = Deposito::find($this->id_deposito_origen);
+            $unidad   = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "Ajuste positivo realizado: +{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria} en {$deposito->deposito}");
+            \Illuminate\Support\Facades\Cache::flush();
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar el ajuste positivo: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarAjustePositivo: ' . $e->getMessage());
+        }
+    }
+
+    private function guardarAjusteNegativo()
+    {
+        DB::beginTransaction();
+        try {
+            $tipoMovimiento = $this->resolverTipo('Ajuste Negativo');
+            $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
+
+            if ($this->cantidad_a_cargar > $maquinaria->getCantidadTotalDisponible()) {
+                session()->flash('error', 'La cantidad excede el stock disponible.');
+                $this->cerrarModal();
+                return;
+            }
+
+            MovimientoMaquinaria::create([
+                'id_maquinaria'      => $maquinaria->id,
+                'cantidad'           => $this->cantidad_a_cargar,
+                'id_tipo_movimiento' => $tipoMovimiento->id,
+                'fecha'              => now(),
+                'fecha_devolucion'   => null,
+                'id_usuario'         => Auth::id(),
+                'id_deposito_entrada'=> $maquinaria->id_deposito,
+                'id_referencia'      => 0,
+                'tipo_referencia'    => 'deposito',
+                'id_secretaria'      => $this->id_secretaria_ajuste ?: null,
+                'area'               => $this->area_ajuste ?: null,
+            ]);
+
+            $this->actualizarCantidadMaquinaria($maquinaria->id);
+            DB::commit();
+
+            $unidad = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
+            session()->flash('message', "Ajuste negativo realizado: -{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria}");
+            \Illuminate\Support\Facades\Cache::flush();
+            $this->cerrarModal();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al realizar el ajuste negativo: ' . $e->getMessage());
+            $this->cerrarModal();
+            \Log::error('Error en guardarAjusteNegativo: ' . $e->getMessage());
         }
     }
 
@@ -1507,6 +1637,9 @@ class TransferenciasMaquinarias extends Component
         $this->id_referencia = '';
         $this->search_destino = '';
         $this->mostrar_lista_destino = false;
+        $this->id_secretaria_ajuste = '';
+        $this->area_ajuste = '';
+        $this->areas_disponibles = [];
         $this->resetErrorBag();
     }
 }

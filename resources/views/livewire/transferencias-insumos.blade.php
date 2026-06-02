@@ -621,6 +621,15 @@
                                     <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
                                         {{ $movimiento->insumo->deposito->deposito }}
                                     </span>
+                                @elseif($movimiento->id_secretaria || $movimiento->area)
+                                    <span class="block w-full text-center px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-lg font-medium">
+                                        @if($movimiento->secretaria)
+                                            {{ $movimiento->secretaria->secretaria }}
+                                        @endif
+                                        @if($movimiento->area)
+                                            <span class="block text-purple-500">{{ $movimiento->area }}</span>
+                                        @endif
+                                    </span>
                                 @else
                                     <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
                                         —
@@ -1375,6 +1384,64 @@
                                                     @error('id_referencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                                 </div>
                                             @endif
+                                        @endif
+
+                                        <!-- Secretaría y Área (solo para Ajuste Negativo) -->
+                                        @if($tipo_movimiento === 'ajuste_negativo')
+                                            <div class="mb-5 grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
+                                                    <select
+                                                        wire:model.live="id_secretaria_ajuste"
+                                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                    >
+                                                        <option value="">— Seleccionar —</option>
+                                                        @foreach($secretarias as $sec)
+                                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputInsumos?.focus()) })">
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                                                    <template x-if="!modoLibre">
+                                                        <div>
+                                                            <select
+                                                                wire:model="area_ajuste"
+                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            >
+                                                                <option value="">— Seleccionar —</option>
+                                                                @foreach($areas_disponibles as $area)
+                                                                    <option value="{{ $area }}">{{ $area }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            <button type="button" @click="modoLibre = true; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                                Escribir área manualmente
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="modoLibre">
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                wire:model="area_ajuste"
+                                                                x-ref="areaInputInsumos"
+                                                                placeholder="Escribir nombre del área"
+                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            >
+                                                            @if(count($areas_disponibles) > 0)
+                                                                <button type="button" @click="modoLibre = false; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                                    Seleccionar de la lista
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                    </template>
+                                                    @if($id_secretaria_ajuste && count($areas_disponibles) === 0)
+                                                        <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         @endif
 
                                         <!-- Campo Cantidad -->

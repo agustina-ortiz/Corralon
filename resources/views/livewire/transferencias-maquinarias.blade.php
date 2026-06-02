@@ -441,6 +441,15 @@
                                 <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
                                     {{ $depositoDestino->deposito }}
                                 </span>
+                            @elseif($movimiento->id_secretaria || $movimiento->area)
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-lg font-medium">
+                                    @if($movimiento->secretaria)
+                                        {{ $movimiento->secretaria->secretaria }}
+                                    @endif
+                                    @if($movimiento->area)
+                                        <span class="block text-purple-500">{{ $movimiento->area }}</span>
+                                    @endif
+                                </span>
                             @else
                                 <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
                                     —
@@ -948,7 +957,7 @@
                                             </div>
                                         @endif
 
-                                        @if($tipo_movimiento === 'carga_stock')
+                                        @if(in_array($tipo_movimiento, ['carga_stock', 'ajuste_positivo']))
                                             {{-- Depósito auto-determinado por la maquinaria seleccionada --}}
                                             <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
                                                 <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -961,7 +970,7 @@
 
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    Cantidad a Cargar *
+                                                    {{ $tipo_movimiento === 'ajuste_positivo' ? 'Cantidad a Ajustar' : 'Cantidad a Cargar' }} *
                                                     <span class="text-xs text-gray-500 font-normal">(Máximo: 1000 unidades)</span>
                                                 </label>
                                                 <div class="flex items-center gap-3">
@@ -1007,6 +1016,130 @@
                                                         <div class="flex justify-between text-xs text-gray-500 mt-1">
                                                             <span>1</span>
                                                             <span>100</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                @error('cantidad_a_cargar')
+                                                    <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                                @enderror
+                                            </div>
+                                        @endif
+
+                                        <!-- Ajuste Negativo -->
+                                        @if($tipo_movimiento === 'ajuste_negativo')
+                                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+                                                <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                                <span class="text-red-800">
+                                                    Depósito: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
+                                                    — Disponible: <strong>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</strong> {{ $maquinaria_seleccionada->getCantidadTotalDisponible() == 1 ? 'unidad' : 'unidades' }}
+                                                </span>
+                                            </div>
+
+                                            <!-- Secretaría y Área -->
+                                            <div class="mb-5 grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
+                                                    <select
+                                                        wire:model.live="id_secretaria_ajuste"
+                                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                    >
+                                                        <option value="">— Seleccionar —</option>
+                                                        @foreach($secretarias as $sec)
+                                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
+                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                                                    <template x-if="!modoLibre">
+                                                        <div>
+                                                            <select
+                                                                wire:model="area_ajuste"
+                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            >
+                                                                <option value="">— Seleccionar —</option>
+                                                                @foreach($areas_disponibles as $area)
+                                                                    <option value="{{ $area }}">{{ $area }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            <button type="button" @click="modoLibre = true; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                                Escribir área manualmente
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="modoLibre">
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                wire:model="area_ajuste"
+                                                                x-ref="areaInputMaquinarias"
+                                                                placeholder="Escribir nombre del área"
+                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                            >
+                                                            @if(count($areas_disponibles) > 0)
+                                                                <button type="button" @click="modoLibre = false; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                                    Seleccionar de la lista
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                    </template>
+                                                    @if($id_secretaria_ajuste && count($areas_disponibles) === 0)
+                                                        <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-5">
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                                    Cantidad a Ajustar *
+                                                </label>
+                                                <div class="flex items-center gap-3">
+                                                    <button
+                                                        type="button"
+                                                        wire:click="decrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_cargar <= 1 ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <input
+                                                        type="number"
+                                                        wire:model.live="cantidad_a_cargar"
+                                                        min="1"
+                                                        max="{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}"
+                                                        class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200"
+                                                    >
+
+                                                    <button
+                                                        type="button"
+                                                        wire:click="incrementarCantidad"
+                                                        class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                                        {{ $cantidad_a_cargar >= $maquinaria_seleccionada->getCantidadTotalDisponible() ? 'disabled' : '' }}
+                                                    >
+                                                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                        </svg>
+                                                    </button>
+
+                                                    <div class="flex-1">
+                                                        <input
+                                                            type="range"
+                                                            wire:model.live="cantidad_a_cargar"
+                                                            min="1"
+                                                            max="{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}"
+                                                            step="1"
+                                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-600"
+                                                        >
+                                                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                            <span>1</span>
+                                                            <span>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</span>
                                                         </div>
                                                     </div>
                                                 </div>

@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ComprobanteMovimiento;
 use App\Models\EmpleadoMunicipal;
 use App\Models\Corralon;
+use App\Models\Secretaria;
+use App\Models\Area;
 
 class TransferenciasInsumos extends Component
 {
@@ -77,6 +79,11 @@ class TransferenciasInsumos extends Component
     public $id_referencia = '';
     public $search_destino = '';
     public $mostrar_lista_destino = false;
+
+    // Campos para Ajuste Negativo (secretaría y área)
+    public $id_secretaria_ajuste = '';
+    public $area_ajuste = '';
+    public $areas_disponibles = [];
 
     // Búsqueda de insumos
     public $search_insumo = '';
@@ -365,7 +372,8 @@ class TransferenciasInsumos extends Component
                 'insumo.deposito',
                 'tipoMovimiento',
                 'usuario',
-                'comprobantes'
+                'comprobantes',
+                'secretaria'
             ])
             ->whereNull('id_movimiento_encabezado')
             ->whereHas('insumo', function($query) use ($depositosAccesibles) {
@@ -643,6 +651,8 @@ class TransferenciasInsumos extends Component
                 ->get();
         }
 
+        $secretarias = Secretaria::orderBy('secretaria')->get();
+
         return view('livewire.transferencias-insumos', [
             'movimientos' => $movimientosPaginados,
             'insumos_filtrados' => $insumos_filtrados,
@@ -660,6 +670,7 @@ class TransferenciasInsumos extends Component
             'eventos_destino' => $eventos_destino,
             'empleados_destino' => $empleados_destino,
             'asignacionesPendientes' => $asignacionesPendientes,
+            'secretarias' => $secretarias,
             // Pasar permisos a la vista
             'puedeCrearMovimientos' => $user->puedeCrearMovimientosInsumos(),
             'puedeCrearTransferencias' => $user->puedeCrearTransferenciasInsumos(),
@@ -1312,6 +1323,8 @@ class TransferenciasInsumos extends Component
                 'id_deposito_entrada' => $insumo->id_deposito,
                 'id_referencia' => 0,
                 'tipo_referencia' => 'inventario',
+                'id_secretaria' => $this->id_secretaria_ajuste ?: null,
+                'area' => $this->area_ajuste ?: null,
             ]);
 
             $insumo->sincronizarStock();
@@ -1341,6 +1354,14 @@ class TransferenciasInsumos extends Component
     public function updatedSearchDestino()
     {
         $this->mostrar_lista_destino = true;
+    }
+
+    public function updatedIdSecretariaAjuste()
+    {
+        $this->area_ajuste = '';
+        $this->areas_disponibles = $this->id_secretaria_ajuste
+            ? Area::where('id_secretaria', $this->id_secretaria_ajuste)->orderBy('area')->pluck('area')->toArray()
+            : [];
     }
 
     public function seleccionarDestino($id)
@@ -1646,6 +1667,9 @@ class TransferenciasInsumos extends Component
         $this->comprobantes = [];
         $this->depositos_disponibles = [];
         $this->tipos_movimiento_disponibles = [];
+        $this->id_secretaria_ajuste = '';
+        $this->area_ajuste = '';
+        $this->areas_disponibles = [];
         $this->resetErrorBag();
     }
 

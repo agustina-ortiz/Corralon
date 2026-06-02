@@ -19,6 +19,8 @@ class MovimientoMaquinaria extends Model
         'id_deposito_entrada',
         'id_referencia',
         'tipo_referencia',
+        'id_secretaria',
+        'area',
     ];
 
     protected $casts = [
@@ -47,6 +49,11 @@ class MovimientoMaquinaria extends Model
     public function depositoEntrada(): BelongsTo
     {
         return $this->belongsTo(Deposito::class, 'id_deposito_entrada');
+    }
+
+    public function secretaria(): BelongsTo
+    {
+        return $this->belongsTo(Secretaria::class, 'id_secretaria');
     }
 
     // Calcula el stock acumulado en el depósito específico hasta este movimiento
