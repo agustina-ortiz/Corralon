@@ -30,7 +30,18 @@
       "Bash(cd C:/Users/Usuario/Desktop/Corralon && php check_duplicates.php)",
       "Bash(cd C:/Users/Usuario/Desktop/Corralon && php fix_duplicates.php)",
       "Bash(cd C:/Users/Usuario/Desktop/Corralon && rm check_duplicates.php fix_duplicates.php)",
-      "Bash(php -l app/Livewire/TransferenciasMaquinarias.php && php -l app/Livewire/TransferenciasInsumos.php)"
+      "Bash(php -l app/Livewire/TransferenciasMaquinarias.php && php -l app/Livewire/TransferenciasInsumos.php)",
+      "Bash(find \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" -type f -iname \"*secretaria*\" 2>/dev/null | head -20)",
+      "Bash(cd \"C:/Users/Usuario/Desktop/Corralon\" && php -l app/Livewire/TransferenciasInsumos.php && php -l app/Livewire/TransferenciasMaquinarias.php)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(grep -n 'tipoMovimiento->tipo_movimiento\\\\|usuario->name\\\\|toggleMovimiento\\\\|abrirModalTransferenciaDesde\\\\|<td\\\\|colspan\\\\|@if\\($movimiento\\\\|x-data\\\\|nro_orden\\\\|comprobante\\\\|observ\\\\|puedeCrear' resources/views/livewire/transferencias-maquinarias.blade.php)",
+      "Bash(xargs grep -l \"cantidad\\\\|string\\\\|integer\")",
+      "Bash(mysql -uroot corralon -e \"DROP TABLE IF EXISTS comprobantes_movimiento_maquinaria;\")",
+      "Bash(php -l app/Livewire/TransferenciasInsumos.php)",
+      "Bash(php -l app/Livewire/TransferenciasMaquinarias.php)",
+      "Bash(php -l app/Models/MovimientoMaquinaria.php)",
+      "Bash(php -l app/Models/ComprobanteMovimientoMaquinaria.php)",
+      "Bash(php -r ' *)"
     ]
   }
 }
