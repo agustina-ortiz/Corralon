@@ -26,7 +26,7 @@ app/
   Livewire/               # Componentes reactivos (ABM*, Transferencias*, Dashboard)
     Actions/              # Logout
     Forms/                # LoginForm
-  Models/                 # Modelos Eloquent (22 modelos, incluye EmpleadoMunicipal con conexión externa)
+  Models/                 # Modelos Eloquent (23 modelos, incluye EmpleadoMunicipal con conexión externa)
   Traits/                 # FiltraPorPermisos, FiltraPorPermisosCorralon
   View/Components/        # AppLayout, GuestLayout
 database/
@@ -37,7 +37,7 @@ resources/views/
   layouts/                # app.blade.php (layout principal), guest.blade.php
   pages/                  # Páginas de auth (Volt)
 routes/
-  web.php                 # Rutas principales (15 rutas)
+  web.php                 # Rutas principales (16 rutas)
   auth.php                # Rutas de autenticación (Volt)
 ```
 
@@ -57,9 +57,10 @@ routes/
 | `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
 | `Empleado` | `empleados` | Personal |
 | `Evento` | `eventos` | Eventos programados |
-| `Secretaria` | `secretarias` | Dependencias/secretarías municipales |
-| `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock |
-| `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos |
+| `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relación `areas()` |
+| `Area` | `areas` | Áreas dentro de una secretaría (`id_secretaria`, `area`) |
+| `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock. Campos opcionales `id_secretaria` y `area` para Ajuste Negativo |
+| `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos. Campos opcionales `id_secretaria` y `area` para Ajuste Negativo |
 | `TipoMovimiento` | `tipo_movimientos` | Tipos de movimiento (columna `tipo`: I=Insumos, M=Maquinaria, IM=ambos) |
 | `CategoriaInsumo` | `categorias_insumos` | Categorías de insumos |
 | `CategoriaMaquinaria` | `categoria_maquinarias` | Categorías de maquinaria |
@@ -88,6 +89,7 @@ routes/
 | `/eventos` | AbmEventos | `eventos` |
 | `/empleados` | AbmEmpleados | `empleados` |
 | `/usuarios` | AbmUsuarios | `usuarios` |
+| `/secretarias` | AbmSecretarias | `secretarias` |
 | `/transferencias-insumos` | TransferenciasInsumos | `movimientos_insumos` |
 | `/transferencias-maquinarias` | TransferenciasMaquinarias | `movimientos_maquinarias` |
 | `/comprobantes/{id}/ver` | Closure (ruta) | autenticado |
@@ -116,7 +118,7 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 `insumos`, `maquinarias`, `vehiculos`, `depositos`, `movimientos_insumos`, `movimientos_maquinarias`
 
 ### Módulos globales (sin `id_corralon`)
-`empleados`, `choferes`, `eventos`, `categorias_insumos`, `categorias_maquinarias`, `usuarios`
+`empleados`, `choferes`, `eventos`, `categorias_insumos`, `categorias_maquinarias`, `usuarios`, `secretarias`
 
 ### Métodos de autorización en `User`
 - `esAdministrador()` — rol Administrador, acceso total
@@ -202,6 +204,21 @@ Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** permiten adjunt
 - **Visualización:** ícono de clip en la lista de movimientos, con dropdown que muestra los archivos adjuntos
 - **Acciones:** ver (abre inline en el navegador) y descargar (fuerza descarga) — ambas rutas protegidas por autenticación
 - El componente usa `WithFileUploads` de Livewire para la subida de archivos
+
+### Ajuste Negativo — Secretaría y Área
+
+Los movimientos de **Ajuste Negativo** (insumos y maquinarias) tienen dos campos opcionales:
+- `id_secretaria` — FK nullable a `secretarias`, select en el formulario
+- `area` — string nullable, campo combo: select de áreas de la secretaría seleccionada + opción de texto libre (toggle con Alpine.js)
+
+Estos campos se guardan en `movimiento_insumos` / `movimiento_maquinarias` y se muestran en la columna **Destino** del listado con badge violeta (secretaría + área).
+
+### ABM Secretarías y Áreas
+
+Ruta `/secretarias` — componente `AbmSecretarias`:
+- CRUD de secretarías y áreas (áreas pertenecen a una secretaría)
+- Modal "Ver Áreas": scrolleable (`max-h-96 overflow-y-auto`) cuando hay más de 8 áreas
+- Modal "Nueva/Editar Área": select de secretaría + nombre de área
 
 ### Columna `tipo` en `tipo_movimientos`
 
