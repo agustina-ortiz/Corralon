@@ -14,6 +14,7 @@ use App\Livewire\AbmChoferes;
 use App\Livewire\AbmEmpleados;
 use App\Livewire\AbmVehiculos;
 use App\Livewire\AbmEventos;
+use App\Livewire\AbmSecretarias;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -70,6 +71,10 @@ Route::get('/empleados', AbmEmpleados::class)
 Route::get('/vehiculos', AbmVehiculos::class)
     ->middleware(['auth'])
     ->name('vehiculos');
+
+Route::get('/secretarias', AbmSecretarias::class)
+    ->middleware(['auth'])
+    ->name('secretarias');
 
 Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
     ->middleware(['auth'])

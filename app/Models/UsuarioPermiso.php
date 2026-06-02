@@ -35,6 +35,7 @@ class UsuarioPermiso extends Model
         'categorias_insumos',
         'categorias_maquinarias',
         'usuarios',
+        'secretarias',
     ];
 
     // Todos los módulos disponibles
@@ -51,6 +52,7 @@ class UsuarioPermiso extends Model
         'categorias_insumos' => 'Categorías Insumos',
         'categorias_maquinarias' => 'Categorías Maquinarias',
         'usuarios' => 'Usuarios',
+        'secretarias' => 'Secretarías',
     ];
 
     const NIVELES_ACCESO = [

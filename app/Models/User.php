@@ -291,6 +291,11 @@ class User extends Authenticatable
     public function puedeEditarUsuarios(): bool { return $this->puedeEditarEnModulo('usuarios'); }
     public function puedeEliminarUsuarios(): bool { return $this->puedeEditarEnModulo('usuarios'); }
 
+    // --- SECRETARIAS ---
+    public function puedeCrearSecretarias(): bool { return $this->puedeEditarEnModulo('secretarias'); }
+    public function puedeEditarSecretarias(): bool { return $this->puedeEditarEnModulo('secretarias'); }
+    public function puedeEliminarSecretarias(): bool { return $this->puedeEditarEnModulo('secretarias'); }
+
     // --- MOVIMIENTOS INSUMOS ---
     public function puedeCrearMovimientosInsumos(): bool { return $this->puedeEditarEnModulo('movimientos_insumos'); }
     public function puedeCrearTransferenciasInsumos(): bool { return $this->puedeEditarEnModulo('movimientos_insumos'); }

@@ -18,6 +18,11 @@ class Secretaria extends Model
         return $this->hasMany(Corralon::class);
     }
 
+    public function areas()
+    {
+        return $this->hasMany(Area::class, 'id_secretaria');
+    }
+
     public function eventos()
     {
         return $this->hasMany(Evento::class, 'secretaria_id');
