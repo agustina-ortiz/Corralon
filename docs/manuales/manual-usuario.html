@@ -184,7 +184,18 @@
             text-align: justify;
         }
 
-        /* ========== PLACEHOLDER DE CAPTURA ========== */
+        /* ========== CAPTURAS DE PANTALLA ========== */
+        .screenshot-img {
+            width: 100%;
+            max-width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin: 1rem 0 1.2rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            page-break-inside: avoid;
+        }
+
+        /* ========== PLACEHOLDER DE CAPTURA (pendientes) ========== */
         .screenshot-placeholder {
             border: 2px dashed #a0aec0;
             border-radius: 8px;
@@ -490,11 +501,7 @@
     <h3>Pantalla de Login</h3>
     <p>Al acceder al sistema se presenta la pantalla de inicio de sesión. En el lado izquierdo se muestra información institucional y en el derecho el formulario de ingreso.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Pantalla de login completa mostrando el formulario de correo electrónico, contraseña y botón "Ingresar al sistema"</div>
-    </div>
+    <img src="img/01-login.png" alt="Pantalla de login" class="screenshot-img">
  
     <h3>Pasos para ingresar</h3>
     <ol class="steps">
@@ -513,11 +520,7 @@
     <h3>Cerrar sesión</h3>
     <p>Para cerrar sesión, haga clic en el <strong>botón rojo de logout</strong> ubicado en la parte inferior del menú lateral (sidebar), junto a su nombre y correo electrónico.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Parte inferior del sidebar mostrando el nombre del usuario, email y botón rojo de logout</div>
-    </div>
+    <img src="img/02-logout-sidebar.png" alt="Logout en sidebar" class="screenshot-img">
 </div>
  
 <!-- ==================== 3. NAVEGACIÓN GENERAL ==================== -->
@@ -527,11 +530,7 @@
     <h3>Menú lateral (Sidebar)</h3>
     <p>El menú lateral izquierdo es la forma principal de navegar entre las secciones del sistema. Está organizado en tres áreas:</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Sidebar completo mostrando todas las secciones: Dashboard, Inventario (con sus sub-ítems) y Recursos (con sus sub-ítems). Resaltar el ítem activo en verde.</div>
-    </div>
+    <img src="img/03-sidebar-navegacion.png" alt="Sidebar de navegación" class="screenshot-img">
  
     <table>
         <thead>
@@ -574,11 +573,7 @@
         </tbody>
     </table>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Cualquier pantalla ABM (ej: Insumos) mostrando la barra de búsqueda, botón de filtros con badge numérico, botón "Nuevo", tabla de datos con paginación y botones de acciones por fila</div>
-    </div>
+    <img src="img/04-interfaz-abm.png" alt="Interfaz ABM general" class="screenshot-img">
 </div>
  
 <!-- ==================== 4. DASHBOARD ==================== -->
@@ -587,11 +582,7 @@
  
     <p>El Dashboard es la pantalla principal del sistema. Muestra un resumen general del estado de los recursos y alertas importantes que requieren atención.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Vista general del Dashboard mostrando las tarjetas de resumen superiores y los widgets de alertas</div>
-    </div>
+    <img src="img/05-dashboard.png" alt="Dashboard general" class="screenshot-img">
  
     <h3>Tarjetas de resumen</h3>
     <p>En la parte superior se muestran hasta 4 tarjetas con contadores rápidos:</p>
@@ -613,11 +604,7 @@
     <h4>Insumos con Stock Bajo</h4>
     <p>Muestra los insumos cuyo stock actual está por debajo del stock mínimo configurado. Cada fila indica el nombre del insumo, categoría, depósito, corralón, stock actual (en naranja), stock mínimo y cuántas unidades faltan.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Widget "Insumos con Stock Bajo" mostrando al menos 2-3 insumos con stock bajo mínimo, resaltando las cantidades en naranja</div>
-    </div>
+    <img src="img/06-dashboard-stock-bajo.png" alt="Widget stock bajo mínimo" class="screenshot-img">
  
     <h4>VTVs Próximas a Vencer</h4>
     <p>Lista los vehículos cuya Verificación Técnica Vehicular está por vencer o ya venció. Los colores indican la urgencia:</p>
@@ -641,11 +628,7 @@
         <li>Haga clic en <strong>"Guardar"</strong>.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Personalizar panel" mostrando las casillas de verificación para tarjetas de resumen y widgets de alertas</div>
-    </div>
+    <img src="img/07-dashboard-personalizar.png" alt="Modal personalizar panel" class="screenshot-img">
  
     <div class="tip">
         <strong>Consejo:</strong> Sus preferencias de personalización se guardan automáticamente y se mantendrán en futuras sesiones.
@@ -680,11 +663,7 @@
         <strong>Atención:</strong> Los insumos con stock por debajo del mínimo se resaltan con fondo rojo claro para facilitar su identificación rápida.
     </div>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Tabla de insumos mostrando varias filas, incluyendo al menos una con stock bajo mínimo resaltada en rojo</div>
-    </div>
+    <img src="img/08-insumos-lista.png" alt="Lista de insumos" class="screenshot-img">
  
     <h3>Filtrar insumos</h3>
     <p>Puede buscar y filtrar insumos de varias formas:</p>
@@ -701,11 +680,7 @@
     </ul>
     <p>Para quitar todos los filtros, haga clic en <strong>"Limpiar filtros"</strong>.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Panel de filtros expandido mostrando los selectores de Categoría, Unidad, Depósito y la casilla "Solo stock bajo mínimo"</div>
-    </div>
+    <img src="img/09-insumos-filtros.png" alt="Filtros de insumos" class="screenshot-img">
  
     <h3>Crear un insumo</h3>
     <ol class="steps">
@@ -723,11 +698,7 @@
         <li>Haga clic en <strong>"Crear"</strong>.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de creación de insumo con todos los campos visibles: Insumo, Categoría, Unidad, Stock Inicial, Stock Mínimo, Depósito</div>
-    </div>
+    <img src="img/10-insumos-crear.png" alt="Modal crear insumo" class="screenshot-img">
  
     <h3>Editar un insumo</h3>
     <ol class="steps">
@@ -769,11 +740,7 @@
         </tbody>
     </table>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Tabla de maquinarias mostrando varias filas con distintos estados (Disponible / No Disponible)</div>
-    </div>
+    <img src="img/11-maquinarias-lista.png" alt="Lista de maquinarias" class="screenshot-img">
  
     <h3>Filtrar maquinarias</h3>
     <ul>
@@ -797,11 +764,7 @@
         <li>Haga clic en <strong>"Crear"</strong>.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de creación de maquinaria con todos los campos: nombre, categoría, cantidad, estado, corralón y depósito</div>
-    </div>
+    <img src="img/12-maquinarias-crear.png" alt="Modal crear maquinaria" class="screenshot-img">
  
     <h3>Editar una maquinaria</h3>
     <p>Al editar, el campo <strong>Cantidad</strong> aparece como solo lectura (con ícono de candado). La cantidad se modifica a través de movimientos de maquinaria.</p>
@@ -895,11 +858,7 @@
         <li><strong>Depósito</strong> (obligatorio): Seleccione el depósito.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de creación/edición de vehículo mostrando las secciones del formulario (Información Básica, Identificación Técnica, Seguro, etc.)</div>
-    </div>
+    <img src="img/14-vehiculos-crear.png" alt="Modal crear/editar vehículo" class="screenshot-img">
  
     <h3>Documentos de un vehículo</h3>
     <p>Cada vehículo puede tener documentos adjuntos (seguros, títulos, permisos, etc.):</p>
@@ -911,11 +870,7 @@
         <li>Use los botones de <strong>ver</strong> (abre en el navegador) o <strong>descargar</strong> para acceder a cada documento.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de documentos de un vehículo mostrando la lista de documentos y el formulario para agregar uno nuevo</div>
-    </div>
+    <img src="img/15-vehiculos-documentos.png" alt="Documentos de vehículo" class="screenshot-img">
 </div>
  
 <!-- ==================== 8. CHOFERES ==================== -->
@@ -941,11 +896,7 @@
         </tbody>
     </table>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Tabla de choferes mostrando distintos estados de licencia (vigente, próxima a vencer, vencida) y vehículos asignados</div>
-    </div>
+    <img src="img/16-choferes-lista.png" alt="Lista de choferes" class="screenshot-img">
  
     <h3>Crear / Editar un chofer</h3>
     <ol class="steps">
@@ -965,11 +916,7 @@
         <li>Haga clic en <strong>"Crear"</strong> o <strong>"Actualizar"</strong>.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de edición de chofer mostrando los campos del formulario y la sección de asignación de vehículos con casillas de verificación</div>
-    </div>
+    <img src="img/17-choferes-editar.png" alt="Modal editar chofer" class="screenshot-img">
 </div>
  
 <!-- ==================== 9. EMPLEADOS ==================== -->
@@ -1030,11 +977,7 @@
         <li><strong>Evento Anual:</strong> Marque si se repite cada año.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Pantalla de Eventos mostrando la tabla con eventos y el modal de creación</div>
-    </div>
+    <img src="img/19-eventos.png" alt="Pantalla de eventos" class="screenshot-img">
 </div>
  
 <!-- ==================== 11. DEPÓSITOS ==================== -->
@@ -1052,11 +995,7 @@
         <li><strong>Corralón</strong> (obligatorio): Seleccione a qué corralón pertenece.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Pantalla de Depósitos mostrando la tabla y el modal de creación</div>
-    </div>
+    <img src="img/20-depositos.png" alt="Pantalla de depósitos" class="screenshot-img">
 </div>
  
 <!-- ==================== 12. CATEGORÍAS ==================== -->
@@ -1074,11 +1013,7 @@
         <li><strong>Descripción</strong> (opcional): Texto descriptivo.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Pantalla de Categorías de Insumos (o Maquinarias) mostrando la tabla y el modal de creación</div>
-    </div>
+    <img src="img/21-categorias.png" alt="Pantalla de categorías" class="screenshot-img">
 </div>
  
 <!-- ==================== 13. MOVIMIENTOS DE INSUMOS ==================== -->
@@ -1089,11 +1024,7 @@
  
     <h3>Pantalla principal</h3>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Vista general de Movimientos de Insumos mostrando la barra superior (búsqueda, filtros, botones Nueva Transferencia y Nuevo Movimiento) y la tabla de movimientos</div>
-    </div>
+    <img src="img/22-mov-insumos-vista.png" alt="Vista general movimientos de insumos" class="screenshot-img">
  
     <p>La tabla muestra todos los movimientos registrados:</p>
  
@@ -1127,11 +1058,7 @@
         <li><strong>Categoría:</strong> Filtrar por categoría del insumo.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Panel de filtros expandido de Movimientos de Insumos mostrando los 7 campos de filtro</div>
-    </div>
+    <img src="img/23-mov-insumos-filtros.png" alt="Filtros de movimientos de insumos" class="screenshot-img">
  
     <h3>Crear un movimiento individual</h3>
     <p>Los movimientos individuales registran entradas, salidas y asignaciones de un insumo.</p>
@@ -1143,11 +1070,7 @@
         <li><strong>Paso 3 — Completar datos:</strong> Ingrese la cantidad y datos adicionales según el tipo elegido.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Nuevo Movimiento" en el Paso 1 mostrando el campo de búsqueda de insumo y la lista de resultados</div>
-    </div>
+    <img src="img/24-mov-insumos-paso1.png" alt="Nuevo movimiento - Paso 1" class="screenshot-img">
  
     <h4>Tipos de movimiento disponibles</h4>
  
@@ -1166,11 +1089,7 @@
         </tbody>
     </table>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Nuevo Movimiento" en el Paso 2 mostrando la lista de tipos de movimiento disponibles</div>
-    </div>
+    <img src="img/25-mov-insumos-paso2.png" alt="Nuevo movimiento - Paso 2" class="screenshot-img">
  
     <h4>Paso 3 según el tipo de movimiento</h4>
  
@@ -1192,11 +1111,7 @@
         <strong>Atención:</strong> La "Asignación sin Reposición" solo permite como destino <strong>Vehículos</strong> y <strong>Eventos</strong>. No se pueden asignar insumos sin reposición a empleados.
     </div>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Nuevo Movimiento" en el Paso 3 para una asignación, mostrando la selección de tipo de destino (Vehículo/Evento/Empleado), el campo de búsqueda y la cantidad</div>
-    </div>
+    <img src="img/26-mov-insumos-paso3.png" alt="Nuevo movimiento - Paso 3 asignación" class="screenshot-img">
  
     <h3>Crear una transferencia</h3>
     <p>Las transferencias mueven insumos de un depósito a otro, incluso entre corralones distintos.</p>
@@ -1210,11 +1125,7 @@
         <li>Confirme la transferencia.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Nueva Transferencia" mostrando los campos de origen/destino, fecha, observaciones y la lista de insumos a transferir</div>
-    </div>
+    <img src="img/27-mov-insumos-transferencia.png" alt="Modal nueva transferencia" class="screenshot-img">
  
     <h3>Atajos rápidos</h3>
  
@@ -1230,11 +1141,7 @@
  
     <p>Encima de la lista de movimientos hay un <strong>panel colapsable</strong> (botón naranja: "Asignaciones Pendientes de Reposición") que muestra todas las asignaciones con reposición que aún no fueron devueltas ni dadas de baja.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Panel "Asignaciones Pendientes de Reposición" expandido, mostrando la tabla con insumos pendientes, destinos, cantidades y los botones Devolver / Dar de baja</div>
-    </div>
+    <img src="img/28-mov-insumos-pendientes.png" alt="Panel asignaciones pendientes de insumos" class="screenshot-img">
  
     <p>Cada fila del panel muestra:</p>
     <ul>
@@ -1279,11 +1186,7 @@
         <li>Si el movimiento tiene un N° de Orden de Compra, se muestra como <strong>"OC: ..."</strong> debajo del tipo de movimiento.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Fila de movimiento con ícono de clip y desplegable de comprobantes mostrando archivos con botones Ver y Descargar. También mostrar "OC: ..." si tiene orden de compra.</div>
-    </div>
+    <img src="img/29-mov-insumos-comprobantes.png" alt="Comprobantes adjuntos en movimientos" class="screenshot-img">
 </div>
  
 <!-- ==================== 14. MOVIMIENTOS DE MAQUINARIAS ==================== -->
@@ -1295,11 +1198,7 @@
     <h3>Pantalla principal</h3>
     <p>Lista de movimientos con: <strong>Fecha</strong>, <strong>Maquinaria</strong> (nombre y categoría), <strong>Cantidad</strong> (con indicador de entrada/salida), <strong>Origen</strong>, <strong>Destino</strong>, <strong>Estado</strong>, <strong>Tipo</strong> y <strong>Usuario</strong>.</p>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Vista general de Movimientos de Maquinarias mostrando la tabla de movimientos con sus columnas</div>
-    </div>
+    <img src="img/30-mov-maquinarias-vista.png" alt="Vista general movimientos de maquinarias" class="screenshot-img">
  
     <h3>Filtros disponibles</h3>
     <p>Mismos filtros que Movimientos de Insumos: Fecha Desde/Hasta, Depósito, Tipo de Movimiento, Usuario, Maquinaria (búsqueda por nombre) y Categoría.</p>
@@ -1334,11 +1233,7 @@
         <strong>Atención:</strong> Al igual que con insumos, la "Asignación Maquinaria sin Reposición" solo permite como destino <strong>Vehículos</strong> y <strong>Eventos</strong> (no empleados).
     </div>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal "Nuevo Movimiento" de maquinarias mostrando la selección de maquinaria y tipo de movimiento</div>
-    </div>
+    <img src="img/31-mov-maquinarias-nuevo.png" alt="Nuevo movimiento de maquinaria" class="screenshot-img">
  
     <h3>Panel de Asignaciones Pendientes (Maquinarias)</h3>
     <p>Funciona igual que el panel de insumos. Muestra maquinarias asignadas con reposición que están pendientes de devolución.</p>
@@ -1348,11 +1243,7 @@
         <li><strong>Dar de baja</strong> (botón rojo): Cancela la pendencia. El stock no se modifica.</li>
     </ul>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Panel "Asignaciones Pendientes de Reposición" de maquinarias expandido, mostrando registros pendientes con botones Devolver y Baja</div>
-    </div>
+    <img src="img/32-mov-maquinarias-pendientes.png" alt="Panel asignaciones pendientes de maquinarias" class="screenshot-img">
 </div>
  
 <!-- ==================== 15. ADMINISTRACIÓN DE USUARIOS ==================== -->
@@ -1375,11 +1266,7 @@
         </tbody>
     </table>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Tabla de usuarios mostrando filas con distintos roles (Administrador con "Acceso total", otros con detalle de permisos por corralón)</div>
-    </div>
+    <img src="img/33-usuarios-lista.png" alt="Lista de usuarios" class="screenshot-img">
  
     <h3>Filtros</h3>
     <ul>
@@ -1399,11 +1286,7 @@
         <li>Haga clic en <strong>"Crear Usuario"</strong> o <strong>"Guardar Cambios"</strong>.</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Modal de creación/edición de usuario mostrando los campos básicos (Nombre, Email), la selección de Rol como tarjetas y los campos de contraseña</div>
-    </div>
+    <img src="img/34-usuarios-crear.png" alt="Modal crear/editar usuario" class="screenshot-img">
  
     <h3>Configuración de permisos</h3>
  
@@ -1451,11 +1334,7 @@
         <li>Cada módulo puede ser <strong>Ver</strong> (solo lectura) o <strong>Editar</strong> (lectura y escritura).</li>
     </ol>
  
-    <div class="screenshot-placeholder">
-        <div class="icon">&#128248;</div>
-        <div class="label">Captura de pantalla</div>
-        <div class="description">Sección de permisos del modal de usuario mostrando: panel de Módulos Globales con toggles Ver/Editar, y panel de Permisos por Corralón con corralones seleccionados y módulos configurados</div>
-    </div>
+    <img src="img/34-usuarios-crear.png" alt="Sección de permisos del usuario" class="screenshot-img">
  
     <div class="note">
         <strong>Ejemplo práctico:</strong> Un usuario "Operador" podría tener configurado:<br>
