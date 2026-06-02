@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/Usuario/Desktop/Corralon/app/Models -type f -name \"*.php\" -exec wc -l {} + | sort -rn | head -15)",
+      "Bash(find /c/Users/Usuario/Desktop/Corralon/app/Models -type f -name \"*.php\" | xargs wc -l | tail -1)",
+      "Bash(php artisan:*)",
+      "Bash(ls -la /c/Users/Usuario/Desktop/Corralon/app/Livewire/*.php | head -20)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -r \"require 'vendor/autoload.php'; \\\\$app = require 'bootstrap/app.php'; \\\\$app->boot\\(\\); \\\\Illuminate\\\\Support\\\\Facades\\\\DB::table\\('tipo_movimientos'\\)->get\\(\\)->each\\(function\\(\\\\$t\\) { echo \\\\$t->id.' | '.\\\\$t->tipo_movimiento.' | '.\\\\$t->tipo.PHP_EOL; }\\);\" 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php check_tipos.php 2>&1 && rm check_tipos.php)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -l app/Livewire/TransferenciasMaquinarias.php && php -l app/Models/TipoMovimiento.php 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -l app/Models/Maquinaria.php 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -l app/Livewire/TransferenciasMaquinarias.php 2>&1)",
+      "Bash(sed -n '470,1054p' /c/Users/Usuario/Desktop/Corralon/resources/views/livewire/transferencias-insumos.blade.php)",
+      "Read(//tmp/**)",
+      "Bash(cd \"C:/Users/Usuario/Desktop/Corralon\" && php artisan config:clear && php -r \"require 'vendor/autoload.php'; \\\\$app = require 'bootstrap/app.php'; echo 'OK';\")",
+      "Bash(cd C:/Users/Usuario/Desktop/Corralon && php -r \"\nrequire 'vendor/autoload.php';\n\\\\$app = require 'bootstrap/app.php';\n\\\\$app->make\\('Illuminate\\\\Contracts\\\\Console\\\\Kernel'\\)->bootstrap\\(\\);\n\\\\$users = App\\\\Models\\\\User::with\\('rol'\\)->get\\(\\);\nforeach \\(\\\\$users as \\\\$u\\) {\n    echo \\\\$u->id . ' | ' . \\\\$u->name . ' | ' . \\\\$u->rol->nombre . PHP_EOL;\n}\n\" 2>&1)",
+      "Bash(php -r \"echo date\\('Y_m_d_His'\\);\")",
+      "Bash(mysql -u root corralon -e \"DESCRIBE vehiculos;\" 2>&1)",
+      "Bash(mysql -u root corralon -e \"SELECT COUNT\\(*\\) as total, COUNT\\(anio\\) as con_anio FROM vehiculos;\" 2>&1)",
+      "Bash(mysql -u root -e \"DESCRIBE munimer_inasi.in_maestro;\" 2>/dev/null || mysql -u root --password=\"\" -e \"DESCRIBE munimer_inasi.in_maestro;\" 2>/dev/null)",
+      "Bash(mysql -u root -e \"SELECT COUNT\\(*\\) as total FROM munimer_inasi.in_maestro; SELECT COUNT\\(*\\) as activos FROM munimer_inasi.in_maestro WHERE FECHABAJ IS NULL; SELECT LEGAJO, NOMBRE, DNI, SECRETARIA, FECHABAJ FROM munimer_inasi.in_maestro WHERE FECHABAJ IS NULL LIMIT 5;\")",
+      "Bash(mysql -u root -e \"SHOW COLUMNS FROM corralon.movimiento_insumos LIKE 'tipo_referencia';\")",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -l app/Livewire/TransferenciasMaquinarias.php 2>&1 && php -l app/Livewire/TransferenciasInsumos.php 2>&1 && php -l app/Models/TipoMovimiento.php 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && php -r \"\nrequire 'vendor/autoload.php';\n\\\\$app = require_once 'bootstrap/app.php';\n\\\\$kernel = \\\\$app->make\\(Illuminate\\\\Contracts\\\\Console\\\\Kernel::class\\);\n\\\\$kernel->bootstrap\\(\\);\n\\\\$cols = DB::select\\(\\\\\"SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE\\(\\) AND TABLE_NAME = 'vehiculos' ORDER BY ORDINAL_POSITION\\\\\"\\);\nforeach\\(\\\\$cols as \\\\$c\\) echo \\\\$c->COLUMN_NAME . ' | ' . \\\\$c->IS_NULLABLE . ' | ' . \\\\$c->DATA_TYPE . PHP_EOL;\n\")",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && mysql -u root corralon -e \"SELECT COLUMN_NAME, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'corralon' AND TABLE_NAME = 'vehiculos' ORDER BY ORDINAL_POSITION;\")",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && mysql -u root corralon -e \"SHOW INDEX FROM vehiculos WHERE Column_name = 'nro_patrimonio';\")",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && mysql -u root corralon -e \"SELECT COUNT\\(*\\) as total FROM vehiculos; SELECT COUNT\\(*\\) as tipos FROM tipos_vehiculos; SELECT id_tipo_vehiculo, COUNT\\(*\\) as cnt FROM vehiculos GROUP BY id_tipo_vehiculo ORDER BY cnt DESC LIMIT 10;\")",
+      "Bash(cd \"C:\\\\Users\\\\Usuario\\\\Desktop\\\\Corralon\" && mysql -u root corralon -e \"SELECT v.id, v.nro_patrimonio, v.vehiculo, t.descripcion as tipo, v.marca_modelo, v.estado, v.area, s.secretaria FROM vehiculos v LEFT JOIN tipos_vehiculos t ON v.id_tipo_vehiculo = t.id LEFT JOIN secretarias s ON v.id_secretaria = s.id LIMIT 5;\" && mysql -u root corralon -e \"SELECT nro_patrimonio, vehiculo, marca_modelo FROM vehiculos WHERE nro_patrimonio = '464';\")",
+      "Bash(cd C:/Users/Usuario/Desktop/Corralon && php -r \"\nrequire 'vendor/autoload.php';\n\\\\$app = require_once 'bootstrap/app.php';\n\\\\$app->make\\('Illuminate\\\\Contracts\\\\Console\\\\Kernel'\\)->bootstrap\\(\\);\n\\\\$cats = DB::table\\('categorias_insumos'\\)->select\\('id', 'nombre'\\)->orderBy\\('nombre'\\)->get\\(\\);\nforeach \\(\\\\$cats as \\\\$c\\) {\n    \\\\$count = DB::table\\('insumos'\\)->where\\('id_categoria', \\\\$c->id\\)->count\\(\\);\n    echo \\\\$c->id . ' | ' . \\\\$c->nombre . ' | insumos: ' . \\\\$count . PHP_EOL;\n}\n\")",
+      "Bash(cd C:/Users/Usuario/Desktop/Corralon && php check_duplicates.php)",
+      "Bash(cd C:/Users/Usuario/Desktop/Corralon && php fix_duplicates.php)",
+      "Bash(cd C:/Users/Usuario/Desktop/Corralon && rm check_duplicates.php fix_duplicates.php)",
+      "Bash(php -l app/Livewire/TransferenciasMaquinarias.php && php -l app/Livewire/TransferenciasInsumos.php)"
+    ]
+  }
+}
