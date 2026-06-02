@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
+use App\Models\Corralon;
 use App\Models\Deposito;
 use App\Models\TipoMovimiento;
 use App\Models\MovimientoInsumo;
@@ -21,6 +22,7 @@ class AbmInsumos extends Component
     public $showFilters = false;
     
     // Filtros
+    public $filtro_corralon = '';
     public $filtro_categoria = '';
     public $filtro_unidad = '';
     public $filtro_deposito = '';
@@ -94,6 +96,11 @@ class AbmInsumos extends Component
             ->when($this->filtro_unidad, function($query) {
                 $query->where('unidad', $this->filtro_unidad);
             })
+            ->when($this->filtro_corralon, function($query) {
+                $query->whereHas('deposito', function($q) {
+                    $q->where('id_corralon', $this->filtro_corralon);
+                });
+            })
             ->when($this->filtro_deposito, function($query) {
                 $query->where('id_deposito', $this->filtro_deposito);
             })
@@ -109,7 +116,14 @@ class AbmInsumos extends Component
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
         $depositos = Deposito::with('corralon')
             ->when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $depositosPermitidos))
+            ->when($this->filtro_corralon, fn($q) => $q->where('id_corralon', $this->filtro_corralon))
             ->orderBy('deposito')
+            ->get();
+
+        // Corralones permitidos para el filtro
+        $corralonesPermitidos = $user->getCorralonesParaModulo('insumos');
+        $corralones = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidos))
+            ->orderBy('descripcion')
             ->get();
         
         // Filtrar unidades de insumos visibles
@@ -123,6 +137,7 @@ class AbmInsumos extends Component
         return view('livewire.abm-insumos', [
             'insumos' => $insumos,
             'categorias' => $categorias,
+            'corralones' => $corralones,
             'depositos' => $depositos,
             'unidades' => $unidades,
             // Pasar permisos a la vista
@@ -136,6 +151,12 @@ class AbmInsumos extends Component
 
     public function updatingSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatingFiltroCorralon()
+    {
+        $this->filtro_deposito = '';
         $this->resetPage();
     }
 
@@ -161,6 +182,7 @@ class AbmInsumos extends Component
 
     public function limpiarFiltros()
     {
+        $this->filtro_corralon = '';
         $this->filtro_categoria = '';
         $this->filtro_unidad = '';
         $this->filtro_deposito = '';

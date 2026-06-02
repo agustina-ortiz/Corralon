@@ -24,6 +24,7 @@ class AbmMaquinarias extends Component
     public $showFilters = false;
     
     // Filtros
+    public $filtro_corralon = '';
     public $filtro_categoria = '';
     public $filtro_estado = '';
     public $filtro_deposito = '';
@@ -88,6 +89,7 @@ class AbmMaquinarias extends Component
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
         $depositos = Deposito::with('corralon')
             ->when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $depositosPermitidos))
+            ->when($this->filtro_corralon, fn($q) => $q->where('id_corralon', $this->filtro_corralon))
             ->orderBy('deposito')
             ->get();
 
@@ -144,6 +146,11 @@ class AbmMaquinarias extends Component
             ->when($this->filtro_categoria, function($query) {
                 $query->where('id_categoria_maquinaria', $this->filtro_categoria);
             })
+            ->when($this->filtro_corralon, function($query) {
+                $query->whereHas('deposito', function($q) {
+                    $q->where('id_corralon', $this->filtro_corralon);
+                });
+            })
             ->when($this->filtro_deposito, function($query) {
                 $query->where('id_deposito', $this->filtro_deposito);
             })
@@ -166,6 +173,12 @@ class AbmMaquinarias extends Component
         $this->resetPage();
     }
 
+    public function updatingFiltroCorralon()
+    {
+        $this->filtro_deposito = '';
+        $this->resetPage();
+    }
+
     public function updatingFiltroCategoria()
     {
         $this->resetPage();
@@ -183,6 +196,7 @@ class AbmMaquinarias extends Component
 
     public function limpiarFiltros()
     {
+        $this->filtro_corralon = '';
         $this->filtro_categoria = '';
         $this->filtro_estado = '';
         $this->filtro_deposito = '';

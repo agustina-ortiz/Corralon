@@ -23,9 +23,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
                 Filtros
-                @if($filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_insumo || $filtro_categoria || $filtro_tipo_movimiento)
+                @if($filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_insumo || $filtro_categoria || $filtro_tipo_movimiento)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_usuario, $filtro_insumo, $filtro_categoria, $filtro_tipo_movimiento])->filter()->count() }}
+                        {{ collect([$filtro_corralon, $filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_usuario, $filtro_insumo, $filtro_categoria, $filtro_tipo_movimiento])->filter()->count() }}
                     </span>
                 @endif
             </button>
@@ -79,8 +79,8 @@
                     </svg>
                     Filtros Avanzados
                 </h3>
-                @if($filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_insumo || $filtro_categoria || $filtro_tipo_movimiento)
-                    <button 
+                @if($filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_insumo || $filtro_categoria || $filtro_tipo_movimiento)
+                    <button
                         wire:click="limpiarFiltros"
                         class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
                     >
@@ -93,11 +93,25 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Filtro Corralón -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Corralón</label>
+                    <select
+                        wire:model.live="filtro_corralon"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Todos los corralones</option>
+                        @foreach($corralonesFiltro as $corralon)
+                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <!-- Filtro Fecha Desde -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         wire:model.live="filtro_fecha_desde"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -106,8 +120,8 @@
                 <!-- Filtro Fecha Hasta -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
-                    <input 
-                        type="date" 
+                    <input
+                        type="date"
                         wire:model.live="filtro_fecha_hasta"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -116,7 +130,7 @@
                 <!-- Filtro Depósito -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Depósito</label>
-                    <select 
+                    <select
                         wire:model.live="filtro_deposito_origen"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -130,7 +144,7 @@
                 <!-- Filtro Tipo de Movimiento -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Movimiento</label>
-                    <select 
+                    <select
                         wire:model.live="filtro_tipo_movimiento"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -144,7 +158,7 @@
                 <!-- Filtro Usuario -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
-                    <select 
+                    <select
                         wire:model.live="filtro_usuario"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -158,8 +172,8 @@
                 <!-- Filtro Insumo -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Insumo</label>
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         wire:model.live="filtro_insumo"
                         placeholder="Nombre del insumo"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
@@ -169,7 +183,7 @@
                 <!-- Filtro Categoría -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-                    <select 
+                    <select
                         wire:model.live="filtro_categoria"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >

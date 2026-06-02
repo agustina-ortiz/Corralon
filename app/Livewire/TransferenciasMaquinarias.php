@@ -26,6 +26,7 @@ class TransferenciasMaquinarias extends Component
     public $showFilters = false;
 
     // Filtros
+    public $filtro_corralon = '';
     public $filtro_fecha_desde = '';
     public $filtro_fecha_hasta = '';
     public $filtro_deposito_origen = '';
@@ -303,6 +304,11 @@ class TransferenciasMaquinarias extends Component
         })
         ->when($this->filtro_fecha_desde, fn($q) => $q->whereDate('fecha', '>=', $this->filtro_fecha_desde))
         ->when($this->filtro_fecha_hasta, fn($q) => $q->whereDate('fecha', '<=', $this->filtro_fecha_hasta))
+        ->when($this->filtro_corralon, function($q) {
+            $q->whereHas('maquinaria.deposito', function($dep) {
+                $dep->where('id_corralon', $this->filtro_corralon);
+            });
+        })
         ->when($this->filtro_deposito_origen, fn($q) => $q->where('id_deposito_entrada', $this->filtro_deposito_origen))
         ->when($this->filtro_usuario, fn($q) => $q->where('id_usuario', $this->filtro_usuario))
         ->when($this->filtro_maquinaria, function ($query) {
@@ -359,13 +365,20 @@ class TransferenciasMaquinarias extends Component
             });
         }
 
-        $depositos        = Deposito::whereIn('id', $depositosAccesibles)->orderBy('deposito')->get();
+        $depositos        = Deposito::whereIn('id', $depositosAccesibles)
+            ->when($this->filtro_corralon, fn($q) => $q->where('id_corralon', $this->filtro_corralon))
+            ->orderBy('deposito')->get();
         $categorias       = CategoriaMaquinaria::orderBy('nombre')->get();
         $usuarios         = User::orderBy('name')->get();
         $tipos_movimiento = TipoMovimiento::whereIn('tipo', ['M', 'IM'])->orderBy('tipo_movimiento')->get();
 
         // Datos para el modal de transferencia multi-maquinaria
         $corralonesPermitidosIds  = $user->getCorralonesParaModulo('movimientos_maquinarias');
+
+        // Corralones para el filtro
+        $corralonesFiltro = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
+            ->orderBy('descripcion')
+            ->get();
         $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
         $corralones = collect();
@@ -462,41 +475,42 @@ class TransferenciasMaquinarias extends Component
             $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
 
             if ($tipoConReposicion) {
-                $asignaciones = MovimientoMaquinaria::where('id_tipo_movimiento', $tipoConReposicion->id)
+                // Traer todos los movimientos relevantes ordenados cronológicamente
+                $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+                $movsPendientes = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $todosLosTipos)
                     ->whereHas('maquinaria', function($q) use ($depositosAccesibles) {
                         $q->whereIn('id_deposito', $depositosAccesibles);
                     })
-                    ->selectRaw('id_maquinaria, tipo_referencia, id_referencia, SUM(cantidad) as total_asignado')
-                    ->groupBy('id_maquinaria', 'tipo_referencia', 'id_referencia')
+                    ->orderBy('id')
                     ->get();
 
-                $descuentos = collect();
-                if ($tiposDescuento->isNotEmpty()) {
-                    $descuentos = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $tiposDescuento)
-                        ->selectRaw('id_maquinaria, tipo_referencia, id_referencia, SUM(cantidad) as total_descontado')
-                        ->groupBy('id_maquinaria', 'tipo_referencia', 'id_referencia')
-                        ->get()
-                        ->keyBy(fn($d) => "{$d->id_maquinaria}-{$d->tipo_referencia}-{$d->id_referencia}");
-                }
+                // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
+                $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_maquinaria}-{$m->tipo_referencia}-{$m->id_referencia}");
 
-                foreach ($asignaciones as $asig) {
-                    $key = "{$asig->id_maquinaria}-{$asig->tipo_referencia}-{$asig->id_referencia}";
-                    $descontado = $descuentos->get($key)?->total_descontado ?? 0;
-                    $pendiente = $asig->total_asignado - $descontado;
+                foreach ($grupos as $key => $movimientosGrupo) {
+                    $balance = 0;
+                    foreach ($movimientosGrupo as $mov) {
+                        if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                            $balance += $mov->cantidad;
+                        } else {
+                            $balance = max(0, $balance - $mov->cantidad);
+                        }
+                    }
 
-                    if ($pendiente > 0) {
-                        $maquinaria = Maquinaria::with(['categoriaMaquinaria', 'deposito'])->find($asig->id_maquinaria);
-                        $referenciaNombre = $this->resolverNombreReferencia($asig->tipo_referencia, $asig->id_referencia);
+                    if ($balance > 0) {
+                        $primer = $movimientosGrupo->first();
+                        $maquinaria = Maquinaria::with(['categoriaMaquinaria', 'deposito'])->find($primer->id_maquinaria);
+                        $referenciaNombre = $this->resolverNombreReferencia($primer->tipo_referencia, $primer->id_referencia);
 
                         $asignacionesPendientes->push([
-                            'id_maquinaria' => $asig->id_maquinaria,
+                            'id_maquinaria' => $primer->id_maquinaria,
                             'maquinaria_nombre' => $maquinaria?->maquinaria ?? 'Desconocida',
                             'categoria' => $maquinaria?->categoriaMaquinaria?->nombre ?? '',
                             'deposito' => $maquinaria?->deposito?->deposito ?? '',
-                            'tipo_referencia' => $asig->tipo_referencia,
-                            'id_referencia' => $asig->id_referencia,
+                            'tipo_referencia' => $primer->tipo_referencia,
+                            'id_referencia' => $primer->id_referencia,
                             'referencia_nombre' => $referenciaNombre,
-                            'cantidad_pendiente' => $pendiente,
+                            'cantidad_pendiente' => $balance,
                         ]);
                     }
                 }
@@ -514,6 +528,7 @@ class TransferenciasMaquinarias extends Component
             'puedeCrearTransferencias'             => $user->puedeCrearTransferenciasMaquinarias(),
             'tieneMultiplesCorralones'             => $tieneMultiplesCorralones,
             'corralones'                           => $corralones,
+            'corralonesFiltro'                     => $corralonesFiltro,
             'depositosOrigenTf'                    => $depositosOrigenTf,
             'depositosDestinoTf'                   => $depositosDestinoTf,
             'maquinarias_disponibles_transferencia'=> $maquinarias_disponibles_transferencia,
@@ -535,6 +550,7 @@ class TransferenciasMaquinarias extends Component
 
     public function limpiarFiltros()
     {
+        $this->filtro_corralon       = '';
         $this->filtro_fecha_desde    = '';
         $this->filtro_fecha_hasta    = '';
         $this->filtro_deposito_origen = '';
@@ -1444,22 +1460,24 @@ class TransferenciasMaquinarias extends Component
         $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación Maquinaria con Reposición')->first();
         $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
 
-        $totalAsignado = MovimientoMaquinaria::where('id_tipo_movimiento', $tipoConReposicion->id)
+        $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+        $movimientos = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $todosLosTipos)
             ->where('id_maquinaria', $maquinariaId)
             ->where('tipo_referencia', $tipoReferencia)
             ->where('id_referencia', $idReferencia)
-            ->sum('cantidad');
+            ->orderBy('id')
+            ->get();
 
-        $totalDescontado = 0;
-        if ($tiposDescuento->isNotEmpty()) {
-            $totalDescontado = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $tiposDescuento)
-                ->where('id_maquinaria', $maquinariaId)
-                ->where('tipo_referencia', $tipoReferencia)
-                ->where('id_referencia', $idReferencia)
-                ->sum('cantidad');
+        $balance = 0;
+        foreach ($movimientos as $mov) {
+            if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                $balance += $mov->cantidad;
+            } else {
+                $balance = max(0, $balance - $mov->cantidad);
+            }
         }
 
-        return max(0, $totalAsignado - $totalDescontado);
+        return $balance;
     }
 
     public function cerrarModal()

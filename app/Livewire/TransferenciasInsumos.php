@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ComprobanteMovimiento;
 use App\Models\EmpleadoMunicipal;
+use App\Models\Corralon;
 
 class TransferenciasInsumos extends Component
 {
@@ -28,6 +29,7 @@ class TransferenciasInsumos extends Component
     
     protected $updatesQueryString = [
         'search' => ['except' => ''],
+        'filtro_corralon' => ['except' => ''],
         'filtro_fecha_desde' => ['except' => ''],
         'filtro_fecha_hasta' => ['except' => ''],
         'filtro_deposito_origen' => ['except' => ''],
@@ -44,6 +46,7 @@ class TransferenciasInsumos extends Component
     public $showFilters = false;
     
     // Filtros
+    public $filtro_corralon = '';
     public $filtro_fecha_desde = '';
     public $filtro_fecha_hasta = '';
     public $filtro_deposito_origen = '';
@@ -112,6 +115,12 @@ class TransferenciasInsumos extends Component
 
     public function updatedSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroCorralon()
+    {
+        $this->filtro_deposito_origen = '';
         $this->resetPage();
     }
 
@@ -317,6 +326,16 @@ class TransferenciasInsumos extends Component
             ->when($this->filtro_fecha_hasta, function($query) {
                 $query->whereDate('fecha', '<=', $this->filtro_fecha_hasta);
             })
+            ->when($this->filtro_corralon, function($query) {
+                $query->where(function($q) {
+                    $q->whereHas('depositoOrigen', function($dep) {
+                        $dep->where('id_corralon', $this->filtro_corralon);
+                    })
+                    ->orWhereHas('depositoDestino', function($dep) {
+                        $dep->where('id_corralon', $this->filtro_corralon);
+                    });
+                });
+            })
             ->when($this->filtro_deposito_origen, function($query) {
                 $query->where('id_deposito_origen', $this->filtro_deposito_origen);
             })
@@ -362,6 +381,11 @@ class TransferenciasInsumos extends Component
             })
             ->when($this->filtro_fecha_hasta, function($query) {
                 $query->whereDate('fecha', '<=', $this->filtro_fecha_hasta);
+            })
+            ->when($this->filtro_corralon, function($query) {
+                $query->whereHas('insumo.deposito', function($q) {
+                    $q->where('id_corralon', $this->filtro_corralon);
+                });
             })
             ->when($this->filtro_deposito_origen, function($query) {
                 $query->whereHas('insumo', function($q) {
@@ -513,55 +537,54 @@ class TransferenciasInsumos extends Component
             $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
 
             if ($tipoConReposicion) {
-                $asignaciones = MovimientoInsumo::where('id_tipo_movimiento', $tipoConReposicion->id)
+                // Traer todos los movimientos relevantes ordenados cronológicamente
+                $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+                $movsPendientes = MovimientoInsumo::whereIn('id_tipo_movimiento', $todosLosTipos)
                     ->whereHas('insumo', function($q) use ($depositosAccesibles) {
                         $q->whereIn('id_deposito', $depositosAccesibles);
                     })
-                    ->selectRaw('id_insumo, tipo_referencia, id_referencia, SUM(cantidad) as total_asignado')
-                    ->groupBy('id_insumo', 'tipo_referencia', 'id_referencia')
+                    ->orderBy('id')
                     ->get();
 
-                // Obtener devoluciones y bajas ya realizadas
-                $descuentos = collect();
-                if ($tiposDescuento->isNotEmpty()) {
-                    $descuentos = MovimientoInsumo::whereIn('id_tipo_movimiento', $tiposDescuento)
-                        ->selectRaw('id_insumo, tipo_referencia, id_referencia, SUM(cantidad) as total_descontado')
-                        ->groupBy('id_insumo', 'tipo_referencia', 'id_referencia')
-                        ->get()
-                        ->keyBy(fn($d) => "{$d->id_insumo}-{$d->tipo_referencia}-{$d->id_referencia}");
-                }
+                // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
+                $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_insumo}-{$m->tipo_referencia}-{$m->id_referencia}");
 
-                foreach ($asignaciones as $asig) {
-                    $key = "{$asig->id_insumo}-{$asig->tipo_referencia}-{$asig->id_referencia}";
-                    $descontado = $descuentos->get($key)?->total_descontado ?? 0;
-                    $pendiente = $asig->total_asignado - $descontado;
+                foreach ($grupos as $key => $movimientosGrupo) {
+                    $balance = 0;
+                    foreach ($movimientosGrupo as $mov) {
+                        if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                            $balance += $mov->cantidad;
+                        } else {
+                            $balance = max(0, $balance - $mov->cantidad);
+                        }
+                    }
 
-                    if ($pendiente > 0) {
-                        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($asig->id_insumo);
-                        $referencia = null;
+                    if ($balance > 0) {
+                        $primer = $movimientosGrupo->first();
+                        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($primer->id_insumo);
                         $referenciaNombre = '';
 
-                        if ($asig->tipo_referencia === 'vehiculo') {
-                            $referencia = Vehiculo::find($asig->id_referencia);
-                            $referenciaNombre = $referencia ? "{$referencia->vehiculo} ({$referencia->patente})" : "Vehículo #{$asig->id_referencia}";
-                        } elseif ($asig->tipo_referencia === 'evento') {
-                            $referencia = Evento::find($asig->id_referencia);
-                            $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$asig->id_referencia}";
-                        } elseif ($asig->tipo_referencia === 'empleado') {
-                            $referencia = EmpleadoMunicipal::find($asig->id_referencia);
-                            $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$asig->id_referencia}";
+                        if ($primer->tipo_referencia === 'vehiculo') {
+                            $referencia = Vehiculo::find($primer->id_referencia);
+                            $referenciaNombre = $referencia ? "{$referencia->vehiculo} ({$referencia->patente})" : "Vehículo #{$primer->id_referencia}";
+                        } elseif ($primer->tipo_referencia === 'evento') {
+                            $referencia = Evento::find($primer->id_referencia);
+                            $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$primer->id_referencia}";
+                        } elseif ($primer->tipo_referencia === 'empleado') {
+                            $referencia = EmpleadoMunicipal::find($primer->id_referencia);
+                            $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$primer->id_referencia}";
                         }
 
                         $asignacionesPendientes->push([
-                            'id_insumo' => $asig->id_insumo,
+                            'id_insumo' => $primer->id_insumo,
                             'insumo_nombre' => $insumo?->insumo ?? 'Desconocido',
                             'categoria' => $insumo?->categoriaInsumo?->nombre ?? '',
                             'deposito' => $insumo?->deposito?->deposito ?? '',
                             'unidad' => $insumo?->unidad ?? '',
-                            'tipo_referencia' => $asig->tipo_referencia,
-                            'id_referencia' => $asig->id_referencia,
+                            'tipo_referencia' => $primer->tipo_referencia,
+                            'id_referencia' => $primer->id_referencia,
                             'referencia_nombre' => $referenciaNombre,
-                            'cantidad_pendiente' => $pendiente,
+                            'cantidad_pendiente' => $balance,
                         ]);
                     }
                 }
@@ -569,6 +592,7 @@ class TransferenciasInsumos extends Component
         }
 
         $depositos = Deposito::whereIn('id', $depositosAccesibles)
+            ->when($this->filtro_corralon, fn($q) => $q->where('id_corralon', $this->filtro_corralon))
             ->orderBy('deposito')
             ->get();
 
@@ -578,6 +602,11 @@ class TransferenciasInsumos extends Component
 
         // Determinar si el usuario tiene acceso a múltiples corralones
         $corralonesPermitidosIds = $user->getCorralonesParaModulo('movimientos_insumos');
+
+        // Corralones para el filtro
+        $corralonesFiltro = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
+            ->orderBy('descripcion')
+            ->get();
         $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
         $corralones = collect();
@@ -622,6 +651,7 @@ class TransferenciasInsumos extends Component
             'depositosOrigen' => $depositosOrigen,
             'depositosDestino' => $depositosDestino,
             'corralones' => $corralones,
+            'corralonesFiltro' => $corralonesFiltro,
             'tieneMultiplesCorralones' => $tieneMultiplesCorralones,
             'categorias' => $categorias,
             'usuarios' => $usuarios,
@@ -649,6 +679,7 @@ class TransferenciasInsumos extends Component
 
     public function limpiarFiltros()
     {
+        $this->filtro_corralon = '';
         $this->filtro_fecha_desde = '';
         $this->filtro_fecha_hasta = '';
         $this->filtro_deposito_origen = '';
@@ -1563,22 +1594,24 @@ class TransferenciasInsumos extends Component
         $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
         $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
 
-        $totalAsignado = MovimientoInsumo::where('id_tipo_movimiento', $tipoConReposicion->id)
+        $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+        $movimientos = MovimientoInsumo::whereIn('id_tipo_movimiento', $todosLosTipos)
             ->where('id_insumo', $insumoId)
             ->where('tipo_referencia', $tipoReferencia)
             ->where('id_referencia', $idReferencia)
-            ->sum('cantidad');
+            ->orderBy('id')
+            ->get();
 
-        $totalDescontado = 0;
-        if ($tiposDescuento->isNotEmpty()) {
-            $totalDescontado = MovimientoInsumo::whereIn('id_tipo_movimiento', $tiposDescuento)
-                ->where('id_insumo', $insumoId)
-                ->where('tipo_referencia', $tipoReferencia)
-                ->where('id_referencia', $idReferencia)
-                ->sum('cantidad');
+        $balance = 0;
+        foreach ($movimientos as $mov) {
+            if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                $balance += $mov->cantidad;
+            } else {
+                $balance = max(0, $balance - $mov->cantidad);
+            }
         }
 
-        return $totalAsignado - $totalDescontado;
+        return $balance;
     }
 
     public function cerrarModal()
