@@ -173,10 +173,10 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 
 ### Asignaciones de insumos
 
-Los movimientos de asignación permiten asignar insumos a **vehículos**, **eventos** o **empleados**:
+Los movimientos de asignación permiten asignar insumos a **vehículos**, **eventos**, **empleados** o **secretarías**:
 
-- **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después). Destinos: vehículo, evento o empleado.
-- **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo). **Solo vehículos y eventos** (no empleados).
+- **Asignación con Reposición** — salida temporal (ej: insumo prestado a un evento, se devuelve después). Destinos: vehículo, evento, empleado o secretaría.
+- **Asignación sin Reposición** — salida definitiva (ej: repuesto instalado en un vehículo). Destinos: vehículo, evento, empleado o secretaría.
 - **Entrada Reposición** — devolver insumos previamente asignados (suma stock)
 - **Baja Reposición** — cancelar pendencia sin devolver stock (ej: se usaron como repuesto definitivo). No está en NOMBRES_ENTRADA ni NOMBRES_SALIDA, no afecta stock.
 
@@ -191,6 +191,7 @@ Los movimientos se guardan con `tipo_referencia = 'vehiculo'`, `'evento'` o `'em
 
 Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) que muestra asignaciones con reposición que aún no fueron devueltas ni dadas de baja.
 
+- **Visibilidad**: el panel **solo se muestra si hay al menos una asignación pendiente**; si no hay pendientes, el colapsable no aparece. `$asignacionesPendientes` se calcula siempre en `render()` (ya no depende de `showAsignacionesPendientes`) y la vista lo envuelve en `@if($asignacionesPendientes->count() > 0)`.
 - **Cálculo pendiente**: `SUM(Asignación con Reposición) - SUM(Entrada Reposición) - SUM(Baja Reposición)` por cada combinación insumo + tipo_referencia + id_referencia
 - **Acciones por fila**: campo de cantidad + botón "Devolver" (crea Entrada Reposición, suma stock) y botón "Dar de baja" (crea Baja Reposición con confirm(), no afecta stock)
 - Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendiente()`
@@ -218,13 +219,19 @@ Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista mue
 
 Métodos en ambos componentes: `abrirEdicion($id)`, `guardarEdicion()`, `eliminarComprobanteExistente($id)`, `removeEditComprobante($index)`, `cerrarEdicion()`. Propiedades con prefijo `edit_*`. La edición valida que el tipo de movimiento esté en `TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo']`. El resto de los tipos (Inventario Inicial, asignaciones, ajuste negativo, transferencias) **no** muestran el botón.
 
-### Ajuste Negativo — Secretaría y Área
+### Destino de Ajuste Negativo y Asignaciones (insumos y maquinarias)
 
-Los movimientos de **Ajuste Negativo** (insumos y maquinarias) tienen dos campos opcionales:
-- `id_secretaria` — FK nullable a `secretarias`, select en el formulario
-- `area` — string nullable, campo combo: select de áreas de la secretaría seleccionada + opción de texto libre (toggle con Alpine.js)
+Los movimientos **Ajuste Negativo**, **Asignación con Reposición** y **Asignación sin Reposición** (insumos y maquinarias) comparten un **selector de destino** con 4 opciones: **Vehículo, Evento, Empleado y Secretaría**.
 
-Estos campos se guardan en `movimiento_insumos` / `movimiento_maquinarias` y se muestran en la columna **Destino** del listado con badge violeta (secretaría + área).
+- En **Ajuste Negativo** el destino es **opcional** (puede registrarse sin destino); en las asignaciones es **obligatorio**.
+- El botón `seleccionarTipoDestino()` togglea (volver a tocarlo deselecciona — permite dejar Ajuste Negativo sin destino).
+- Helper `destinoFields()` (en ambos componentes) resuelve `[tipo_referencia, id_referencia, id_secretaria, area]`:
+  - **Secretaría** → `tipo_referencia='secretaria'`, `id_referencia=<id secretaría>`, `id_secretaria=<id>`, `area=<opcional>`
+  - **Vehículo/Evento/Empleado** → `tipo_referencia=<tipo>`, `id_referencia=<id>`, `id_secretaria=null`, `area=null`
+  - **Sin destino** (solo Ajuste Negativo) → `id_referencia=0`, `tipo_referencia='inventario'` (insumos) / `'deposito'` (maquinarias)
+- **Secretaría**: select de secretaría (`id_secretaria_ajuste`) + campo combo **Área** (`area_ajuste`: select de áreas + texto libre con Alpine.js). El campo Área aparece **solo** cuando el destino es Secretaría.
+- En la columna **Destino** del listado: badge violeta para secretaría (+ área), y el nombre del vehículo/evento/empleado para esos destinos.
+- Las asignaciones a secretaría participan del panel **Asignaciones Pendientes de Reposición** y de devolver/dar de baja como cualquier otro destino.
 
 ### ABM Secretarías y Áreas
 
@@ -253,19 +260,20 @@ Al buscar un tipo de movimiento en el código, usar `TipoMovimiento::where('tipo
 
 ### Asignaciones de maquinarias
 
-Los movimientos de asignación permiten asignar maquinarias a **vehículos**, **eventos** o **empleados**, con la misma lógica que insumos:
+Los movimientos de asignación permiten asignar maquinarias a **vehículos**, **eventos**, **empleados** o **secretarías**, con la misma lógica que insumos:
 
-- **Asignación Maquinaria con Reposición** — salida temporal (con devolución posterior). Destinos: vehículo, evento o empleado.
-- **Asignación Maquinaria sin Reposición** — salida definitiva. **Solo vehículos y eventos** (no empleados).
+- **Asignación Maquinaria con Reposición** — salida temporal (con devolución posterior). Destinos: vehículo, evento, empleado o secretaría.
+- **Asignación Maquinaria sin Reposición** — salida definitiva. Destinos: vehículo, evento, empleado o secretaría.
 - **Entrada Reposición Maquinaria** — devolver maquinaria previamente asignada (suma stock)
 - **Baja Reposición Maquinaria** — cancelar pendencia sin devolver stock. No afecta stock.
 
-Los movimientos se guardan con `tipo_referencia = 'vehiculo'`, `'evento'` o `'empleado'` e `id_referencia` apuntando al registro seleccionado.
+Los movimientos se guardan con `tipo_referencia = 'vehiculo'`, `'evento'`, `'empleado'` o `'secretaria'` e `id_referencia` apuntando al registro seleccionado (para secretaría, `id_referencia` es el id de la secretaría y además se guarda `id_secretaria` + `area`). Ver **Destino de Ajuste Negativo y Asignaciones**.
 
 #### Panel "Asignaciones Pendientes de Reposición" (Maquinarias)
 
 Panel colapsable en TransferenciasMaquinarias (arriba de la lista de movimientos) que muestra asignaciones con reposición pendientes.
 
+- **Visibilidad**: el panel **solo se muestra si hay al menos una asignación pendiente** (`@if($puedeCrear && $asignacionesPendientes->count() > 0)`); si no hay pendientes, el colapsable no aparece. `$asignacionesPendientes` se calcula siempre en `render()`.
 - **Cálculo pendiente**: `SUM(Asignación Maquinaria con Reposición) - SUM(Entrada Reposición Maquinaria) - SUM(Baja Reposición Maquinaria)`
 - **Acciones por fila**: campo de cantidad + botón "Devolver" y botón "Baja"
 - Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendienteMaquinaria()`
