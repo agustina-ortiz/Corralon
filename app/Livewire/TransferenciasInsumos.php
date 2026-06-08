@@ -198,14 +198,32 @@ class TransferenciasInsumos extends Component
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
-            $tiposDestinoPermitidos = $this->tipo_movimiento === 'asignacion_sin_reposicion'
-                ? 'vehiculo,evento'
-                : 'vehiculo,evento,empleado';
-            $rules['tipo_destino'] = 'required|in:' . $tiposDestinoPermitidos;
-            $rules['id_referencia'] = 'required';
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado,secretaria';
+            $rules = array_merge($rules, $this->reglasDestino());
+        }
+
+        if ($this->tipo_movimiento === 'ajuste_negativo') {
+            // Destino opcional: si se elige un tipo, se valida el registro correspondiente
+            $rules['tipo_destino'] = 'nullable|in:vehiculo,evento,empleado,secretaria';
+            $rules = array_merge($rules, $this->reglasDestino());
         }
 
         return $rules;
+    }
+
+    /**
+     * Reglas del registro de destino según el tipo elegido.
+     * Secretaría usa id_secretaria_ajuste; vehículo/evento/empleado usan id_referencia.
+     */
+    private function reglasDestino(): array
+    {
+        if ($this->tipo_destino === 'secretaria') {
+            return ['id_secretaria_ajuste' => 'required|exists:secretarias,id'];
+        }
+        if (in_array($this->tipo_destino, ['vehiculo', 'evento', 'empleado'])) {
+            return ['id_referencia' => 'required'];
+        }
+        return [];
     }
 
     protected $messages = [
@@ -217,8 +235,9 @@ class TransferenciasInsumos extends Component
         'insumos_transferencia.min' => 'Debe seleccionar al menos un insumo.',
         'insumos_transferencia.*.cantidad.required' => 'La cantidad es obligatoria.',
         'insumos_transferencia.*.cantidad.min' => 'La cantidad debe ser mayor a 0.',
-        'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo, Evento o Empleado).',
+        'tipo_destino.required' => 'Debe seleccionar el tipo de destino (Vehículo, Evento, Empleado o Secretaría).',
         'id_referencia.required' => 'Debe seleccionar un vehículo, evento o empleado.',
+        'id_secretaria_ajuste.required' => 'Debe seleccionar una secretaría.',
         'comprobantes.max' => 'Puede adjuntar un máximo de 5 archivos.',
         'comprobantes.*.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',
         'comprobantes.*.max' => 'Cada archivo no debe superar los 5 MB.',
@@ -511,7 +530,7 @@ class TransferenciasInsumos extends Component
         $vehiculos_destino = collect();
         $eventos_destino = collect();
         $empleados_destino = collect();
-        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
+        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion', 'ajuste_negativo'])) {
             if ($this->tipo_destino === 'vehiculo') {
                 $vehiculos_destino = Vehiculo::when($this->search_destino, function($query) {
                         $query->where(function($q) {
@@ -589,6 +608,9 @@ class TransferenciasInsumos extends Component
                         } elseif ($primer->tipo_referencia === 'empleado') {
                             $referencia = EmpleadoMunicipal::find($primer->id_referencia);
                             $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$primer->id_referencia}";
+                        } elseif ($primer->tipo_referencia === 'secretaria') {
+                            $referencia = Secretaria::find($primer->id_referencia);
+                            $referenciaNombre = $referencia ? "Secretaría: {$referencia->secretaria}" : "Secretaría #{$primer->id_referencia}";
                         }
 
                         $asignacionesPendientes->push([
@@ -1328,6 +1350,8 @@ class TransferenciasInsumos extends Component
 
             $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Ajuste Negativo')->first();
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
@@ -1336,17 +1360,18 @@ class TransferenciasInsumos extends Component
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $insumo->id_deposito,
-                'id_referencia' => 0,
-                'tipo_referencia' => 'inventario',
-                'id_secretaria' => $this->id_secretaria_ajuste ?: null,
-                'area' => $this->area_ajuste ?: null,
+                'id_referencia' => $idRef,
+                'tipo_referencia' => $tipoRef,
+                'id_secretaria' => $idSec,
+                'area' => $area,
             ]);
 
             $insumo->sincronizarStock();
 
             DB::commit();
 
-            $mensaje = "Ajuste negativo realizado exitosamente: -{$this->cantidad} {$insumo->unidad} de {$insumo->insumo}";
+            $destinoMsg = $this->tipo_destino ? ' → ' . $this->obtenerNombreDestino() : '';
+            $mensaje = "Ajuste negativo realizado exitosamente: -{$this->cantidad} {$insumo->unidad} de {$insumo->insumo}{$destinoMsg}";
             session()->flash('message', $mensaje);
             $this->cerrarModal();
 
@@ -1358,12 +1383,41 @@ class TransferenciasInsumos extends Component
         }
     }
 
+    /**
+     * Selecciona (o deselecciona, si se vuelve a tocar) el tipo de destino.
+     * El toggle permite dejar sin destino en Ajuste Negativo (opcional).
+     */
+    public function seleccionarTipoDestino($tipo)
+    {
+        $this->tipo_destino = ($this->tipo_destino === $tipo) ? '' : $tipo;
+        $this->updatedTipoDestino();
+    }
+
     public function updatedTipoDestino()
     {
         $this->id_referencia = '';
         $this->search_destino = '';
         $this->mostrar_lista_destino = false;
-        $this->resetErrorBag('id_referencia');
+        $this->id_secretaria_ajuste = '';
+        $this->area_ajuste = '';
+        $this->areas_disponibles = [];
+        $this->resetErrorBag(['id_referencia', 'id_secretaria_ajuste', 'tipo_destino']);
+    }
+
+    /**
+     * Resuelve los campos de destino a guardar según el tipo elegido en el formulario.
+     * Devuelve [tipo_referencia, id_referencia, id_secretaria, area].
+     * Sin destino (solo posible en Ajuste Negativo) → ['inventario', 0, null, null].
+     */
+    private function destinoFields(): array
+    {
+        if ($this->tipo_destino === 'secretaria') {
+            return ['secretaria', $this->id_secretaria_ajuste, $this->id_secretaria_ajuste, $this->area_ajuste ?: null];
+        }
+        if (in_array($this->tipo_destino, ['vehiculo', 'evento', 'empleado'])) {
+            return [$this->tipo_destino, $this->id_referencia, null, null];
+        }
+        return ['inventario', 0, null, null];
     }
 
     public function updatedSearchDestino()
@@ -1409,6 +1463,8 @@ class TransferenciasInsumos extends Component
 
             $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', $nombreTipo)->first();
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
@@ -1417,8 +1473,10 @@ class TransferenciasInsumos extends Component
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $insumo->id_deposito,
-                'id_referencia' => $this->id_referencia,
-                'tipo_referencia' => $this->tipo_destino,
+                'id_referencia' => $idRef,
+                'tipo_referencia' => $tipoRef,
+                'id_secretaria' => $idSec,
+                'area' => $area,
             ]);
 
             $insumo->sincronizarStock();
@@ -1454,6 +1512,8 @@ class TransferenciasInsumos extends Component
 
             $tipoMovimiento = TipoMovimiento::where('tipo_movimiento', 'Entrada Reposición')->first();
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoInsumo::create([
                 'id_insumo' => $insumo->id,
                 'id_tipo_movimiento' => $tipoMovimiento->id,
@@ -1462,8 +1522,10 @@ class TransferenciasInsumos extends Component
                 'fecha_devolucion' => null,
                 'id_usuario' => Auth::id(),
                 'id_deposito_entrada' => $insumo->id_deposito,
-                'id_referencia' => $this->id_referencia,
-                'tipo_referencia' => $this->tipo_destino,
+                'id_referencia' => $idRef,
+                'tipo_referencia' => $tipoRef,
+                'id_secretaria' => $idSec,
+                'area' => $area,
             ]);
 
             $insumo->sincronizarStock();
@@ -1488,17 +1550,23 @@ class TransferenciasInsumos extends Component
 
     private function obtenerNombreDestino(): string
     {
-        if ($this->tipo_destino === 'vehiculo') {
-            $vehiculo = Vehiculo::find($this->id_referencia);
+        [$tipoRef, $idRef] = $this->destinoFields();
+
+        if ($tipoRef === 'vehiculo') {
+            $vehiculo = Vehiculo::find($idRef);
             return $vehiculo ? "Vehículo: {$vehiculo->vehiculo} ({$vehiculo->patente})" : 'Vehículo desconocido';
         }
-        if ($this->tipo_destino === 'evento') {
-            $evento = Evento::find($this->id_referencia);
+        if ($tipoRef === 'evento') {
+            $evento = Evento::find($idRef);
             return $evento ? "Evento: {$evento->evento}" : 'Evento desconocido';
         }
-        if ($this->tipo_destino === 'empleado') {
-            $empleado = EmpleadoMunicipal::find($this->id_referencia);
+        if ($tipoRef === 'empleado') {
+            $empleado = EmpleadoMunicipal::find($idRef);
             return $empleado ? "Empleado: {$empleado->nombre_formateado} (Leg. {$empleado->LEGAJO})" : 'Empleado desconocido';
+        }
+        if ($tipoRef === 'secretaria') {
+            $secretaria = Secretaria::find($idRef);
+            return $secretaria ? "Secretaría: {$secretaria->secretaria}" : 'Secretaría desconocida';
         }
         return 'Destino desconocido';
     }

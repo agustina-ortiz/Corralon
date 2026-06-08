@@ -450,6 +450,20 @@
                                         <span class="block text-purple-500">{{ $movimiento->area }}</span>
                                     @endif
                                 </span>
+                            @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']) && $movimiento->id_referencia)
+                                @php
+                                    $refLabel = ['vehiculo' => 'Vehículo', 'evento' => 'Evento', 'empleado' => 'Empleado'][$movimiento->tipo_referencia];
+                                    $refNombre = match($movimiento->tipo_referencia) {
+                                        'vehiculo' => optional(\App\Models\Vehiculo::find($movimiento->id_referencia))->vehiculo,
+                                        'evento'   => optional(\App\Models\Evento::find($movimiento->id_referencia))->evento,
+                                        'empleado' => 'Legajo ' . $movimiento->id_referencia,
+                                        default    => null,
+                                    };
+                                @endphp
+                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg font-medium">
+                                    {{ $refNombre ?? $refLabel }}
+                                    <span class="block text-blue-500">{{ $refLabel }}</span>
+                                </span>
                             @else
                                 <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
                                     —
@@ -768,7 +782,7 @@
                                             </div>
                                         </div>
 
-                                        @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion']))
+                                        @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion', 'ajuste_negativo']))
                                             @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
                                                 {{-- Depósito auto-determinado --}}
                                                 <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
@@ -784,18 +798,33 @@
                                                 </div>
                                             @endif
 
+                                            @if($tipo_movimiento === 'ajuste_negativo')
+                                                {{-- Depósito y disponible (ajuste negativo) --}}
+                                                <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+                                                    <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                    </svg>
+                                                    <span class="text-red-800">
+                                                        Depósito: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
+                                                        — Disponible: <strong>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</strong> {{ $maquinaria_seleccionada->getCantidadTotalDisponible() == 1 ? 'unidad' : 'unidades' }}
+                                                    </span>
+                                                </div>
+                                            @endif
+
                                             <!-- Selector de tipo de destino -->
+                                            @php
+                                                $destinoLabel = $tipo_movimiento === 'entrada_reposicion'
+                                                    ? 'Devuelto desde *'
+                                                    : ($tipo_movimiento === 'ajuste_negativo' ? 'Asignar a (opcional)' : 'Asignar a *');
+                                            @endphp
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    {{ in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']) ? 'Asignar a *' : 'Devuelto desde *' }}
+                                                    {{ $destinoLabel }}
                                                 </label>
-                                                @php
-                                                    $permiteEmpleado = $tipo_movimiento !== 'asignacion_sin_reposicion';
-                                                @endphp
-                                                <div class="grid {{ $permiteEmpleado ? 'grid-cols-3' : 'grid-cols-2' }} gap-3">
+                                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                                     <button
                                                         type="button"
-                                                        wire:click="$set('tipo_destino', 'vehiculo')"
+                                                        wire:click="seleccionarTipoDestino('vehiculo')"
                                                         class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'vehiculo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
                                                     >
                                                         <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -806,7 +835,7 @@
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        wire:click="$set('tipo_destino', 'evento')"
+                                                        wire:click="seleccionarTipoDestino('evento')"
                                                         class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'evento' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
                                                     >
                                                         <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -814,10 +843,9 @@
                                                         </svg>
                                                         <span class="text-sm font-medium">Evento</span>
                                                     </button>
-                                                    @if($permiteEmpleado)
                                                     <button
                                                         type="button"
-                                                        wire:click="$set('tipo_destino', 'empleado')"
+                                                        wire:click="seleccionarTipoDestino('empleado')"
                                                         class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'empleado' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
                                                     >
                                                         <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -825,13 +853,22 @@
                                                         </svg>
                                                         <span class="text-sm font-medium">Empleado</span>
                                                     </button>
-                                                    @endif
+                                                    <button
+                                                        type="button"
+                                                        wire:click="seleccionarTipoDestino('secretaria')"
+                                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'secretaria' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                                    >
+                                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                        </svg>
+                                                        <span class="text-sm font-medium">Secretaría</span>
+                                                    </button>
                                                 </div>
                                                 @error('tipo_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                             </div>
 
-                                            <!-- Buscar y seleccionar destino -->
-                                            @if($tipo_destino)
+                                            <!-- Buscar y seleccionar destino (vehículo/evento/empleado) -->
+                                            @if(in_array($tipo_destino, ['vehiculo', 'evento', 'empleado']))
                                                 <div class="mb-5 relative">
                                                     <label class="block text-sm font-medium text-gray-700 mb-2">
                                                         Seleccionar {{ $tipo_destino === 'vehiculo' ? 'Vehículo' : ($tipo_destino === 'evento' ? 'Evento' : 'Empleado') }} *
@@ -932,9 +969,67 @@
                                                     @endif
                                                     @error('id_referencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                                 </div>
+                                            @elseif($tipo_destino === 'secretaria')
+                                                <!-- Secretaría y Área -->
+                                                <div class="mb-5 grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría *</label>
+                                                        <select
+                                                            wire:model.live="id_secretaria_ajuste"
+                                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                        >
+                                                            <option value="">— Seleccionar —</option>
+                                                            @foreach($secretarias as $sec)
+                                                                <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @error('id_secretaria_ajuste') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
+                                                        <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                                                        <template x-if="!modoLibre">
+                                                            <div>
+                                                                <select
+                                                                    wire:model="area_ajuste"
+                                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                                >
+                                                                    <option value="">— Seleccionar —</option>
+                                                                    @foreach($areas_disponibles as $area)
+                                                                        <option value="{{ $area }}">{{ $area }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                                <button type="button" @click="modoLibre = true; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                                    Escribir área manualmente
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="modoLibre">
+                                                            <div>
+                                                                <input
+                                                                    type="text"
+                                                                    wire:model="area_ajuste"
+                                                                    x-ref="areaInputMaquinarias"
+                                                                    placeholder="Escribir nombre del área"
+                                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                                                                >
+                                                                @if(count($areas_disponibles) > 0)
+                                                                    <button type="button" @click="modoLibre = false; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
+                                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                                        Seleccionar de la lista
+                                                                    </button>
+                                                                @endif
+                                                            </div>
+                                                        </template>
+                                                        @if($id_secretaria_ajuste && count($areas_disponibles) === 0)
+                                                            <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
                                             @endif
 
-                                            <!-- Cantidad -->
+                                            <!-- Cantidad (asignaciones / entrada reposición) -->
+                                            @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion']))
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     Cantidad *
@@ -992,6 +1087,7 @@
                                                     <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
                                                 @enderror
                                             </div>
+                                            @endif
                                         @endif
 
                                         @if(in_array($tipo_movimiento, ['carga_stock', 'ajuste_positivo']))
@@ -1062,74 +1158,8 @@
                                             </div>
                                         @endif
 
-                                        <!-- Ajuste Negativo -->
+                                        <!-- Cantidad a Ajustar (Ajuste Negativo) -->
                                         @if($tipo_movimiento === 'ajuste_negativo')
-                                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
-                                                <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                                </svg>
-                                                <span class="text-red-800">
-                                                    Depósito: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
-                                                    — Disponible: <strong>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</strong> {{ $maquinaria_seleccionada->getCantidadTotalDisponible() == 1 ? 'unidad' : 'unidades' }}
-                                                </span>
-                                            </div>
-
-                                            <!-- Secretaría y Área -->
-                                            <div class="mb-5 grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                                                    <select
-                                                        wire:model.live="id_secretaria_ajuste"
-                                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                    >
-                                                        <option value="">— Seleccionar —</option>
-                                                        @foreach($secretarias as $sec)
-                                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
-                                                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
-                                                    <template x-if="!modoLibre">
-                                                        <div>
-                                                            <select
-                                                                wire:model="area_ajuste"
-                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                            >
-                                                                <option value="">— Seleccionar —</option>
-                                                                @foreach($areas_disponibles as $area)
-                                                                    <option value="{{ $area }}">{{ $area }}</option>
-                                                                @endforeach
-                                                            </select>
-                                                            <button type="button" @click="modoLibre = true; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
-                                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                                                Escribir área manualmente
-                                                            </button>
-                                                        </div>
-                                                    </template>
-                                                    <template x-if="modoLibre">
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                wire:model="area_ajuste"
-                                                                x-ref="areaInputMaquinarias"
-                                                                placeholder="Escribir nombre del área"
-                                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                            >
-                                                            @if(count($areas_disponibles) > 0)
-                                                                <button type="button" @click="modoLibre = false; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
-                                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                                                                    Seleccionar de la lista
-                                                                </button>
-                                                            @endif
-                                                        </div>
-                                                    </template>
-                                                    @if($id_secretaria_ajuste && count($areas_disponibles) === 0)
-                                                        <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
-                                                    @endif
-                                                </div>
-                                            </div>
-
                                             <div class="mb-5">
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                                     Cantidad a Ajustar *

@@ -202,6 +202,10 @@ class TransferenciasMaquinarias extends Component
                 ? $this->maquinaria_seleccionada->getCantidadTotalDisponible()
                 : 1;
             $rules['cantidad_a_cargar'] = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
+
+            // Destino opcional: si se elige un tipo, se valida el registro correspondiente
+            $rules['tipo_destino'] = 'nullable|in:vehiculo,evento,empleado,secretaria';
+            $rules = array_merge($rules, $this->reglasDestino());
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion'])) {
@@ -213,20 +217,32 @@ class TransferenciasMaquinarias extends Component
 
             $rules['cantidad_a_asignar'] = ['required', 'integer', 'min:1', 'max:' . $cantidadDisponible];
 
-            $tiposDestinoPermitidos = $this->tipo_movimiento === 'asignacion_sin_reposicion'
-                ? 'vehiculo,evento'
-                : 'vehiculo,evento,empleado';
-            $rules['tipo_destino'] = 'required|in:' . $tiposDestinoPermitidos;
-            $rules['id_referencia'] = 'required';
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado,secretaria';
+            $rules = array_merge($rules, $this->reglasDestino());
         }
 
         if ($this->tipo_movimiento === 'entrada_reposicion') {
-            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado';
-            $rules['id_referencia'] = 'required';
+            $rules['tipo_destino'] = 'required|in:vehiculo,evento,empleado,secretaria';
+            $rules = array_merge($rules, $this->reglasDestino());
             $rules['cantidad_a_asignar'] = ['required', 'integer', 'min:1'];
         }
 
         return $rules;
+    }
+
+    /**
+     * Reglas del registro de destino según el tipo elegido.
+     * Secretaría usa id_secretaria_ajuste; vehículo/evento/empleado usan id_referencia.
+     */
+    private function reglasDestino(): array
+    {
+        if ($this->tipo_destino === 'secretaria') {
+            return ['id_secretaria_ajuste' => 'required|exists:secretarias,id'];
+        }
+        if (in_array($this->tipo_destino, ['vehiculo', 'evento', 'empleado'])) {
+            return ['id_referencia' => 'required'];
+        }
+        return [];
     }
 
     protected $messages = [
@@ -243,8 +259,9 @@ class TransferenciasMaquinarias extends Component
         'cantidad_a_cargar.required'        => 'Debe ingresar la cantidad a cargar.',
         'cantidad_a_cargar.min'             => 'La cantidad debe ser al menos 1.',
         'cantidad_a_cargar.max'             => 'La cantidad excede el límite permitido.',
-        'tipo_destino.required'             => 'Debe seleccionar el tipo de destino (Vehículo, Evento o Empleado).',
+        'tipo_destino.required'             => 'Debe seleccionar el tipo de destino (Vehículo, Evento, Empleado o Secretaría).',
         'id_referencia.required'            => 'Debe seleccionar un vehículo, evento o empleado.',
+        'id_secretaria_ajuste.required'     => 'Debe seleccionar una secretaría.',
         'comprobantes.max'                  => 'Puede adjuntar un máximo de 5 archivos.',
         'comprobantes.*.mimes'              => 'Solo se permiten archivos PDF, JPG o PNG.',
         'comprobantes.*.max'                => 'Cada archivo no debe superar los 5 MB.',
@@ -481,7 +498,7 @@ class TransferenciasMaquinarias extends Component
         $vehiculos_destino = collect();
         $eventos_destino = collect();
         $empleados_destino = collect();
-        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
+        if ($this->showModal && in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion', 'ajuste_negativo'])) {
             if ($this->tipo_destino === 'vehiculo') {
                 $vehiculos_destino = Vehiculo::when($this->search_destino, function($query) {
                         $query->where(function($q) {
@@ -744,12 +761,25 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
+    /**
+     * Selecciona (o deselecciona, si se vuelve a tocar) el tipo de destino.
+     * El toggle permite dejar sin destino en Ajuste Negativo (opcional).
+     */
+    public function seleccionarTipoDestino($tipo)
+    {
+        $this->tipo_destino = ($this->tipo_destino === $tipo) ? '' : $tipo;
+        $this->updatedTipoDestino();
+    }
+
     public function updatedTipoDestino()
     {
         $this->id_referencia = '';
         $this->search_destino = '';
         $this->mostrar_lista_destino = false;
-        $this->resetErrorBag('id_referencia');
+        $this->id_secretaria_ajuste = '';
+        $this->area_ajuste = '';
+        $this->areas_disponibles = [];
+        $this->resetErrorBag(['id_referencia', 'id_secretaria_ajuste', 'tipo_destino']);
     }
 
     public function updatedSearchDestino()
@@ -926,6 +956,8 @@ class TransferenciasMaquinarias extends Component
                 return;
             }
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoMaquinaria::create([
                 'id_maquinaria'      => $maquinaria->id,
                 'cantidad'           => $this->cantidad_a_cargar,
@@ -934,17 +966,18 @@ class TransferenciasMaquinarias extends Component
                 'fecha_devolucion'   => null,
                 'id_usuario'         => Auth::id(),
                 'id_deposito_entrada'=> $maquinaria->id_deposito,
-                'id_referencia'      => 0,
-                'tipo_referencia'    => 'deposito',
-                'id_secretaria'      => $this->id_secretaria_ajuste ?: null,
-                'area'               => $this->area_ajuste ?: null,
+                'id_referencia'      => $idRef,
+                'tipo_referencia'    => $tipoRef,
+                'id_secretaria'      => $idSec,
+                'area'               => $area,
             ]);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
 
             $unidad = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Ajuste negativo realizado: -{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria}");
+            $destinoMsg = $this->tipo_destino ? ' → ' . $this->obtenerNombreDestino() : '';
+            session()->flash('message', "Ajuste negativo realizado: -{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria}{$destinoMsg}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
@@ -972,6 +1005,8 @@ class TransferenciasMaquinarias extends Component
                 throw new \Exception("Solo hay {$stockDisponible} unidades disponibles en el depósito seleccionado.");
             }
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoMaquinaria::create([
                 'id_maquinaria'      => $maquinaria->id,
                 'cantidad'           => $this->cantidad_a_asignar,
@@ -980,8 +1015,10 @@ class TransferenciasMaquinarias extends Component
                 'fecha_devolucion'   => null,
                 'id_usuario'         => Auth::id(),
                 'id_deposito_entrada'=> $this->id_deposito_origen,
-                'id_referencia'      => $this->id_referencia,
-                'tipo_referencia'    => $this->tipo_destino,
+                'id_referencia'      => $idRef,
+                'tipo_referencia'    => $tipoRef,
+                'id_secretaria'      => $idSec,
+                'area'               => $area,
             ]);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
@@ -1008,6 +1045,8 @@ class TransferenciasMaquinarias extends Component
             $tipoMovimiento = $this->resolverTipo('Entrada Reposición Maquinaria');
             $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->destinoFields();
+
             MovimientoMaquinaria::create([
                 'id_maquinaria'      => $maquinaria->id,
                 'cantidad'           => $this->cantidad_a_asignar,
@@ -1016,8 +1055,10 @@ class TransferenciasMaquinarias extends Component
                 'fecha_devolucion'   => null,
                 'id_usuario'         => Auth::id(),
                 'id_deposito_entrada'=> $maquinaria->id_deposito,
-                'id_referencia'      => $this->id_referencia,
-                'tipo_referencia'    => $this->tipo_destino,
+                'id_referencia'      => $idRef,
+                'tipo_referencia'    => $tipoRef,
+                'id_secretaria'      => $idSec,
+                'area'               => $area,
             ]);
 
             $this->actualizarCantidadMaquinaria($maquinaria->id);
@@ -1490,9 +1531,26 @@ class TransferenciasMaquinarias extends Component
         }
     }
 
+    /**
+     * Resuelve los campos de destino a guardar según el tipo elegido en el formulario.
+     * Devuelve [tipo_referencia, id_referencia, id_secretaria, area].
+     * Sin destino (solo posible en Ajuste Negativo) → ['deposito', 0, null, null].
+     */
+    private function destinoFields(): array
+    {
+        if ($this->tipo_destino === 'secretaria') {
+            return ['secretaria', $this->id_secretaria_ajuste, $this->id_secretaria_ajuste, $this->area_ajuste ?: null];
+        }
+        if (in_array($this->tipo_destino, ['vehiculo', 'evento', 'empleado'])) {
+            return [$this->tipo_destino, $this->id_referencia, null, null];
+        }
+        return ['deposito', 0, null, null];
+    }
+
     private function obtenerNombreDestino(): string
     {
-        return $this->resolverNombreReferencia($this->tipo_destino, $this->id_referencia);
+        [$tipoRef, $idRef] = $this->destinoFields();
+        return $this->resolverNombreReferencia($tipoRef, $idRef);
     }
 
     private function resolverNombreReferencia(string $tipoReferencia, $idReferencia): string
@@ -1508,6 +1566,10 @@ class TransferenciasMaquinarias extends Component
         if ($tipoReferencia === 'empleado') {
             $empleado = EmpleadoMunicipal::find($idReferencia);
             return $empleado ? "Empleado: {$empleado->nombre_formateado} (Leg. {$empleado->LEGAJO})" : 'Empleado desconocido';
+        }
+        if ($tipoReferencia === 'secretaria') {
+            $secretaria = Secretaria::find($idReferencia);
+            return $secretaria ? "Secretaría: {$secretaria->secretaria}" : 'Secretaría desconocida';
         }
         return 'Destino desconocido';
     }
