@@ -217,7 +217,8 @@
         </div>
     @endif
 
-    <!-- Panel de Asignaciones Pendientes de Reposición -->
+    <!-- Panel de Asignaciones Pendientes de Reposición (solo si hay pendientes) -->
+    @if($asignacionesPendientes->count() > 0)
     <div class="mb-6">
         <button
             wire:click="$toggle('showAsignacionesPendientes')"
@@ -230,11 +231,9 @@
                     </svg>
                 </div>
                 <span class="text-sm font-semibold text-gray-800">Asignaciones Pendientes de Reposición</span>
-                @if($showAsignacionesPendientes && $asignacionesPendientes->count() > 0)
-                    <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-bold text-white bg-orange-500 rounded-full">
-                        {{ $asignacionesPendientes->count() }}
-                    </span>
-                @endif
+                <span class="inline-flex items-center justify-center px-2.5 py-0.5 text-xs font-bold text-white bg-orange-500 rounded-full">
+                    {{ $asignacionesPendientes->count() }}
+                </span>
             </div>
             <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 {{ $showAsignacionesPendientes ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -353,6 +352,7 @@
             </div>
         @endif
     </div>
+    @endif
 
     <!-- Lista de Movimientos -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

@@ -205,8 +205,8 @@
         </div>
     @endif
 
-    <!-- Panel de Asignaciones Pendientes -->
-    @if($puedeCrear)
+    <!-- Panel de Asignaciones Pendientes (solo si hay pendientes) -->
+    @if($puedeCrear && $asignacionesPendientes->count() > 0)
     <div class="mb-6">
         <button
             wire:click="$toggle('showAsignacionesPendientes')"

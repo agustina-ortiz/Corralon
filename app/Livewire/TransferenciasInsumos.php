@@ -565,66 +565,65 @@ class TransferenciasInsumos extends Component
             }
         }
 
-        // Asignaciones pendientes de reposición
+        // Asignaciones pendientes de reposición.
+        // Se calcula siempre para decidir si el panel se muestra (se oculta si no hay pendientes).
         $asignacionesPendientes = collect();
-        if ($this->showAsignacionesPendientes) {
-            $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
-            $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
+        $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
+        $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición', 'Baja Reposición'])->pluck('id');
 
-            if ($tipoConReposicion) {
-                // Traer todos los movimientos relevantes ordenados cronológicamente
-                $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
-                $movsPendientes = MovimientoInsumo::whereIn('id_tipo_movimiento', $todosLosTipos)
-                    ->whereHas('insumo', function($q) use ($depositosAccesibles) {
-                        $q->whereIn('id_deposito', $depositosAccesibles);
-                    })
-                    ->orderBy('id')
-                    ->get();
+        if ($tipoConReposicion) {
+            // Traer todos los movimientos relevantes ordenados cronológicamente
+            $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+            $movsPendientes = MovimientoInsumo::whereIn('id_tipo_movimiento', $todosLosTipos)
+                ->whereHas('insumo', function($q) use ($depositosAccesibles) {
+                    $q->whereIn('id_deposito', $depositosAccesibles);
+                })
+                ->orderBy('id')
+                ->get();
 
-                // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
-                $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_insumo}-{$m->tipo_referencia}-{$m->id_referencia}");
+            // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
+            $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_insumo}-{$m->tipo_referencia}-{$m->id_referencia}");
 
-                foreach ($grupos as $key => $movimientosGrupo) {
-                    $balance = 0;
-                    foreach ($movimientosGrupo as $mov) {
-                        if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
-                            $balance += $mov->cantidad;
-                        } else {
-                            $balance = max(0, $balance - $mov->cantidad);
-                        }
+            foreach ($grupos as $key => $movimientosGrupo) {
+                $balance = 0;
+                foreach ($movimientosGrupo as $mov) {
+                    if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                        $balance += $mov->cantidad;
+                    } else {
+                        $balance = max(0, $balance - $mov->cantidad);
+                    }
+                }
+
+                if ($balance > 0) {
+                    $primer = $movimientosGrupo->first();
+                    $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($primer->id_insumo);
+                    $referenciaNombre = '';
+
+                    if ($primer->tipo_referencia === 'vehiculo') {
+                        $referencia = Vehiculo::find($primer->id_referencia);
+                        $referenciaNombre = $referencia ? "{$referencia->vehiculo} ({$referencia->patente})" : "Vehículo #{$primer->id_referencia}";
+                    } elseif ($primer->tipo_referencia === 'evento') {
+                        $referencia = Evento::find($primer->id_referencia);
+                        $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$primer->id_referencia}";
+                    } elseif ($primer->tipo_referencia === 'empleado') {
+                        $referencia = EmpleadoMunicipal::find($primer->id_referencia);
+                        $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$primer->id_referencia}";
+                    } elseif ($primer->tipo_referencia === 'secretaria') {
+                        $referencia = Secretaria::find($primer->id_referencia);
+                        $referenciaNombre = $referencia ? "Secretaría: {$referencia->secretaria}" : "Secretaría #{$primer->id_referencia}";
                     }
 
-                    if ($balance > 0) {
-                        $primer = $movimientosGrupo->first();
-                        $insumo = Insumo::with(['categoriaInsumo', 'deposito'])->find($primer->id_insumo);
-                        $referenciaNombre = '';
-
-                        if ($primer->tipo_referencia === 'vehiculo') {
-                            $referencia = Vehiculo::find($primer->id_referencia);
-                            $referenciaNombre = $referencia ? "{$referencia->vehiculo} ({$referencia->patente})" : "Vehículo #{$primer->id_referencia}";
-                        } elseif ($primer->tipo_referencia === 'evento') {
-                            $referencia = Evento::find($primer->id_referencia);
-                            $referenciaNombre = $referencia ? $referencia->evento : "Evento #{$primer->id_referencia}";
-                        } elseif ($primer->tipo_referencia === 'empleado') {
-                            $referencia = EmpleadoMunicipal::find($primer->id_referencia);
-                            $referenciaNombre = $referencia ? "{$referencia->nombre_formateado} (Leg. {$referencia->LEGAJO})" : "Empleado #{$primer->id_referencia}";
-                        } elseif ($primer->tipo_referencia === 'secretaria') {
-                            $referencia = Secretaria::find($primer->id_referencia);
-                            $referenciaNombre = $referencia ? "Secretaría: {$referencia->secretaria}" : "Secretaría #{$primer->id_referencia}";
-                        }
-
-                        $asignacionesPendientes->push([
-                            'id_insumo' => $primer->id_insumo,
-                            'insumo_nombre' => $insumo?->insumo ?? 'Desconocido',
-                            'categoria' => $insumo?->categoriaInsumo?->nombre ?? '',
-                            'deposito' => $insumo?->deposito?->deposito ?? '',
-                            'unidad' => $insumo?->unidad ?? '',
-                            'tipo_referencia' => $primer->tipo_referencia,
-                            'id_referencia' => $primer->id_referencia,
-                            'referencia_nombre' => $referenciaNombre,
-                            'cantidad_pendiente' => $balance,
-                        ]);
-                    }
+                    $asignacionesPendientes->push([
+                        'id_insumo' => $primer->id_insumo,
+                        'insumo_nombre' => $insumo?->insumo ?? 'Desconocido',
+                        'categoria' => $insumo?->categoriaInsumo?->nombre ?? '',
+                        'deposito' => $insumo?->deposito?->deposito ?? '',
+                        'unidad' => $insumo?->unidad ?? '',
+                        'tipo_referencia' => $primer->tipo_referencia,
+                        'id_referencia' => $primer->id_referencia,
+                        'referencia_nombre' => $referenciaNombre,
+                        'cantidad_pendiente' => $balance,
+                    ]);
                 }
             }
         }

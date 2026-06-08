@@ -533,51 +533,50 @@ class TransferenciasMaquinarias extends Component
             }
         }
 
-        // Asignaciones pendientes de reposición (maquinarias)
+        // Asignaciones pendientes de reposición (maquinarias).
+        // Se calcula siempre para decidir si el panel se muestra (se oculta si no hay pendientes).
         $asignacionesPendientes = collect();
-        if ($this->showAsignacionesPendientes) {
-            $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación Maquinaria con Reposición')->first();
-            $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
+        $tipoConReposicion = TipoMovimiento::where('tipo_movimiento', 'Asignación Maquinaria con Reposición')->first();
+        $tiposDescuento = TipoMovimiento::whereIn('tipo_movimiento', ['Entrada Reposición Maquinaria', 'Baja Reposición Maquinaria'])->pluck('id');
 
-            if ($tipoConReposicion) {
-                // Traer todos los movimientos relevantes ordenados cronológicamente
-                $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
-                $movsPendientes = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $todosLosTipos)
-                    ->whereHas('maquinaria', function($q) use ($depositosAccesibles) {
-                        $q->whereIn('id_deposito', $depositosAccesibles);
-                    })
-                    ->orderBy('id')
-                    ->get();
+        if ($tipoConReposicion) {
+            // Traer todos los movimientos relevantes ordenados cronológicamente
+            $todosLosTipos = collect([$tipoConReposicion->id])->merge($tiposDescuento);
+            $movsPendientes = MovimientoMaquinaria::whereIn('id_tipo_movimiento', $todosLosTipos)
+                ->whereHas('maquinaria', function($q) use ($depositosAccesibles) {
+                    $q->whereIn('id_deposito', $depositosAccesibles);
+                })
+                ->orderBy('id')
+                ->get();
 
-                // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
-                $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_maquinaria}-{$m->tipo_referencia}-{$m->id_referencia}");
+            // Agrupar por combinación y calcular balance cronológico (nunca baja de 0)
+            $grupos = $movsPendientes->groupBy(fn($m) => "{$m->id_maquinaria}-{$m->tipo_referencia}-{$m->id_referencia}");
 
-                foreach ($grupos as $key => $movimientosGrupo) {
-                    $balance = 0;
-                    foreach ($movimientosGrupo as $mov) {
-                        if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
-                            $balance += $mov->cantidad;
-                        } else {
-                            $balance = max(0, $balance - $mov->cantidad);
-                        }
+            foreach ($grupos as $key => $movimientosGrupo) {
+                $balance = 0;
+                foreach ($movimientosGrupo as $mov) {
+                    if ($mov->id_tipo_movimiento == $tipoConReposicion->id) {
+                        $balance += $mov->cantidad;
+                    } else {
+                        $balance = max(0, $balance - $mov->cantidad);
                     }
+                }
 
-                    if ($balance > 0) {
-                        $primer = $movimientosGrupo->first();
-                        $maquinaria = Maquinaria::with(['categoriaMaquinaria', 'deposito'])->find($primer->id_maquinaria);
-                        $referenciaNombre = $this->resolverNombreReferencia($primer->tipo_referencia, $primer->id_referencia);
+                if ($balance > 0) {
+                    $primer = $movimientosGrupo->first();
+                    $maquinaria = Maquinaria::with(['categoriaMaquinaria', 'deposito'])->find($primer->id_maquinaria);
+                    $referenciaNombre = $this->resolverNombreReferencia($primer->tipo_referencia, $primer->id_referencia);
 
-                        $asignacionesPendientes->push([
-                            'id_maquinaria' => $primer->id_maquinaria,
-                            'maquinaria_nombre' => $maquinaria?->maquinaria ?? 'Desconocida',
-                            'categoria' => $maquinaria?->categoriaMaquinaria?->nombre ?? '',
-                            'deposito' => $maquinaria?->deposito?->deposito ?? '',
-                            'tipo_referencia' => $primer->tipo_referencia,
-                            'id_referencia' => $primer->id_referencia,
-                            'referencia_nombre' => $referenciaNombre,
-                            'cantidad_pendiente' => $balance,
-                        ]);
-                    }
+                    $asignacionesPendientes->push([
+                        'id_maquinaria' => $primer->id_maquinaria,
+                        'maquinaria_nombre' => $maquinaria?->maquinaria ?? 'Desconocida',
+                        'categoria' => $maquinaria?->categoriaMaquinaria?->nombre ?? '',
+                        'deposito' => $maquinaria?->deposito?->deposito ?? '',
+                        'tipo_referencia' => $primer->tipo_referencia,
+                        'id_referencia' => $primer->id_referencia,
+                        'referencia_nombre' => $referenciaNombre,
+                        'cantidad_pendiente' => $balance,
+                    ]);
                 }
             }
         }
