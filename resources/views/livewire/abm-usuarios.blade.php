@@ -168,7 +168,7 @@
                                         <div class="flex flex-wrap gap-1 max-w-xs">
                                             @php
                                                 $corralonesConPermisos = $permisosUser->whereNotNull('id_corralon')->pluck('id_corralon')->unique();
-                                                $modulosGlobales = $permisosUser->whereNull('id_corralon')->pluck('modulo')->unique();
+                                                $modulosGlobalesUsuario = $permisosUser->whereNull('id_corralon')->pluck('modulo')->unique();
                                             @endphp
                                             @foreach($corralonesConPermisos as $cId)
                                                 @php $corr = $corralones->firstWhere('id', $cId); @endphp
@@ -179,7 +179,7 @@
                                                 </span>
                                                 @endif
                                             @endforeach
-                                            @foreach($modulosGlobales as $mod)
+                                            @foreach($modulosGlobalesUsuario as $mod)
                                             <span class="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
                                                 {{ $todosLosModulos[$mod] ?? $mod }}
                                             </span>
