@@ -203,6 +203,7 @@ Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** (insumos **y** 
 - **Modelos:** `ComprobanteMovimiento` (tabla `comprobantes_movimiento`, FK a `movimiento_insumos`) y `ComprobanteMovimientoMaquinaria` (tabla `comprobantes_movimiento_maquinaria`, FK a `movimiento_maquinarias`)
 - **Almacenamiento:** disco `local` (privado), insumos en `storage/app/private/comprobantes/` y maquinarias en `storage/app/private/comprobantes-maquinaria/`, no accesibles por URL directa
 - **Archivos permitidos:** PDF, JPG, PNG — máximo 5 archivos por movimiento, 5 MB cada uno
+- **Seguridad y preview:** ver sección **Seguridad de uploads** más abajo (regla `ArchivoSeguro`, preview con miniatura y botón de eliminar).
 - **Campo opcional** en paso 3 del modal de nuevo movimiento
 - **`nro_orden_compra`:** campo opcional en `movimiento_insumos` y `movimiento_maquinarias` para registrar el número de orden de compra o suministro (solo Carga de Stock y Ajuste Positivo). Se muestra en la lista como "OC: ..." debajo del tipo de movimiento.
 - **`observaciones`:** campo opcional (text nullable) en ambas tablas de movimientos; se guarda al crear Carga de Stock / Ajuste Positivo.
@@ -218,6 +219,20 @@ Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista mue
 - Comprobantes adjuntos: agregar nuevos, ver y eliminar existentes (tope total de 5 archivos)
 
 Métodos en ambos componentes: `abrirEdicion($id)`, `guardarEdicion()`, `eliminarComprobanteExistente($id)`, `removeEditComprobante($index)`, `cerrarEdicion()`. Propiedades con prefijo `edit_*`. La edición valida que el tipo de movimiento esté en `TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo']`. El resto de los tipos (Inventario Inicial, asignaciones, ajuste negativo, transferencias) **no** muestran el botón.
+
+### Seguridad de uploads y preview
+
+Todos los uploads del sistema (comprobantes de insumos/maquinarias y documentos de vehículos) comparten un esquema de seguridad y UX común.
+
+**Seguridad (defensa anti web-shell):**
+- **Regla `app/Rules/ArchivoSeguro.php`** (`ValidationRule` reutilizable): (1) lista negra de extensiones ejecutables/peligrosas (`php`, `phtml`, `phar`, `exe`, `sh`, `js`, `svg`, `html`, etc.), (2) lista blanca de extensiones (`pdf`, `jpg`, `jpeg`, `png` por defecto), (3) verifica el **MIME real por contenido** (`getMimeType()`/finfo) contra `application/pdf`, `image/jpeg`, `image/png`. El constructor admite listas custom.
+- Se aplica como array de reglas: `['file', 'max:5120', new ArchivoSeguro()]` en `comprobantes.*` / `edit_comprobantes.*` (ambos componentes de Transferencias) y en `nuevo_documento` (AbmVehiculos). **Reemplazó** al viejo `mimes:pdf,jpg,jpeg,png`.
+- **`config/livewire.php`** (publicado): `temporary_file_upload.rules` valida ya en la subida temporal: `['required','file','mimetypes:application/pdf,image/jpeg,image/png','max:10240']`. Se removió `svg` de `preview_mimes` (riesgo XSS). Es global, pero solo esos 3 componentes suben archivos.
+- **`storage/app/public/.htaccess`**: impide ejecución/acceso a scripts en la carpeta pública (documentos de vehículos van al disco `public`). Los comprobantes ya están en disco privado `local`.
+
+**Preview con miniatura + eliminar:**
+- **Partial `resources/views/livewire/partials/preview-archivos.blade.php`** — recibe `$files` (array de `TemporaryUploadedFile`) y `$removeMethod` (nombre del método Livewire). Renderiza miniatura (`temporaryUrl()`) para jpg/jpeg/png e ícono PDF para el resto, con botón rojo de eliminar (X) por archivo. Se incluye vía `@include` en los 4 bloques de comprobantes (insumos/maquinarias × crear/editar).
+- AbmVehiculos usa archivo único (`nuevo_documento`, no array): tiene su propio preview inline en el blade + método `quitarNuevoDocumento()`.
 
 ### Destino de Ajuste Negativo y Asignaciones (insumos y maquinarias)
 
