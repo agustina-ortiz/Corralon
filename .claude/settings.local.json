@@ -41,7 +41,11 @@
       "Bash(php -l app/Livewire/TransferenciasMaquinarias.php)",
       "Bash(php -l app/Models/MovimientoMaquinaria.php)",
       "Bash(php -l app/Models/ComprobanteMovimientoMaquinaria.php)",
-      "Bash(php -r ' *)"
+      "Bash(php -r ' *)",
+      "Bash(php -l app/Rules/ArchivoSeguro.php)",
+      "Bash(php -l app/Livewire/AbmVehiculos.php)",
+      "Bash(php -l config/livewire.php)",
+      "Bash(git check-ignore *)"
     ]
   }
 }
