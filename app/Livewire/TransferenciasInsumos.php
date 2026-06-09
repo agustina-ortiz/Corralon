@@ -22,6 +22,7 @@ use App\Models\EmpleadoMunicipal;
 use App\Models\Corralon;
 use App\Models\Secretaria;
 use App\Models\Area;
+use App\Rules\ArchivoSeguro;
 
 class TransferenciasInsumos extends Component
 {
@@ -194,7 +195,7 @@ class TransferenciasInsumos extends Component
         if (in_array($this->tipo_movimiento, ['carga', 'ajuste_positivo'])) {
             $rules['nro_orden_compra'] = 'nullable|string|max:100';
             $rules['comprobantes'] = 'nullable|array|max:5';
-            $rules['comprobantes.*'] = 'file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $rules['comprobantes.*'] = ['file', 'max:5120', new ArchivoSeguro()];
         }
 
         if (in_array($this->tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion'])) {
@@ -1797,7 +1798,7 @@ class TransferenciasInsumos extends Component
             'edit_nro_orden_compra' => 'nullable|string|max:100',
             'edit_observaciones'    => 'nullable|string|max:500',
             'edit_comprobantes'     => 'nullable|array|max:5',
-            'edit_comprobantes.*'   => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'edit_comprobantes.*'   => ['file', 'max:5120', new ArchivoSeguro()],
         ], [
             'edit_comprobantes.max'       => 'Puede adjuntar un máximo de 5 archivos.',
             'edit_comprobantes.*.mimes'   => 'Solo se permiten archivos PDF, JPG o PNG.',

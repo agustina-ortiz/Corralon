@@ -1,0 +1,18 @@
+# Seguridad: impedir la ejecución de scripts en archivos subidos por usuarios.
+# Esta carpeta se sirve públicamente (symlink public/storage). Aunque la
+# validación de subidas ya restringe a PDF/JPG/PNG, esto es defensa en
+# profundidad: si por cualquier vía llegara un archivo ejecutable, el
+# servidor NO lo interpretará como código.
+
+# Negar acceso directo a cualquier archivo potencialmente ejecutable.
+<FilesMatch "(?i)\.(php|php2|php3|php4|php5|php6|php7|php8|phtml|pht|phps|phar|inc|cgi|pl|py|rb|sh|bash|bin|run|exe|com|bat|cmd|msi|scr|dll|asp|aspx|jsp|jspx|jar|war|vbs|ps1|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+# Neutralizar el handler de PHP por si el módulo está activo (Apache/mod_php).
+RemoveHandler .php .phtml .phar .php3 .php4 .php5 .php6 .php7 .php8
+RemoveType .php .phtml .phar .php3 .php4 .php5 .php6 .php7 .php8
+AddType text/plain .php .phtml .phar
+
+# No permitir listar el contenido del directorio.
+Options -Indexes -ExecCGI

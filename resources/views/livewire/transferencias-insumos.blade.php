@@ -1530,25 +1530,7 @@
                                                 @error('comprobantes') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                                 @error('comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
 
-                                                @if(count($comprobantes) > 0)
-                                                    <div class="mt-3 space-y-2">
-                                                        @foreach($comprobantes as $index => $file)
-                                                            <div class="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
-                                                                <div class="flex items-center gap-2 min-w-0">
-                                                                    <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                                                    </svg>
-                                                                    <span class="text-sm text-blue-800 truncate">{{ $file->getClientOriginalName() }}</span>
-                                                                </div>
-                                                                <button type="button" wire:click="removeComprobante({{ $index }})" class="text-red-500 hover:text-red-700 flex-shrink-0 ml-2">
-                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                                    </svg>
-                                                                </button>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
+                                                @include('livewire.partials.preview-archivos', ['files' => $comprobantes, 'removeMethod' => 'removeComprobante'])
 
                                                 <div wire:loading wire:target="comprobantes" class="mt-2 text-sm text-blue-600">
                                                     Subiendo archivos...
@@ -1669,16 +1651,7 @@
                                 @error('edit_comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 <div wire:loading wire:target="edit_comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
 
-                                @if(count($edit_comprobantes) > 0)
-                                    <ul class="mt-2 space-y-1">
-                                        @foreach($edit_comprobantes as $index => $file)
-                                            <li class="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 rounded-lg">
-                                                <span class="text-sm text-gray-700 truncate flex-1">{{ $file->getClientOriginalName() }}</span>
-                                                <button type="button" wire:click="removeEditComprobante({{ $index }})" class="text-red-500 hover:text-red-700 text-xs">Quitar</button>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
+                                @include('livewire.partials.preview-archivos', ['files' => $edit_comprobantes, 'removeMethod' => 'removeEditComprobante'])
                             </div>
                         </div>
 

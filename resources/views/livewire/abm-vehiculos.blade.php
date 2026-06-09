@@ -657,6 +657,34 @@
                                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                     >
                                     @error('nuevo_documento') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <div wire:loading wire:target="nuevo_documento" class="mt-2 text-sm text-blue-600">Cargando archivo...</div>
+
+                                    {{-- Preview del archivo seleccionado antes de subir --}}
+                                    @if($nuevo_documento)
+                                        @php
+                                            $nombrePrev = $nuevo_documento->getClientOriginalName();
+                                            $extPrev = strtolower(pathinfo($nombrePrev, PATHINFO_EXTENSION));
+                                            $esImagenPrev = in_array($extPrev, ['jpg', 'jpeg', 'png']);
+                                        @endphp
+                                        <div class="relative mt-3 inline-block border border-gray-200 rounded-xl overflow-hidden bg-gray-50 w-40">
+                                            <button type="button" wire:click="quitarNuevoDocumento" title="Eliminar archivo"
+                                                    class="absolute top-1 right-1 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center shadow">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                            @if($esImagenPrev)
+                                                <img src="{{ $nuevo_documento->temporaryUrl() }}" alt="{{ $nombrePrev }}" class="w-full h-24 object-cover">
+                                            @else
+                                                <div class="w-full h-24 flex items-center justify-center bg-red-50">
+                                                    <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                            <p class="px-2 py-1 text-[11px] text-gray-600 truncate" title="{{ $nombrePrev }}">{{ $nombrePrev }}</p>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
 

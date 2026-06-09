@@ -15,6 +15,7 @@ use App\Models\EmpleadoMunicipal;
 use App\Models\Secretaria;
 use App\Models\Area;
 use App\Models\ComprobanteMovimientoMaquinaria;
+use App\Rules\ArchivoSeguro;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -194,7 +195,7 @@ class TransferenciasMaquinarias extends Component
             $rules['cantidad_a_cargar']  = ['required', 'integer', 'min:1', 'max:1000'];
             $rules['nro_orden_compra']   = 'nullable|string|max:100';
             $rules['comprobantes']       = 'nullable|array|max:5';
-            $rules['comprobantes.*']     = 'file|mimes:pdf,jpg,jpeg,png|max:5120';
+            $rules['comprobantes.*']     = ['file', 'max:5120', new ArchivoSeguro()];
         }
 
         if ($this->tipo_movimiento === 'ajuste_negativo') {
@@ -1797,7 +1798,7 @@ class TransferenciasMaquinarias extends Component
             'edit_nro_orden_compra' => 'nullable|string|max:100',
             'edit_observaciones'    => 'nullable|string|max:500',
             'edit_comprobantes'     => 'nullable|array|max:5',
-            'edit_comprobantes.*'   => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'edit_comprobantes.*'   => ['file', 'max:5120', new ArchivoSeguro()],
         ], [
             'edit_comprobantes.max'     => 'Puede adjuntar un máximo de 5 archivos.',
             'edit_comprobantes.*.mimes' => 'Solo se permiten archivos PDF, JPG o PNG.',

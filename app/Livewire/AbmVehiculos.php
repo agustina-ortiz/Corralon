@@ -322,7 +322,7 @@ class AbmVehiculos extends Component
         }
 
         $this->validate([
-            'nuevo_documento' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'nuevo_documento' => ['required', 'file', 'max:10240', new \App\Rules\ArchivoSeguro()],
             'nueva_descripcion' => 'required|string|max:255',
         ]);
 
@@ -351,6 +351,11 @@ class AbmVehiculos extends Component
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
 
         session()->flash('message', 'Documento agregado exitosamente.');
+    }
+
+    public function quitarNuevoDocumento()
+    {
+        $this->nuevo_documento = null;
     }
 
     public function eliminarDocumento($documentoId)
