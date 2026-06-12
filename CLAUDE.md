@@ -55,7 +55,7 @@ routes/
 | `Maquinaria` | `maquinarias` | Equipos/máquinas |
 | `Vehiculo` | `vehiculos` | Flota vehicular (nro_patrimonio, marca_modelo, anio, patente, combustible, VTV, póliza, origen, jurisdiccion_procedencia, nro_telepase, estado, id_secretaria). Estados: `EN USO`, `BAJA`, `MANTENIMIENTO` |
 | `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
-| `Empleado` | `empleados` | Personal |
+| `Empleado` | `empleados` | Personal (tabla local, legada — el tab `/empleados` ya no la usa) |
 | `Evento` | `eventos` | Eventos programados |
 | `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relación `areas()` |
 | `Area` | `areas` | Áreas dentro de una secretaría (`id_secretaria`, `area`) |
@@ -71,7 +71,7 @@ routes/
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 | `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
 | `ComprobanteMovimientoMaquinaria` | `comprobantes_movimiento_maquinaria` | Archivos adjuntos a movimientos de maquinarias (FK a `movimiento_maquinarias`) |
-| `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Scope `activos()`, accessor `nombre_formateado` |
+| `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Const `DEPTO_CORRALON = 36`. Scopes `activos()` y `porDepto($depto)`, accessor `nombre_formateado`. Es la fuente del tab `/empleados` |
 
 ---
 
@@ -88,7 +88,7 @@ routes/
 | `/categorias-insumos` | AbmCategoriasInsumos | `categorias_insumos` |
 | `/categorias-maquinarias` | AbmCategoriasMaquinarias | `categorias_maquinarias` |
 | `/eventos` | AbmEventos | `eventos` |
-| `/empleados` | AbmEmpleados | `empleados` |
+| `/empleados` | AbmEmpleados (listado solo lectura desde `in_maestro`, DEPTO=36 activos) | `empleados` |
 | `/usuarios` | AbmUsuarios | `usuarios` |
 | `/secretarias` | AbmSecretarias | `secretarias` |
 | `/transferencias-insumos` | TransferenciasInsumos | `movimientos_insumos` |
@@ -397,7 +397,7 @@ php artisan usuarios:rehash-passwords              # Rehashea contraseñas a bcr
 ## Notas de desarrollo
 
 - **DB local:** MySQL sin contraseña, usuario `root`, base `corralon`
-- **DB secundaria:** `munimer_inasi` (empleados municipales) — conexión configurada en `config/database.php` como `munimer_inasi`, credenciales en `.env` (`DB_INASI_*`). En desarrollo local puede apuntar al servidor de desarrollo (10.0.0.16)
+- **DB secundaria:** `munimer_inasi` (empleados municipales) — conexión configurada en `config/database.php` como `munimer_inasi`, credenciales en `.env` (`DB_INASI_*`). Servidor real de RRHH: `10.0.0.19` (usuario `aplicrrhh`). Los fallbacks de la conexión están **aislados** (no usan `DB_HOST`/`DB_USERNAME` de la base local) para evitar que, si falta una `DB_INASI_*`, consulte por error la `in_maestro` de la base local con datos viejos. Tras cambiar el `.env` siempre correr `php artisan config:clear`
 - **Sesiones:** almacenadas en base de datos (`SESSION_DRIVER=database`)
 - **Mail:** modo `log` en desarrollo (no envía correos reales)
 - **Verificación de email:** habilitada en producción
