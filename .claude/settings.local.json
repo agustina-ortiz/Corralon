@@ -45,7 +45,9 @@
       "Bash(php -l app/Rules/ArchivoSeguro.php)",
       "Bash(php -l app/Livewire/AbmVehiculos.php)",
       "Bash(php -l config/livewire.php)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(git checkout *)",
+      "Bash(sed -E 's/\\(PASSWORD=\\).*/\\\\1***/')"
     ]
   }
 }
