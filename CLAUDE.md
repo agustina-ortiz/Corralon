@@ -71,7 +71,7 @@ routes/
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 | `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
 | `ComprobanteMovimientoMaquinaria` | `comprobantes_movimiento_maquinaria` | Archivos adjuntos a movimientos de maquinarias (FK a `movimiento_maquinarias`) |
-| `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Const `DEPTO_CORRALON = 36`. Scopes `activos()` y `porDepto($depto)`, accessor `nombre_formateado`. Es la fuente del tab `/empleados` |
+| `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Const `DEPTO_CORRALON = 36`. Scopes `activos()` y `porDepto($depto)`, accessor `nombre_formateado`. Es la fuente del tab `/empleados` (que ahora lista **todos** los activos, sin filtrar por DEPTO) |
 
 ---
 
@@ -88,7 +88,7 @@ routes/
 | `/categorias-insumos` | AbmCategoriasInsumos | `categorias_insumos` |
 | `/categorias-maquinarias` | AbmCategoriasMaquinarias | `categorias_maquinarias` |
 | `/eventos` | AbmEventos | `eventos` |
-| `/empleados` | AbmEmpleados (listado solo lectura desde `in_maestro`, DEPTO=36 activos) | `empleados` |
+| `/empleados` | AbmEmpleados (listado solo lectura desde `in_maestro`, todos los activos) | `empleados` |
 | `/usuarios` | AbmUsuarios | `usuarios` |
 | `/secretarias` | AbmSecretarias | `secretarias` |
 | `/transferencias-insumos` | TransferenciasInsumos | `movimientos_insumos` |
