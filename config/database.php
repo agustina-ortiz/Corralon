@@ -65,12 +65,12 @@ return [
 
         'munimer_inasi' => [
             'driver' => 'mysql',
-            'host' => env('DB_INASI_HOST', env('DB_HOST', '127.0.0.1')),
-            'port' => env('DB_INASI_PORT', env('DB_PORT', '3306')),
+            'host' => env('DB_INASI_HOST', '10.0.0.19'),
+            'port' => env('DB_INASI_PORT', '3306'),
             'database' => env('DB_INASI_DATABASE', 'munimer_inasi'),
-            'username' => env('DB_INASI_USERNAME', env('DB_USERNAME', 'root')),
-            'password' => env('DB_INASI_PASSWORD', env('DB_PASSWORD', '')),
-            'unix_socket' => env('DB_SOCKET', ''),
+            'username' => env('DB_INASI_USERNAME', 'aplicrrhh'),
+            'password' => env('DB_INASI_PASSWORD', 'aplicrrhh17'),
+            'unix_socket' => '',
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
