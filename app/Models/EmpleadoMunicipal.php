@@ -19,11 +19,24 @@ class EmpleadoMunicipal extends Model
     ];
 
     /**
+     * Depto de los empleados del corralón (Municipalidad de Mercedes)
+     */
+    public const DEPTO_CORRALON = 36;
+
+    /**
      * Scope para filtrar solo empleados activos (sin fecha de baja)
      */
     public function scopeActivos($query)
     {
         return $query->whereNull('FECHABAJ');
+    }
+
+    /**
+     * Scope para filtrar por departamento (columna DEPTO)
+     */
+    public function scopePorDepto($query, int $depto)
+    {
+        return $query->where('DEPTO', $depto);
     }
 
     /**
