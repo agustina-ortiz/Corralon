@@ -28,7 +28,6 @@ class AbmEmpleados extends Component
     public function render()
     {
         $empleados = EmpleadoMunicipal::query()
-            ->porDepto(EmpleadoMunicipal::DEPTO_CORRALON)
             ->activos()
             ->when($this->search, function ($query) {
                 $term = '%' . $this->search . '%';
