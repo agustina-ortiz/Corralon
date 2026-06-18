@@ -368,8 +368,14 @@ class AbmUsuarios extends Component
             return;
         }
 
-        $usuario->delete(); // cascade elimina permisos
-        session()->flash('mensaje', 'Usuario eliminado exitosamente');
+        try {
+            $usuario->delete(); // cascade elimina permisos
+            session()->flash('mensaje', 'Usuario eliminado exitosamente');
+        } catch (\Illuminate\Database\QueryException $e) {
+            session()->flash('error', 'No se puede eliminar el usuario porque tiene movimientos asociados.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se pudo eliminar el usuario.');
+        }
     }
 
     private function resetearFormulario()

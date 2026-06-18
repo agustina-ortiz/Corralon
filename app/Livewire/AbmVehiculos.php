@@ -395,13 +395,19 @@ class AbmVehiculos extends Component
             return;
         }
 
-        foreach ($vehiculo->documentos as $documento) {
-            Storage::disk('public')->delete($documento->archivo);
-            $documento->delete();
-        }
+        try {
+            foreach ($vehiculo->documentos as $documento) {
+                Storage::disk('public')->delete($documento->archivo);
+                $documento->delete();
+            }
 
-        $vehiculo->delete();
-        session()->flash('message', 'Vehiculo eliminado correctamente.');
+            $vehiculo->delete();
+            session()->flash('message', 'Vehiculo eliminado correctamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            session()->flash('error', 'No se puede eliminar el vehículo porque tiene choferes, movimientos o asignaciones asociadas.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se pudo eliminar el vehículo.');
+        }
     }
 
     public function cerrarModal()

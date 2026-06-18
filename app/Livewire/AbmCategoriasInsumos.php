@@ -141,8 +141,10 @@ class AbmCategoriasInsumos extends Component
         try {
             CategoriaInsumo::findOrFail($id)->delete();
             session()->flash('message', 'Categoría eliminada correctamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            session()->flash('error', 'No se puede eliminar la categoría porque tiene insumos o movimientos asociados.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar la categoría porque tiene insumos asociados.');
+            session()->flash('error', 'No se pudo eliminar la categoría.');
         }
     }
 

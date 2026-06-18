@@ -175,6 +175,8 @@ class AbmChoferes extends Component
         try {
             Chofer::findOrFail($id)->delete();
             session()->flash('message', 'Chofer eliminado correctamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            session()->flash('error', 'No se puede eliminar el chofer porque tiene vehículos o asignaciones asociadas.');
         } catch (\Exception $e) {
             session()->flash('error', 'No se pudo eliminar el chofer.');
         }

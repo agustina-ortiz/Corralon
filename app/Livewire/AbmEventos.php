@@ -163,9 +163,14 @@ class AbmEventos extends Component
             return;
         }
         
-        $evento = Evento::findOrFail($id);
-        $evento->delete();
-        session()->flash('message', 'Evento eliminado correctamente.');
+        try {
+            Evento::findOrFail($id)->delete();
+            session()->flash('message', 'Evento eliminado correctamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            session()->flash('error', 'No se puede eliminar el evento porque tiene movimientos o asignaciones asociadas.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'No se pudo eliminar el evento.');
+        }
     }
 
     public function cerrarModal()
