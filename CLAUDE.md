@@ -354,6 +354,14 @@ El dashboard muestra:
 - Verificación de permisos antes de cada operación CRUD
 - Filtrado automático por corralon via `->porCorralonesPermitidos()`
 
+### Mensajes de feedback (éxito y error)
+
+Toda operación que pueda fallar (eliminar con FK, crear movimiento con stock insuficiente, etc.) debe dejar **siempre** un mensaje informativo de la razón:
+
+- **Componente:** envolver la operación en `try/catch` y hacer `session()->flash('error', '<razón>')`. Capturar primero `\Illuminate\Database\QueryException` con un mensaje específico (ej: "No se puede eliminar la categoría porque tiene insumos o movimientos asociados.") y luego `\Exception` con un mensaje genérico de respaldo. El éxito usa `session()->flash('message', ...)` (en `AbmUsuarios` la clave de éxito es `'mensaje'`).
+- **Vista (blade):** además del bloque de éxito (`session()->has('message')`, verde), todo blade ABM debe incluir un bloque rojo `@if (session()->has('error'))` que renderice `session('error')`. Sin este bloque la operación falla en silencio.
+- Todos los ABM y ambas Transferencias ya cumplen este patrón. `abm-empleados` es solo lectura (no aplica).
+
 ### Patrones de acceso rápido en TransferenciasInsumos
 
 El componente `TransferenciasInsumos` implementa atajos desde la lista de movimientos:
