@@ -9,10 +9,13 @@ use App\Models\Deposito;
 use App\Models\MovimientoMaquinaria;
 use App\Models\TipoMovimiento;
 use App\Models\User;
+use App\Exports\MaquinariasExport;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AbmMaquinarias extends Component
 {
@@ -22,6 +25,7 @@ class AbmMaquinarias extends Component
     public $showModal = false;
     public $editMode = false;
     public $showFilters = false;
+    public $showEstadisticas = false;
     
     // Filtros
     public $filtro_corralon = '';
@@ -113,8 +117,11 @@ class AbmMaquinarias extends Component
 
         $categorias = CategoriaMaquinaria::orderBy('nombre')->get();
 
+        $estadisticas = $this->showEstadisticas ? $this->calcularEstadisticas() : null;
+
         return view('livewire.abm-maquinarias', [
             'maquinarias' => $maquinarias,
+            'estadisticas' => $estadisticas,
             'categorias' => $categorias,
             'depositos' => $depositos,
             'corralones' => $corralones,
@@ -133,13 +140,13 @@ class AbmMaquinarias extends Component
         $this->id_deposito = '';
     }
 
-    private function getMaquinariasDistribuidas()
+    /**
+     * Query base de maquinarias con todos los filtros y permisos aplicados.
+     * Reutilizado por el listado, las estadísticas y la exportación.
+     */
+    private function baseQuery()
     {
-        $user = auth()->user();
-
-        // Obtener todas las maquinarias con sus movimientos
-        $maquinariasQuery = Maquinaria::with(['categoriaMaquinaria', 'deposito.corralon', 'movimientos.tipoMovimiento'])
-            ->porCorralonesPermitidos()
+        return Maquinaria::porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('maquinaria', 'like', '%' . $this->search . '%');
             })
@@ -161,11 +168,15 @@ class AbmMaquinarias extends Component
                 } else {
                     $query->where('cantidad', '<=', 0);
                 }
-            })
+            });
+    }
+
+    private function getMaquinariasDistribuidas()
+    {
+        return $this->baseQuery()
+            ->with(['categoriaMaquinaria', 'deposito.corralon', 'movimientos.tipoMovimiento'])
             ->orderBy('maquinaria')
             ->paginate(15);
-
-        return $maquinariasQuery;
     }
 
     public function updatingSearch()
@@ -201,6 +212,88 @@ class AbmMaquinarias extends Component
         $this->filtro_estado = '';
         $this->filtro_deposito = '';
         $this->resetPage();
+    }
+
+    /**
+     * Calcula los indicadores del modal de estadísticas sobre el query filtrado.
+     */
+    private function calcularEstadisticas(): array
+    {
+        $maquinarias = $this->baseQuery()->with(['categoriaMaquinaria', 'deposito.corralon'])->get();
+
+        $disponibles = $maquinarias->filter(fn($m) => (int) $m->cantidad_disponible > 0);
+        $noDisponibles = $maquinarias->filter(fn($m) => (int) $m->cantidad_disponible <= 0);
+
+        // Distribución por categoría (cantidad de maquinarias)
+        $porCategoria = $maquinarias->groupBy(fn($m) => $m->categoriaMaquinaria->nombre ?? 'Sin categoría')
+            ->map(fn($g) => $g->count())
+            ->sortDesc();
+
+        // Unidades totales por depósito
+        $porDeposito = $maquinarias->groupBy(fn($m) => $m->deposito->deposito ?? 'Sin depósito')
+            ->map(fn($g) => $g->sum(fn($m) => (int) $m->cantidad))
+            ->sortDesc();
+
+        return [
+            'total' => $maquinarias->count(),
+            'unidades_total' => $maquinarias->sum(fn($m) => (int) $m->cantidad),
+            'unidades_disponibles' => $maquinarias->sum(fn($m) => (int) $m->cantidad_disponible),
+            'disponibles' => $disponibles->count(),
+            'no_disponibles' => $noDisponibles->count(),
+            'por_categoria' => $porCategoria,
+            'por_deposito' => $porDeposito,
+        ];
+    }
+
+    public function toggleEstadisticas()
+    {
+        $this->showEstadisticas = !$this->showEstadisticas;
+    }
+
+    /**
+     * Descripción legible de los filtros activos (para encabezados de export).
+     */
+    private function descripcionFiltros(): string
+    {
+        $partes = [];
+        if ($this->search) $partes[] = "Búsqueda: {$this->search}";
+        if ($this->filtro_categoria) $partes[] = 'Categoría: ' . (CategoriaMaquinaria::find($this->filtro_categoria)->nombre ?? '');
+        if ($this->filtro_corralon) $partes[] = 'Corralón: ' . (Corralon::find($this->filtro_corralon)->descripcion ?? '');
+        if ($this->filtro_deposito) $partes[] = 'Depósito: ' . (Deposito::find($this->filtro_deposito)->deposito ?? '');
+        if ($this->filtro_estado) $partes[] = 'Estado: ' . ($this->filtro_estado === 'disponible' ? 'Disponible' : 'No disponible');
+        return implode(' · ', $partes);
+    }
+
+    public function exportarExcel()
+    {
+        $nombre = 'maquinarias_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new MaquinariasExport($this->baseQuery()), $nombre);
+    }
+
+    public function exportarPdf()
+    {
+        // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
+        $total = $this->baseQuery()->count();
+        if ($total > 2000) {
+            session()->flash('error', "El listado tiene {$total} maquinarias, demasiadas para un PDF. Acotá los filtros o usá la exportación a Excel.");
+            return;
+        }
+
+        // Subir límites solo durante la generación (dompdf es intensivo en memoria/tiempo).
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $maquinarias = $this->baseQuery()->with(['categoriaMaquinaria', 'deposito.corralon'])->orderBy('maquinaria')->get();
+        $pdf = Pdf::loadView('exports.maquinarias-pdf', [
+            'maquinarias' => $maquinarias,
+            'filtros' => $this->descripcionFiltros(),
+        ])->setPaper('a4', 'landscape');
+
+        $path = storage_path('app/maquinarias_' . uniqid() . '.pdf');
+        $pdf->save($path);
+
+        return response()->download($path, 'maquinarias_' . now()->format('Ymd_His') . '.pdf')
+            ->deleteFileAfterSend(true);
     }
 
     public function crear()

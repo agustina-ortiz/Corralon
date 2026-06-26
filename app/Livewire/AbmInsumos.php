@@ -8,9 +8,12 @@ use App\Models\Corralon;
 use App\Models\Deposito;
 use App\Models\TipoMovimiento;
 use App\Models\MovimientoInsumo;
+use App\Exports\InsumosExport;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class AbmInsumos extends Component
 {
@@ -20,6 +23,7 @@ class AbmInsumos extends Component
     public $showModal = false;
     public $editMode = false;
     public $showFilters = false;
+    public $showEstadisticas = false;
     
     // Filtros
     public $filtro_corralon = '';
@@ -81,12 +85,14 @@ class AbmInsumos extends Component
         $this->limpiarFiltros();
     }
 
-    public function render()
+    /**
+     * Query base de insumos con todos los filtros y permisos aplicados.
+     * Reutilizado por el listado, las estadísticas y la exportación para
+     * garantizar que los tres reflejen exactamente lo mismo.
+     */
+    private function baseQuery()
     {
-        $user = auth()->user();
-        
-        $insumos = Insumo::with(['categoriaInsumo', 'deposito.corralon'])
-            ->porCorralonesPermitidos()
+        return Insumo::porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('insumo', 'like', '%' . $this->search . '%');
             })
@@ -106,9 +112,19 @@ class AbmInsumos extends Component
             })
             ->when($this->filtro_stock_bajo, function($query) {
                 $query->whereColumn('stock_actual', '<', 'stock_minimo');
-            })
+            });
+    }
+
+    public function render()
+    {
+        $user = auth()->user();
+
+        $insumos = $this->baseQuery()
+            ->with(['categoriaInsumo', 'deposito.corralon'])
             ->orderBy('insumo')
             ->paginate(10);
+
+        $estadisticas = $this->showEstadisticas ? $this->calcularEstadisticas() : null;
 
         $categorias = CategoriaInsumo::orderBy('nombre')->get();
         
@@ -136,6 +152,7 @@ class AbmInsumos extends Component
 
         return view('livewire.abm-insumos', [
             'insumos' => $insumos,
+            'estadisticas' => $estadisticas,
             'categorias' => $categorias,
             'corralones' => $corralones,
             'depositos' => $depositos,
@@ -188,6 +205,90 @@ class AbmInsumos extends Component
         $this->filtro_deposito = '';
         $this->filtro_stock_bajo = false;
         $this->resetPage();
+    }
+
+    /**
+     * Calcula los indicadores del modal de estadísticas sobre el query filtrado.
+     */
+    private function calcularEstadisticas(): array
+    {
+        $insumos = $this->baseQuery()->with(['categoriaInsumo', 'deposito.corralon'])->get();
+
+        $bajoMinimo = $insumos->filter(fn($i) => (float) $i->stock_actual > 0 && (float) $i->stock_actual < (float) $i->stock_minimo);
+        $sinStock = $insumos->filter(fn($i) => (float) $i->stock_actual <= 0);
+
+        // Distribución por categoría: cantidad de insumos por categoría
+        $porCategoria = $insumos->groupBy(fn($i) => $i->categoriaInsumo->nombre ?? 'Sin categoría')
+            ->map(fn($g) => $g->count())
+            ->sortDesc();
+
+        // Stock por depósito (suma de stock_actual)
+        $porDeposito = $insumos->groupBy(fn($i) => $i->deposito->deposito ?? 'Sin depósito')
+            ->map(fn($g) => $g->sum(fn($i) => (float) $i->stock_actual))
+            ->sortDesc();
+
+        return [
+            'total' => $insumos->count(),
+            'stock_total' => $insumos->sum(fn($i) => (float) $i->stock_actual),
+            'bajo_minimo' => $bajoMinimo->count(),
+            'sin_stock' => $sinStock->count(),
+            'ok' => $insumos->count() - $bajoMinimo->count() - $sinStock->count(),
+            'por_categoria' => $porCategoria,
+            'por_deposito' => $porDeposito,
+            'top_bajo_minimo' => $bajoMinimo->sortBy(fn($i) => (float) $i->stock_actual)->take(10),
+        ];
+    }
+
+    public function toggleEstadisticas()
+    {
+        $this->showEstadisticas = !$this->showEstadisticas;
+    }
+
+    /**
+     * Descripción legible de los filtros activos (para encabezados de export).
+     */
+    private function descripcionFiltros(): string
+    {
+        $partes = [];
+        if ($this->search) $partes[] = "Búsqueda: {$this->search}";
+        if ($this->filtro_categoria) $partes[] = 'Categoría: ' . (CategoriaInsumo::find($this->filtro_categoria)->nombre ?? '');
+        if ($this->filtro_corralon) $partes[] = 'Corralón: ' . (Corralon::find($this->filtro_corralon)->descripcion ?? '');
+        if ($this->filtro_deposito) $partes[] = 'Depósito: ' . (Deposito::find($this->filtro_deposito)->deposito ?? '');
+        if ($this->filtro_unidad) $partes[] = "Unidad: {$this->filtro_unidad}";
+        if ($this->filtro_stock_bajo) $partes[] = 'Solo stock bajo mínimo';
+        return implode(' · ', $partes);
+    }
+
+    public function exportarExcel()
+    {
+        $nombre = 'insumos_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new InsumosExport($this->baseQuery()), $nombre);
+    }
+
+    public function exportarPdf()
+    {
+        // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
+        $total = $this->baseQuery()->count();
+        if ($total > 2000) {
+            session()->flash('error', "El listado tiene {$total} insumos, demasiados para un PDF. Acotá los filtros o usá la exportación a Excel.");
+            return;
+        }
+
+        // Subir límites solo durante la generación (dompdf es intensivo en memoria/tiempo).
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $insumos = $this->baseQuery()->with(['categoriaInsumo', 'deposito.corralon'])->orderBy('insumo')->get();
+        $pdf = Pdf::loadView('exports.insumos-pdf', [
+            'insumos' => $insumos,
+            'filtros' => $this->descripcionFiltros(),
+        ])->setPaper('a4', 'landscape');
+
+        $path = storage_path('app/insumos_' . uniqid() . '.pdf');
+        $pdf->save($path);
+
+        return response()->download($path, 'insumos_' . now()->format('Ymd_His') . '.pdf')
+            ->deleteFileAfterSend(true);
     }
 
     public function crear()

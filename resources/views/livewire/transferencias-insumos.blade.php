@@ -30,6 +30,44 @@
                 @endif
             </button>
             
+            {{-- Botón Estadísticas --}}
+            <button
+                wire:click="toggleEstadisticas"
+                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Estadísticas
+            </button>
+
+            {{-- Botón Exportar (dropdown Excel/PDF) --}}
+            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                <button
+                    @click="open = !open"
+                    class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Exportar
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div
+                    x-show="open" x-transition x-cloak
+                    class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20"
+                >
+                    <button wire:click="exportarExcel" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Excel (.xlsx)
+                    </button>
+                    <button wire:click="exportarPdf" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        PDF
+                    </button>
+                </div>
+            </div>
+
             {{-- Botón Nueva Transferencia (solo para Administrador) --}}
             @if($puedeCrearTransferencias)
                 <button 
@@ -1663,6 +1701,109 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Estadísticas --}}
+    @if($showEstadisticas && $estadisticas)
+        <div class="fixed inset-0 z-50 overflow-y-auto" x-data>
+            <div class="flex items-center justify-center min-h-screen px-4 py-8">
+                <div class="fixed inset-0 bg-black/50" wire:click="toggleEstadisticas"></div>
+                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl">
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-[#77BF43]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Estadísticas de Movimientos
+                        </h3>
+                        <button wire:click="toggleEstadisticas" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                        @if($estadisticas['total'] == 0)
+                            <p class="text-center text-gray-500 py-8">No hay movimientos para los filtros seleccionados.</p>
+                        @else
+                        {{-- KPIs --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="bg-gray-50 rounded-xl p-4 text-center">
+                                <div class="text-2xl font-bold text-gray-800">{{ number_format($estadisticas['total']) }}</div>
+                                <div class="text-xs text-gray-500 mt-1">Movimientos</div>
+                            </div>
+                            <div class="bg-green-50 rounded-xl p-4 text-center">
+                                <div class="text-2xl font-bold text-green-700">{{ number_format($estadisticas['entradas_cant']) }}</div>
+                                <div class="text-xs text-gray-500 mt-1">Entradas ({{ number_format($estadisticas['entradas_sum'], 0) }} u.)</div>
+                            </div>
+                            <div class="bg-red-50 rounded-xl p-4 text-center">
+                                <div class="text-2xl font-bold text-red-600">{{ number_format($estadisticas['salidas_cant']) }}</div>
+                                <div class="text-xs text-gray-500 mt-1">Salidas ({{ number_format($estadisticas['salidas_sum'], 0) }} u.)</div>
+                            </div>
+                        </div>
+
+                        {{-- Movimientos por tipo --}}
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Movimientos por tipo</h4>
+                            <div class="space-y-2">
+                                @php $maxTipo = $estadisticas['por_tipo']->max() ?: 1; @endphp
+                                @foreach($estadisticas['por_tipo']->take(10) as $tipo => $cant)
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-40 text-xs text-gray-600 truncate" title="{{ $tipo }}">{{ $tipo }}</div>
+                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                            <div class="bg-[#77BF43] h-4 rounded-full" style="width: {{ ($cant / $maxTipo) * 100 }}%"></div>
+                                        </div>
+                                        <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Por usuario --}}
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Movimientos por usuario</h4>
+                            <div class="space-y-2">
+                                @php $maxUsr = $estadisticas['por_usuario']->max() ?: 1; @endphp
+                                @foreach($estadisticas['por_usuario']->take(8) as $usr => $cant)
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-40 text-xs text-gray-600 truncate" title="{{ $usr }}">{{ $usr }}</div>
+                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                            <div class="bg-blue-500 h-4 rounded-full" style="width: {{ ($cant / $maxUsr) * 100 }}%"></div>
+                                        </div>
+                                        <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        {{-- Top insumos movidos --}}
+                        @if($estadisticas['top_insumos']->count() > 0)
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Insumos más movidos</h4>
+                            <div class="border border-gray-100 rounded-xl overflow-hidden">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50 text-xs text-gray-500">
+                                        <tr>
+                                            <th class="text-left px-3 py-2">Insumo</th>
+                                            <th class="text-right px-3 py-2">Cant. total</th>
+                                            <th class="text-right px-3 py-2">N° mov.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($estadisticas['top_insumos'] as $ins)
+                                            <tr class="border-t border-gray-50">
+                                                <td class="px-3 py-2 text-gray-700">{{ $ins['nombre'] }}</td>
+                                                <td class="px-3 py-2 text-right font-medium text-gray-700">{{ number_format($ins['cantidad'], 2) }} {{ $ins['unidad'] }}</td>
+                                                <td class="px-3 py-2 text-right text-gray-500">{{ $ins['movimientos'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endif
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

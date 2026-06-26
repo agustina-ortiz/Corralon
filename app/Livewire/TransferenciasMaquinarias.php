@@ -15,12 +15,15 @@ use App\Models\EmpleadoMunicipal;
 use App\Models\Secretaria;
 use App\Models\Area;
 use App\Models\ComprobanteMovimientoMaquinaria;
+use App\Exports\MovimientosMaquinariasExport;
 use App\Rules\ArchivoSeguro;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TransferenciasMaquinarias extends Component
 {
@@ -29,6 +32,7 @@ class TransferenciasMaquinarias extends Component
     public $search = '';
     public $showModal = false;
     public $showFilters = false;
+    public $showEstadisticas = false;
 
     // Filtros
     public $filtro_corralon = '';
@@ -285,6 +289,193 @@ class TransferenciasMaquinarias extends Component
     }
 
     /**
+     * Query base de movimientos de maquinarias con filtros y permisos aplicados.
+     * Reutilizado por el listado, las estadísticas y la exportación.
+     */
+    private function baseMovimientosQuery(array $depositosAccesibles)
+    {
+        return MovimientoMaquinaria::query()
+            ->whereHas('maquinaria', function ($query) use ($depositosAccesibles) {
+                $query->whereIn('id_deposito', $depositosAccesibles);
+            })
+            ->when($this->search, function ($query) {
+                $query->whereHas('maquinaria', function ($q) {
+                    $q->where('maquinaria', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filtro_fecha_desde, fn($q) => $q->whereDate('fecha', '>=', $this->filtro_fecha_desde))
+            ->when($this->filtro_fecha_hasta, fn($q) => $q->whereDate('fecha', '<=', $this->filtro_fecha_hasta))
+            ->when($this->filtro_corralon, function($q) {
+                $q->whereHas('maquinaria.deposito', function($dep) {
+                    $dep->where('id_corralon', $this->filtro_corralon);
+                });
+            })
+            ->when($this->filtro_deposito_origen, fn($q) => $q->where('id_deposito_entrada', $this->filtro_deposito_origen))
+            ->when($this->filtro_usuario, fn($q) => $q->where('id_usuario', $this->filtro_usuario))
+            ->when($this->filtro_maquinaria, function ($query) {
+                $query->whereHas('maquinaria', function ($q) {
+                    $q->where('maquinaria', 'like', '%' . $this->filtro_maquinaria . '%');
+                });
+            })
+            ->when($this->filtro_categoria, function ($query) {
+                $query->whereHas('maquinaria', function ($q) {
+                    $q->where('id_categoria_maquinaria', $this->filtro_categoria);
+                });
+            })
+            ->when($this->filtro_tipo_movimiento, fn($q) => $q->where('id_tipo_movimiento', $this->filtro_tipo_movimiento));
+    }
+
+    /**
+     * Calcula los indicadores del modal de estadísticas sobre el período filtrado.
+     */
+    private function calcularEstadisticas(array $depositosAccesibles): array
+    {
+        $movimientos = $this->baseMovimientosQuery($depositosAccesibles)
+            ->with(['tipoMovimiento', 'usuario', 'maquinaria'])
+            ->get();
+
+        $entradas = $movimientos->filter(fn($m) => $m->tipoMovimiento?->esEntrada());
+        $salidas = $movimientos->filter(fn($m) => $m->tipoMovimiento?->esSalida());
+
+        $porTipo = $movimientos->groupBy(fn($m) => $m->tipoMovimiento->tipo_movimiento ?? 'Sin tipo')
+            ->map(fn($g) => $g->count())
+            ->sortDesc();
+
+        $porUsuario = $movimientos->groupBy(fn($m) => $m->usuario->name ?? 'Sin usuario')
+            ->map(fn($g) => $g->count())
+            ->sortDesc();
+
+        $topMaquinarias = $movimientos->groupBy('id_maquinaria')
+            ->map(fn($g) => [
+                'nombre' => $g->first()->maquinaria->maquinaria ?? 'Desconocida',
+                'cantidad' => $g->sum(fn($m) => (int) $m->cantidad),
+                'movimientos' => $g->count(),
+            ])
+            ->sortByDesc('cantidad')
+            ->take(10)
+            ->values();
+
+        return [
+            'total' => $movimientos->count(),
+            'entradas_cant' => $entradas->count(),
+            'salidas_cant' => $salidas->count(),
+            'entradas_sum' => $entradas->sum(fn($m) => (int) $m->cantidad),
+            'salidas_sum' => $salidas->sum(fn($m) => (int) $m->cantidad),
+            'por_tipo' => $porTipo,
+            'por_usuario' => $porUsuario,
+            'top_maquinarias' => $topMaquinarias,
+        ];
+    }
+
+    public function toggleEstadisticas()
+    {
+        $this->showEstadisticas = !$this->showEstadisticas;
+    }
+
+    /**
+     * Descripción legible de los filtros activos (para encabezados de export).
+     */
+    private function descripcionFiltros(): string
+    {
+        $partes = [];
+        if ($this->filtro_fecha_desde || $this->filtro_fecha_hasta) {
+            $desde = $this->filtro_fecha_desde ? \Carbon\Carbon::parse($this->filtro_fecha_desde)->format('d/m/Y') : '...';
+            $hasta = $this->filtro_fecha_hasta ? \Carbon\Carbon::parse($this->filtro_fecha_hasta)->format('d/m/Y') : '...';
+            $partes[] = "Período: {$desde} a {$hasta}";
+        }
+        if ($this->search) $partes[] = "Búsqueda: {$this->search}";
+        if ($this->filtro_corralon) $partes[] = 'Corralón: ' . (Corralon::find($this->filtro_corralon)->descripcion ?? '');
+        if ($this->filtro_deposito_origen) $partes[] = 'Depósito: ' . (Deposito::find($this->filtro_deposito_origen)->deposito ?? '');
+        if ($this->filtro_categoria) $partes[] = 'Categoría: ' . (CategoriaMaquinaria::find($this->filtro_categoria)->nombre ?? '');
+        if ($this->filtro_maquinaria) $partes[] = "Maquinaria: {$this->filtro_maquinaria}";
+        if ($this->filtro_tipo_movimiento) $partes[] = 'Tipo: ' . (TipoMovimiento::find($this->filtro_tipo_movimiento)->tipo_movimiento ?? '');
+        if ($this->filtro_usuario) $partes[] = 'Usuario: ' . (User::find($this->filtro_usuario)->name ?? '');
+        return implode(' · ', $partes);
+    }
+
+    public function exportarExcel()
+    {
+        $query = $this->baseMovimientosQuery($this->getDepositosAccesibles());
+        $nombre = 'movimientos_maquinarias_' . now()->format('Ymd_His') . '.xlsx';
+        return Excel::download(new MovimientosMaquinariasExport($query), $nombre);
+    }
+
+    public function exportarPdf()
+    {
+        // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
+        $total = $this->baseMovimientosQuery($this->getDepositosAccesibles())->count();
+        if ($total > 2000) {
+            session()->flash('error', "Hay {$total} movimientos, demasiados para un PDF. Acotá el período/filtros o usá la exportación a Excel.");
+            return;
+        }
+
+        // Subir límites solo durante la generación (dompdf es intensivo en memoria/tiempo).
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $movimientos = $this->baseMovimientosQuery($this->getDepositosAccesibles())
+            ->with(['maquinaria.categoriaMaquinaria', 'maquinaria.deposito.corralon', 'depositoEntrada', 'tipoMovimiento', 'usuario', 'secretaria'])
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->get();
+
+        $destinos = $this->resolverDestinos($movimientos);
+
+        $pdf = Pdf::loadView('exports.movimientos-maquinarias-pdf', [
+            'movimientos' => $movimientos,
+            'destinos' => $destinos,
+            'filtros' => $this->descripcionFiltros(),
+        ])->setPaper('a4', 'landscape');
+
+        $path = storage_path('app/movimientos_maquinarias_' . uniqid() . '.pdf');
+        $pdf->save($path);
+
+        return response()->download($path, 'movimientos_maquinarias_' . now()->format('Ymd_His') . '.pdf')
+            ->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Resuelve el nombre legible del destino de cada movimiento (id => texto).
+     */
+    private function resolverDestinos($movimientos): array
+    {
+        $resultado = [];
+        $cache = [];
+
+        foreach ($movimientos as $m) {
+            $tipoRef = $m->tipo_referencia;
+            $idRef = $m->id_referencia;
+
+            if ($tipoRef === 'transferencia') {
+                $resultado[$m->id] = 'Transferencia';
+                continue;
+            }
+            if (in_array($tipoRef, ['inventario', 'deposito', 'maquina']) || !$idRef) {
+                $resultado[$m->id] = '';
+                continue;
+            }
+
+            $key = "{$tipoRef}-{$idRef}";
+            if (!isset($cache[$key])) {
+                $cache[$key] = match ($tipoRef) {
+                    'vehiculo' => optional(Vehiculo::find($idRef))->vehiculo ?? "Vehículo #{$idRef}",
+                    'evento' => optional(Evento::find($idRef))->evento ?? "Evento #{$idRef}",
+                    'empleado' => optional(EmpleadoMunicipal::find($idRef))->nombre_formateado ?? "Empleado #{$idRef}",
+                    'secretaria' => 'Secretaría: ' . (optional(Secretaria::find($idRef))->secretaria ?? "#{$idRef}"),
+                    default => '',
+                };
+            }
+            $destino = $cache[$key];
+            if ($tipoRef === 'secretaria' && $m->area) {
+                $destino .= " ({$m->area})";
+            }
+            $resultado[$m->id] = $destino;
+        }
+
+        return $resultado;
+    }
+
+    /**
      * Resuelve un TipoMovimiento por nombre. Lanza excepción si no existe en DB.
      */
     private function resolverTipo(string $nombre): TipoMovimiento
@@ -351,45 +542,18 @@ class TransferenciasMaquinarias extends Component
         $user = auth()->user();
         $depositosAccesibles = $this->getDepositosAccesibles();
 
-        $movimientos = MovimientoMaquinaria::with([
-            'maquinaria.categoriaMaquinaria',
-            'maquinaria.deposito',
-            'depositoEntrada',
-            'tipoMovimiento',
-            'usuario',
-            'secretaria',
-            'comprobantes',
-        ])
-        ->whereHas('maquinaria', function ($query) use ($depositosAccesibles) {
-            $query->whereIn('id_deposito', $depositosAccesibles);
-        })
-        ->when($this->search, function ($query) {
-            $query->whereHas('maquinaria', function ($q) {
-                $q->where('maquinaria', 'like', '%' . $this->search . '%');
-            });
-        })
-        ->when($this->filtro_fecha_desde, fn($q) => $q->whereDate('fecha', '>=', $this->filtro_fecha_desde))
-        ->when($this->filtro_fecha_hasta, fn($q) => $q->whereDate('fecha', '<=', $this->filtro_fecha_hasta))
-        ->when($this->filtro_corralon, function($q) {
-            $q->whereHas('maquinaria.deposito', function($dep) {
-                $dep->where('id_corralon', $this->filtro_corralon);
-            });
-        })
-        ->when($this->filtro_deposito_origen, fn($q) => $q->where('id_deposito_entrada', $this->filtro_deposito_origen))
-        ->when($this->filtro_usuario, fn($q) => $q->where('id_usuario', $this->filtro_usuario))
-        ->when($this->filtro_maquinaria, function ($query) {
-            $query->whereHas('maquinaria', function ($q) {
-                $q->where('maquinaria', 'like', '%' . $this->filtro_maquinaria . '%');
-            });
-        })
-        ->when($this->filtro_categoria, function ($query) {
-            $query->whereHas('maquinaria', function ($q) {
-                $q->where('id_categoria_maquinaria', $this->filtro_categoria);
-            });
-        })
-        ->when($this->filtro_tipo_movimiento, fn($q) => $q->where('id_tipo_movimiento', $this->filtro_tipo_movimiento))
-        ->orderBy('created_at', 'desc')
-        ->paginate(15);
+        $movimientos = $this->baseMovimientosQuery($depositosAccesibles)
+            ->with([
+                'maquinaria.categoriaMaquinaria',
+                'maquinaria.deposito',
+                'depositoEntrada',
+                'tipoMovimiento',
+                'usuario',
+                'secretaria',
+                'comprobantes',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         $movimientos->getCollection()->transform(function ($movimiento) use ($depositosAccesibles) {
             $stockTotal = 0;
@@ -588,8 +752,11 @@ class TransferenciasMaquinarias extends Component
             ? ComprobanteMovimientoMaquinaria::where('id_movimiento_maquinaria', $this->edit_movimiento_id)->get()
             : collect();
 
+        $estadisticas = $this->showEstadisticas ? $this->calcularEstadisticas($depositosAccesibles) : null;
+
         return view('livewire.transferencias-maquinarias', [
             'movimientos'                          => $movimientos,
+            'estadisticas'                         => $estadisticas,
             'comprobantesEdicion'                  => $comprobantesEdicion,
             'maquinarias_filtradas'                => $maquinarias_filtradas,
             'depositos'                            => $depositos,
