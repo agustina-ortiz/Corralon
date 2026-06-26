@@ -14,6 +14,7 @@ Sistema de gestión de inventario y recursos para corralones municipales (Munici
 - **Build tool:** Vite
 - **Base de datos:** MySQL (`corralon`) + conexión secundaria `munimer_inasi` (empleados municipales)
 - **Auth:** Laravel Breeze (email/password)
+- **Exportación:** `maatwebsite/excel` (Excel/CSV) + `barryvdh/laravel-dompdf` (PDF) — requieren `composer install` en cada servidor
 
 ---
 
@@ -26,6 +27,7 @@ app/
   Livewire/               # Componentes reactivos (ABM*, Transferencias*, Dashboard)
     Actions/              # Logout
     Forms/                # LoginForm
+  Exports/                # Clases de exportación a Excel (InsumosExport, MaquinariasExport, MovimientosInsumosExport, MovimientosMaquinariasExport)
   Models/                 # Modelos Eloquent (23 modelos, incluye EmpleadoMunicipal con conexión externa)
   Traits/                 # FiltraPorPermisos, FiltraPorPermisosCorralon
   View/Components/        # AppLayout, GuestLayout
@@ -327,6 +329,32 @@ El dashboard muestra:
 - **Licencias de choferes próximas a vencer** — via `licenciaProximaAVencer()`
 - **Eventos próximos** — eventos con fecha cercana
 - **Vehículos en uso** — vehículos con estado activo/en circulación
+
+---
+
+## Estadísticas y Exportación (Excel / PDF)
+
+Los 4 listados principales tienen botones **📊 Estadísticas** (modal) y **⬇️ Exportar** (dropdown Alpine con Excel/PDF), ubicados en el header antes del botón Nuevo/Crear:
+
+| Pantalla | Componente | Clase Export | Vista PDF |
+|----------|-----------|--------------|-----------|
+| `/insumos` | AbmInsumos | `InsumosExport` | `exports.insumos-pdf` |
+| `/maquinarias` | AbmMaquinarias | `MaquinariasExport` | `exports.maquinarias-pdf` |
+| `/transferencias-insumos` | TransferenciasInsumos | `MovimientosInsumosExport` | `exports.movimientos-insumos-pdf` |
+| `/transferencias-maquinarias` | TransferenciasMaquinarias | `MovimientosMaquinariasExport` | `exports.movimientos-maquinarias-pdf` |
+
+**Patrón en cada componente:**
+- Propiedad `public $showEstadisticas` + método `toggleEstadisticas()`. `$estadisticas` se calcula en `render()` solo si `showEstadisticas` y se pasa a la vista.
+- Se extrae el query filtrado a `baseQuery()` (ABMs) o `baseMovimientosQuery($depositosAccesibles)` (transferencias), **reutilizado por el listado, las estadísticas y la exportación** — los tres reflejan exactamente los mismos filtros + permisos.
+- `calcularEstadisticas()` arma KPIs + distribuciones (barras CSS en el modal). `descripcionFiltros()` arma el subtítulo de filtros activos del PDF.
+- `exportarExcel()` → `Excel::download(new XxxExport($query), $nombre)`.
+- `exportarPdf()` → genera a archivo temporal con `$pdf->save()` y devuelve `response()->download($path, ...)->deleteFileAfterSend(true)`.
+
+**Reglas críticas (aprendidas en producción):**
+- **NO usar `response()->streamDownload()` + `print($pdf->output())`**: Livewire no captura bien el binario y el PDF llega vacío. Usar siempre archivo temporal + `response()->download()` (mismo tipo de respuesta `BinaryFileResponse` que `Excel::download`).
+- **Memoria dompdf:** dompdf arma toda la tabla en un único "Cellmap" en memoria → una tabla gigante revienta (2000 filas ≈ 1 GB). Las vistas PDF parten el listado en **muchas tablas chicas** con `@forelse($x->chunk(40/45))` + `table-layout: fixed` y anchos de columna explícitos (2000 filas ≈ 190 MB). Cada `exportarPdf()` hace `@ini_set('memory_limit','1024M')` + `@set_time_limit(300)` y **aborta con `session()->flash('error', ...)` si `count() > 2000`** (deriva a Excel, que no tiene este límite).
+- Excel: clases en `app/Exports/` implementan `FromQuery, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithTitle`.
+- **Despliegue:** tras `git pull` correr `composer install` (instala los 2 paquetes), `npm run build` y limpiar caches. No hay migraciones. Recomendado `memory_limit ≥ 512M` en el `php.ini` del servidor por si `ini_set` está bloqueado.
 
 ---
 
