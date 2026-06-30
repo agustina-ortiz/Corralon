@@ -172,6 +172,7 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 - `stockBajoMinimo()` — bool, compara `stock_actual` con `stock_minimo`
 - Alertas de stock bajo mínimo en el dashboard
 - Campo `unidad` en `insumos` usa valores fijos: `UNIDAD`, `LITROS`, `TAMBOR`, `METRO`, `ROLLO X 100 MT`, `PAQUETE`, `BOLSA`, `BALDE` (validación `in:` en backend y select en UI)
+- **Creación de insumo (`AbmInsumos`):** al crear un insumo con `stock_inicial > 0` se genera automáticamente un `MovimientoInsumo` de tipo **Inventario Inicial**. El modal de creación incluye un campo opcional **N° Orden de Compra / Suministro** (`nro_orden_compra`, solo en modo crear) que se guarda en ese movimiento. Ese movimiento queda editable luego en `/transferencias-insumos` (ver **Edición de movimientos**)
 
 ### Asignaciones de insumos
 
@@ -220,7 +221,11 @@ Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista mue
 - `observaciones`
 - Comprobantes adjuntos: agregar nuevos, ver y eliminar existentes (tope total de 5 archivos)
 
-Métodos en ambos componentes: `abrirEdicion($id)`, `guardarEdicion()`, `eliminarComprobanteExistente($id)`, `removeEditComprobante($index)`, `cerrarEdicion()`. Propiedades con prefijo `edit_*`. La edición valida que el tipo de movimiento esté en `TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo']`. El resto de los tipos (Inventario Inicial, asignaciones, ajuste negativo, transferencias) **no** muestran el botón.
+Métodos en ambos componentes: `abrirEdicion($id)`, `guardarEdicion()`, `eliminarComprobanteExistente($id)`, `removeEditComprobante($index)`, `cerrarEdicion()`. Propiedades con prefijo `edit_*`. La edición valida que el tipo de movimiento esté en `TIPOS_EDITABLES`:
+- **Insumos** (`TransferenciasInsumos`): `['Carga de Stock', 'Ajuste Positivo', 'Inventario Inicial']` — Inventario Inicial **sí** es editable.
+- **Maquinarias** (`TransferenciasMaquinarias`): `['Carga de Stock', 'Ajuste Positivo']`.
+
+El resto de los tipos (asignaciones, ajuste negativo, transferencias) **no** muestran el botón. El `in_array(...)` del blade debe coincidir con la constante de cada componente.
 
 ### Seguridad de uploads y preview
 
