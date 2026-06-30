@@ -40,6 +40,7 @@ class AbmInsumos extends Component
     public $stock_inicial;
     public $stock_minimo;
     public $id_deposito;
+    public $nro_orden_compra; // OC del movimiento de inventario inicial (solo al crear)
 
     protected function rules()
     {
@@ -51,9 +52,10 @@ class AbmInsumos extends Component
             'id_deposito' => 'required|exists:depositos,id',
         ];
 
-        // ✅ Solo validar stock_inicial en modo creación
+        // ✅ Solo validar stock_inicial y N° orden de compra en modo creación
         if (!$this->editMode) {
             $rules['stock_inicial'] = 'nullable|numeric|min:0';
+            $rules['nro_orden_compra'] = 'nullable|string|max:100';
         }
 
         return $rules;
@@ -404,6 +406,7 @@ class AbmInsumos extends Component
                     'id_deposito_entrada' => $this->id_deposito,
                     'id_referencia' => 0,
                     'tipo_referencia' => 'inventario',
+                    'nro_orden_compra' => $this->nro_orden_compra ?: null,
                 ]);
                 
                 // Sincronizar el stock
@@ -460,6 +463,7 @@ class AbmInsumos extends Component
         $this->stock_inicial = ''; // ✅ RESETEAR
         $this->stock_minimo = '';
         $this->id_deposito = '';
+        $this->nro_orden_compra = '';
         $this->resetErrorBag();
     }
 }

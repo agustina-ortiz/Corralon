@@ -1949,7 +1949,7 @@ class TransferenciasInsumos extends Component
     // =========================================================
 
     /** Tipos de movimiento editables (los únicos que admiten OC y comprobantes). */
-    private const TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo'];
+    private const TIPOS_EDITABLES = ['Carga de Stock', 'Ajuste Positivo', 'Inventario Inicial'];
 
     public function abrirEdicion($id)
     {
