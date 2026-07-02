@@ -199,6 +199,19 @@ Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) qu
 - **Acciones por fila**: campo de cantidad + botón "Devolver" (crea Entrada Reposición, suma stock) y botón "Dar de baja" (crea Baja Reposición con confirm(), no afecta stock)
 - Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendiente()`
 
+#### Movimientos Múltiples (varios insumos → un empleado)
+
+Botón **"Movimientos Múltiples"** (teal) en el header de `/transferencias-insumos`, junto a "Nuevo Movimiento" (solo con `puedeCrearMovimientosInsumos()`). Permite asignar varios insumos con distintos tipos de asignación a **un mismo empleado** en una sola operación; se registra **un `MovimientoInsumo` suelto por línea** (sin `MovimientoEncabezado`).
+
+- **Modal de 2 pasos**:
+  1. **Seleccionar empleado** — buscador sobre `EmpleadoMunicipal::activos()` (nombre/legajo/DNI).
+  2. **Insumos + tipos** — layout de 2 columnas: izquierda buscador+lista de insumos con stock > 0 (botón `(+)`), derecha las líneas agregadas, cada una con `select` de tipo + cantidad + quitar.
+- **Tipos disponibles por línea**: solo `Asignación con Reposición` y `Asignación sin Reposición` (el destino siempre es persona). Cada movimiento se guarda con `tipo_referencia='empleado'`, `id_referencia=<LEGAJO>`, `id_secretaria=null`, `area=null`.
+- **Validación de stock**: se valida por insumo sumando todas las líneas del mismo insumo contra `stock_actual` (permite el mismo insumo en varias líneas con distinto tipo). Guardado en `DB::transaction`; `sincronizarStock()` una vez por insumo afectado.
+- **Propiedades**: prefijo `multi_*` (`showModalMultiple`, `multi_paso`, `multi_legajo`, `multi_lineas`, buscadores). **Métodos**: `abrirModalMultiple()`, `cerrarModalMultiple()`, `seleccionarEmpleadoMultiple()`, `multiVolverPaso()`, `agregarLineaMultiple()`, `quitarLineaMultiple()`, `guardarMultiple()`, `resetFormMultiple()`.
+
+> Header de `/transferencias-insumos`: los botones **Filtros / Estadísticas / Exportar** son **solo ícono** (con `title` y badge flotante de filtros activos) para dar más ancho al buscador; los botones de acción (Nueva Transferencia / Nuevo Movimiento / Movimientos Múltiples) usan `whitespace-nowrap`.
+
 ### Comprobantes adjuntos en movimientos
 
 Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** (insumos **y** maquinarias) permiten adjuntar comprobantes (órdenes de compra, recibos, etc.):
