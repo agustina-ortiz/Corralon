@@ -122,6 +122,18 @@ class TransferenciasInsumos extends Component
     public $depositos_disponibles = [];
     public $tipos_movimiento_disponibles = [];
 
+    // ===== Movimientos Múltiples (varios insumos → un empleado, en una sola operación) =====
+    public $showModalMultiple = false;
+    public $multi_paso = 1;                     // 1 = elegir empleado, 2 = armar carrito
+    public $multi_search_empleado = '';
+    public $multi_mostrar_lista_empleado = false;
+    public $multi_legajo = null;                // LEGAJO del empleado elegido
+    public $multi_search_insumo = '';
+    public $multi_mostrar_lista_insumo = false;
+    // Cada línea: ['insumo_id','insumo_nombre','unidad','stock','tipo','cantidad']
+    // tipo ∈ ['asignacion_con_reposicion','asignacion_sin_reposicion']
+    public $multi_lineas = [];
+
     public function mount()
     {
         // Verificar que el usuario esté autenticado
@@ -775,6 +787,51 @@ class TransferenciasInsumos extends Component
             }
         }
 
+        // Movimientos Múltiples: empleados (paso 1) e insumos (paso 2)
+        $multi_empleados = collect();
+        $multi_insumos = collect();
+        $multi_empleado_sel = null;
+
+        if ($this->showModalMultiple) {
+            if ($this->multi_paso === 1 && ($this->multi_mostrar_lista_empleado || $this->multi_search_empleado)) {
+                $multi_empleados = EmpleadoMunicipal::activos()
+                    ->when($this->multi_search_empleado, function($query) {
+                        $query->where(function($q) {
+                            $q->where('NOMBRE', 'like', '%' . $this->multi_search_empleado . '%')
+                              ->orWhere('LEGAJO', 'like', '%' . $this->multi_search_empleado . '%')
+                              ->orWhere('DNI', 'like', '%' . $this->multi_search_empleado . '%');
+                        });
+                    })
+                    ->orderBy('NOMBRE')
+                    ->limit(50)
+                    ->get();
+            }
+
+            if ($this->multi_legajo) {
+                $multi_empleado_sel = EmpleadoMunicipal::find($this->multi_legajo);
+            }
+
+            if ($this->multi_paso === 2 && ($this->multi_mostrar_lista_insumo || $this->multi_search_insumo)) {
+                $multi_insumos = Insumo::with(['categoriaInsumo', 'deposito'])
+                    ->whereIn('id_deposito', $depositosAccesibles)
+                    ->where('stock_actual', '>', 0)
+                    ->when($this->multi_search_insumo, function($query) {
+                        $query->where(function($q) {
+                            $q->where('insumo', 'like', '%' . $this->multi_search_insumo . '%')
+                              ->orWhereHas('categoriaInsumo', function($cat) {
+                                  $cat->where('nombre', 'like', '%' . $this->multi_search_insumo . '%');
+                              })
+                              ->orWhereHas('deposito', function($dep) {
+                                  $dep->where('deposito', 'like', '%' . $this->multi_search_insumo . '%');
+                              });
+                        });
+                    })
+                    ->orderBy('insumo')
+                    ->limit(50)
+                    ->get(['id', 'insumo', 'id_categoria', 'id_deposito', 'stock_actual', 'stock_minimo', 'unidad']);
+            }
+        }
+
         // Asignaciones pendientes de reposición.
         // Se calcula siempre para decidir si el panel se muestra (se oculta si no hay pendientes).
         $asignacionesPendientes = collect();
@@ -916,6 +973,9 @@ class TransferenciasInsumos extends Component
             'vehiculos_destino' => $vehiculos_destino,
             'eventos_destino' => $eventos_destino,
             'empleados_destino' => $empleados_destino,
+            'multi_empleados' => $multi_empleados,
+            'multi_insumos' => $multi_insumos,
+            'multi_empleado_sel' => $multi_empleado_sel,
             'asignacionesPendientes' => $asignacionesPendientes,
             'secretarias' => $secretarias,
             // Pasar permisos a la vista
@@ -1942,6 +2002,226 @@ class TransferenciasInsumos extends Component
         $this->showModalTransferencia = false;
         $this->resetFormTransferencia();
         $this->dispatch('refreshComponent');
+    }
+
+    // =========================================================
+    // MOVIMIENTOS MÚLTIPLES (varios insumos → un empleado)
+    // =========================================================
+
+    public function abrirModalMultiple()
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            return;
+        }
+
+        $this->resetFormMultiple();
+        $this->showModalMultiple = true;
+    }
+
+    public function cerrarModalMultiple()
+    {
+        $this->showModalMultiple = false;
+        $this->resetFormMultiple();
+        $this->dispatch('refreshComponent');
+    }
+
+    public function updatedMultiSearchEmpleado()
+    {
+        $this->multi_mostrar_lista_empleado = true;
+    }
+
+    public function updatedMultiSearchInsumo()
+    {
+        $this->multi_mostrar_lista_insumo = true;
+    }
+
+    public function seleccionarEmpleadoMultiple($legajo)
+    {
+        $this->multi_legajo = $legajo;
+        $this->multi_search_empleado = '';
+        $this->multi_mostrar_lista_empleado = false;
+        $this->multi_paso = 2;
+    }
+
+    public function multiVolverPaso()
+    {
+        // Volver a elegir empleado; conserva las líneas ya cargadas.
+        $this->multi_paso = 1;
+        $this->multi_legajo = null;
+        $this->multi_search_empleado = '';
+        $this->multi_mostrar_lista_empleado = false;
+    }
+
+    public function agregarLineaMultiple($insumoId)
+    {
+        // Evitar duplicar el mismo insumo con el mismo tipo por defecto:
+        // se permite el mismo insumo en varias líneas (distinto tipo), pero
+        // no agregar dos veces exactamente la misma línea vacía.
+        $depositosAccesibles = $this->getDepositosAccesibles();
+
+        $insumo = Insumo::whereIn('id_deposito', $depositosAccesibles)->find($insumoId);
+
+        if (!$insumo) {
+            session()->flash('error', 'No tiene acceso a este insumo.');
+            return;
+        }
+
+        if ($insumo->stock_actual <= 0) {
+            session()->flash('error', "El insumo \"{$insumo->insumo}\" no tiene stock disponible.");
+            return;
+        }
+
+        $this->multi_lineas[] = [
+            'insumo_id' => $insumo->id,
+            'insumo_nombre' => $insumo->insumo,
+            'unidad' => $insumo->unidad,
+            'stock' => $insumo->stock_actual,
+            'tipo' => 'asignacion_con_reposicion',
+            'cantidad' => '',
+        ];
+
+        $this->multi_search_insumo = '';
+        $this->multi_mostrar_lista_insumo = false;
+    }
+
+    public function quitarLineaMultiple($index)
+    {
+        unset($this->multi_lineas[$index]);
+        $this->multi_lineas = array_values($this->multi_lineas);
+    }
+
+    public function guardarMultiple()
+    {
+        if (!auth()->user()->puedeCrearMovimientosInsumos()) {
+            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->cerrarModalMultiple();
+            return;
+        }
+
+        // --- Validaciones ---
+        $empleado = EmpleadoMunicipal::find($this->multi_legajo);
+        if (!$empleado) {
+            $this->addError('multi_legajo', 'Debe seleccionar un empleado.');
+            session()->flash('error', 'Debe seleccionar un empleado.');
+            return;
+        }
+
+        if (empty($this->multi_lineas)) {
+            session()->flash('error', 'Debe agregar al menos un insumo.');
+            return;
+        }
+
+        $tiposValidos = ['asignacion_con_reposicion', 'asignacion_sin_reposicion'];
+        $errores = false;
+
+        foreach ($this->multi_lineas as $i => $linea) {
+            if (!in_array($linea['tipo'] ?? '', $tiposValidos)) {
+                $this->addError("multi_lineas.{$i}.tipo", 'Tipo de movimiento inválido.');
+                $errores = true;
+            }
+            if (!is_numeric($linea['cantidad'] ?? null) || $linea['cantidad'] <= 0) {
+                $this->addError("multi_lineas.{$i}.cantidad", 'La cantidad debe ser mayor a 0.');
+                $errores = true;
+            }
+        }
+
+        if ($errores) {
+            session()->flash('error', 'Revise las cantidades y tipos de movimiento.');
+            return;
+        }
+
+        // Validar stock por insumo (suma de todas las líneas del mismo insumo)
+        $totalesPorInsumo = [];
+        foreach ($this->multi_lineas as $linea) {
+            $id = $linea['insumo_id'];
+            $totalesPorInsumo[$id] = ($totalesPorInsumo[$id] ?? 0) + (float) $linea['cantidad'];
+        }
+
+        $depositosAccesibles = $this->getDepositosAccesibles();
+        $insumos = Insumo::whereIn('id_deposito', $depositosAccesibles)
+            ->whereIn('id', array_keys($totalesPorInsumo))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($totalesPorInsumo as $id => $total) {
+            $insumo = $insumos->get($id);
+            if (!$insumo) {
+                session()->flash('error', 'Uno de los insumos ya no está disponible.');
+                return;
+            }
+            if ($total > $insumo->stock_actual) {
+                session()->flash('error', "La cantidad total de \"{$insumo->insumo}\" ({$total}) excede el stock disponible ({$insumo->stock_actual}).");
+                return;
+            }
+        }
+
+        // --- Guardado ---
+        try {
+            DB::beginTransaction();
+
+            $tipoCon = TipoMovimiento::where('tipo_movimiento', 'Asignación con Reposición')->first();
+            $tipoSin = TipoMovimiento::where('tipo_movimiento', 'Asignación sin Reposición')->first();
+
+            if (!$tipoCon || !$tipoSin) {
+                throw new \Exception('No se encontraron los tipos de movimiento de asignación.');
+            }
+
+            $insumosAfectados = [];
+
+            foreach ($this->multi_lineas as $linea) {
+                $insumo = $insumos->get($linea['insumo_id']);
+
+                $tipoMovimiento = $linea['tipo'] === 'asignacion_con_reposicion' ? $tipoCon : $tipoSin;
+
+                MovimientoInsumo::create([
+                    'id_insumo' => $insumo->id,
+                    'id_tipo_movimiento' => $tipoMovimiento->id,
+                    'cantidad' => $linea['cantidad'],
+                    'fecha' => now(),
+                    'fecha_devolucion' => null,
+                    'id_usuario' => Auth::id(),
+                    'id_deposito_entrada' => $insumo->id_deposito,
+                    'id_referencia' => $empleado->LEGAJO,
+                    'tipo_referencia' => 'empleado',
+                    'id_secretaria' => null,
+                    'area' => null,
+                ]);
+
+                $insumosAfectados[$insumo->id] = $insumo;
+            }
+
+            foreach ($insumosAfectados as $insumo) {
+                $insumo->sincronizarStock();
+            }
+
+            DB::commit();
+
+            $cant = count($this->multi_lineas);
+            session()->flash('message', "{$cant} " . ($cant === 1 ? 'movimiento registrado' : 'movimientos registrados') . " para {$empleado->nombre_formateado}.");
+
+            \Illuminate\Support\Facades\Cache::flush();
+
+            $this->cerrarModalMultiple();
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            session()->flash('error', 'Error al registrar los movimientos: ' . $e->getMessage());
+            $this->cerrarModalMultiple();
+            \Log::error('Error en guardarMultiple: ' . $e->getMessage());
+        }
+    }
+
+    private function resetFormMultiple()
+    {
+        $this->multi_paso = 1;
+        $this->multi_search_empleado = '';
+        $this->multi_mostrar_lista_empleado = false;
+        $this->multi_legajo = null;
+        $this->multi_search_insumo = '';
+        $this->multi_mostrar_lista_insumo = false;
+        $this->multi_lineas = [];
+        $this->resetErrorBag();
     }
 
     // =========================================================

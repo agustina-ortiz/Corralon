@@ -15,42 +15,42 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <button 
-                wire:click="$toggle('showFilters')" 
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+            <button
+                wire:click="$toggle('showFilters')"
+                title="Filtros"
+                class="relative px-3 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center font-medium shadow-sm"
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                 </svg>
-                Filtros
                 @if($filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_insumo || $filtro_categoria || $filtro_tipo_movimiento)
-                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
+                    <span class="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
                         {{ collect([$filtro_corralon, $filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_usuario, $filtro_insumo, $filtro_categoria, $filtro_tipo_movimiento])->filter()->count() }}
                     </span>
                 @endif
             </button>
-            
+
             {{-- Botón Estadísticas --}}
             <button
                 wire:click="toggleEstadisticas"
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+                title="Estadísticas"
+                class="px-3 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center font-medium shadow-sm"
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
-                Estadísticas
             </button>
 
             {{-- Botón Exportar (dropdown Excel/PDF) --}}
             <div class="relative" x-data="{ open: false }" @click.outside="open = false">
                 <button
                     @click="open = !open"
-                    class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
+                    title="Exportar"
+                    class="px-3 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-1 font-medium shadow-sm"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                     </svg>
-                    Exportar
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
                 <div
@@ -71,8 +71,8 @@
             {{-- Botón Nueva Transferencia (solo para Administrador) --}}
             @if($puedeCrearTransferencias)
                 <button 
-                    wire:click="crearTransferencia" 
-                    class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+                    wire:click="crearTransferencia"
+                    class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium whitespace-nowrap"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
@@ -84,13 +84,26 @@
             {{-- Botón Nuevo Movimiento (solo para Administrador) --}}
             @if($puedeCrearMovimientos)
                 <button 
-                    wire:click="crear" 
-                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+                    wire:click="crear"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium whitespace-nowrap"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Nuevo Movimiento
+                </button>
+            @endif
+
+            {{-- Botón Movimientos Múltiples (varios insumos → un empleado) --}}
+            @if($puedeCrearMovimientos)
+                <button
+                    wire:click="abrirModalMultiple"
+                    class="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl hover:from-teal-700 hover:to-teal-800 shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium whitespace-nowrap"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    Movimientos Múltiples
                 </button>
             @endif
         </div>
@@ -1616,6 +1629,246 @@
                             </div>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal de Movimientos Múltiples (varios insumos → un empleado, en una sola operación) --}}
+    @if($showModalMultiple)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalMultiple"></div>
+
+                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-visible shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
+                    <div class="bg-white px-6 pt-6 pb-4 rounded-xl">
+                        {{-- Header con indicador de pasos --}}
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-semibold text-gray-900">Movimientos Múltiples</h3>
+                                <div class="flex items-center gap-2 mt-3">
+                                    @for($i = 1; $i <= 2; $i++)
+                                        <div class="flex items-center">
+                                            <div class="flex items-center justify-center w-8 h-8 rounded-full {{ $multi_paso >= $i ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-500' }} font-medium text-sm transition-all duration-200">
+                                                {{ $i }}
+                                            </div>
+                                            @if($i < 2)
+                                                <div class="w-12 h-1 {{ $multi_paso > $i ? 'bg-teal-600' : 'bg-gray-200' }} transition-all duration-200"></div>
+                                            @endif
+                                        </div>
+                                    @endfor
+                                    <div class="ml-3 text-sm text-gray-600">
+                                        @if($multi_paso === 1)
+                                            Paso 1: Seleccionar Empleado
+                                        @else
+                                            Paso 2: Insumos y Tipos de Movimiento
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" wire:click="cerrarModalMultiple" class="text-gray-400 hover:text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- PASO 1: Seleccionar empleado --}}
+                        @if($multi_paso === 1)
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Destinatario (Empleado) *</label>
+                                <div class="relative">
+                                    <input
+                                        type="text"
+                                        wire:model.live="multi_search_empleado"
+                                        wire:focus="$set('multi_mostrar_lista_empleado', true)"
+                                        placeholder="Buscar por nombre, legajo o DNI..."
+                                        class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200"
+                                        autocomplete="off"
+                                    >
+                                    <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+
+                                @if($multi_mostrar_lista_empleado)
+                                    @if($multi_empleados->count() > 0)
+                                        <div class="absolute z-50 w-full max-w-[calc(100%-3rem)] mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
+                                            <ul class="py-2">
+                                                @foreach($multi_empleados as $emp)
+                                                    <li>
+                                                        <button
+                                                            type="button"
+                                                            wire:click="seleccionarEmpleadoMultiple({{ $emp->LEGAJO }})"
+                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                                                        >
+                                                            <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
+                                                            <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @elseif($multi_search_empleado)
+                                        <div class="absolute z-50 w-full max-w-[calc(100%-3rem)] mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
+                                            <div class="px-4 py-6 text-center text-gray-400">
+                                                <p class="text-sm">No se encontraron empleados</p>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
+                                @error('multi_legajo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                        @endif
+
+                        {{-- PASO 2: Insumos + tipos --}}
+                        @if($multi_paso === 2)
+                            {{-- Empleado seleccionado --}}
+                            <div class="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-xl p-3 mb-5">
+                                <div>
+                                    <div class="text-xs text-teal-700 uppercase tracking-wide font-medium">Destinatario</div>
+                                    @if($multi_empleado_sel)
+                                        <div class="text-sm font-semibold text-teal-900">{{ $multi_empleado_sel->nombre_formateado }}</div>
+                                        <div class="text-xs text-teal-700">Legajo {{ $multi_empleado_sel->LEGAJO }} • DNI {{ number_format($multi_empleado_sel->DNI, 0, '', '.') }}</div>
+                                    @endif
+                                </div>
+                                <button type="button" wire:click="multiVolverPaso" class="text-sm text-teal-700 hover:text-teal-900 font-medium underline">
+                                    Cambiar
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {{-- Columna izquierda: buscador + lista de insumos --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Agregar Insumo</label>
+                                    <div class="relative">
+                                        <input
+                                            type="text"
+                                            wire:model.live="multi_search_insumo"
+                                            wire:focus="$set('multi_mostrar_lista_insumo', true)"
+                                            placeholder="Buscar insumo..."
+                                            class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200"
+                                            autocomplete="off"
+                                        >
+                                        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    </div>
+
+                                    <div class="mt-2 border border-gray-200 rounded-xl max-h-80 overflow-y-auto">
+                                        @if($multi_insumos->count() > 0)
+                                            <ul class="divide-y divide-gray-100">
+                                                @foreach($multi_insumos as $ins)
+                                                    <li>
+                                                        <button
+                                                            type="button"
+                                                            wire:click="agregarLineaMultiple({{ $ins->id }})"
+                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 flex items-center justify-between gap-2"
+                                                        >
+                                                            <div>
+                                                                <div class="text-sm font-medium text-gray-900">{{ $ins->insumo }}</div>
+                                                                <div class="text-xs text-gray-500 mt-0.5">
+                                                                    {{ $ins->categoriaInsumo->nombre ?? 'Sin categoría' }} • {{ $ins->deposito->deposito ?? '' }} • Stock: {{ $ins->stock_actual }} {{ $ins->unidad }}
+                                                                </div>
+                                                            </div>
+                                                            <svg class="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                                            </svg>
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        @else
+                                            <div class="px-4 py-8 text-center text-gray-400 text-sm">
+                                                {{ $multi_search_insumo ? 'No se encontraron insumos con stock.' : 'Escribí para buscar un insumo.' }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Columna derecha: insumos agregados con tipo + cantidad --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Insumos agregados
+                                        <span class="text-gray-400 font-normal">({{ count($multi_lineas) }})</span>
+                                    </label>
+                                    <div class="border border-gray-200 rounded-xl max-h-80 overflow-y-auto">
+                                        @forelse($multi_lineas as $index => $linea)
+                                            <div class="p-3 border-b border-gray-100 last:border-b-0">
+                                                <div class="flex items-start justify-between gap-2 mb-2">
+                                                    <div class="min-w-0">
+                                                        <div class="text-sm font-medium text-gray-900 truncate">{{ $linea['insumo_nombre'] }}</div>
+                                                        <div class="text-xs text-gray-500">Stock: {{ $linea['stock'] }} {{ $linea['unidad'] }}</div>
+                                                    </div>
+                                                    <button type="button" wire:click="quitarLineaMultiple({{ $index }})" class="text-red-500 hover:text-red-700 flex-shrink-0" title="Quitar">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div class="grid grid-cols-3 gap-2">
+                                                    <div class="col-span-2">
+                                                        <select
+                                                            wire:model="multi_lineas.{{ $index }}.tipo"
+                                                            class="w-full px-2 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        >
+                                                            <option value="asignacion_con_reposicion">Asignación con Reposición</option>
+                                                            <option value="asignacion_sin_reposicion">Asignación sin Reposición</option>
+                                                        </select>
+                                                        @error("multi_lineas.{$index}.tipo") <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                    </div>
+                                                    <div>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            step="any"
+                                                            wire:model="multi_lineas.{{ $index }}.cantidad"
+                                                            placeholder="Cant."
+                                                            class="w-full px-2 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                                        >
+                                                        @error("multi_lineas.{$index}.cantidad") <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <div class="px-4 py-8 text-center text-gray-400 text-sm">
+                                                Agregá insumos desde la columna izquierda.
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Botones --}}
+                        <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-gray-100">
+                            <div>
+                                @if($multi_paso === 2)
+                                    <button type="button" wire:click="multiVolverPaso" class="px-4 py-2.5 text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                        </svg>
+                                        Volver
+                                    </button>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button type="button" wire:click="cerrarModalMultiple" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium">
+                                    Cancelar
+                                </button>
+                                @if($multi_paso === 2)
+                                    <button
+                                        type="button"
+                                        wire:click="guardarMultiple"
+                                        @disabled(count($multi_lineas) === 0)
+                                        class="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl hover:from-teal-700 hover:to-teal-800 shadow-lg shadow-teal-500/30 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Registrar {{ count($multi_lineas) > 0 ? count($multi_lineas) : '' }} {{ count($multi_lineas) === 1 ? 'movimiento' : 'movimientos' }}
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
