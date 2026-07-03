@@ -2208,12 +2208,13 @@ class TransferenciasInsumos extends Component
         $errores = false;
 
         foreach ($this->multi_lineas as $i => $linea) {
+            $nombre = $linea['insumo_nombre'] ?? "Línea " . ($i + 1);
             if (!in_array($linea['tipo'] ?? '', $tiposValidos)) {
-                $this->addError("multi_lineas.{$i}.tipo", 'Tipo de movimiento inválido.');
+                $this->addError("multi_lineas.{$i}.tipo", "\"{$nombre}\": tipo de movimiento inválido.");
                 $errores = true;
             }
             if (!is_numeric($linea['cantidad'] ?? null) || $linea['cantidad'] <= 0) {
-                $this->addError("multi_lineas.{$i}.cantidad", 'La cantidad debe ser mayor a 0.');
+                $this->addError("multi_lineas.{$i}.cantidad", "\"{$nombre}\": la cantidad debe ser mayor a 0.");
                 $errores = true;
             }
         }
