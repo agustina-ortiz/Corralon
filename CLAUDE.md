@@ -199,16 +199,18 @@ Panel colapsable en TransferenciasInsumos (arriba de la lista de movimientos) qu
 - **Acciones por fila**: campo de cantidad + botón "Devolver" (crea Entrada Reposición, suma stock) y botón "Dar de baja" (crea Baja Reposición con confirm(), no afecta stock)
 - Métodos: `devolverAsignacion()`, `darDeBajaAsignacion()`, `calcularPendiente()`
 
-#### Movimientos Múltiples (varios insumos → un empleado)
+#### Movimientos Múltiples (varios insumos → un destinatario)
 
-Botón **"Movimientos Múltiples"** (teal) en el header de `/transferencias-insumos`, junto a "Nuevo Movimiento" (solo con `puedeCrearMovimientosInsumos()`). Permite asignar varios insumos con distintos tipos de asignación a **un mismo empleado** en una sola operación; se registra **un `MovimientoInsumo` suelto por línea** (sin `MovimientoEncabezado`).
+Botón **"Movimientos Múltiples"** (teal) en el header de `/transferencias-insumos`, junto a "Nuevo Movimiento" (solo con `puedeCrearMovimientosInsumos()`). Permite asignar varios insumos con distintos tipos de asignación a **un mismo destinatario** en una sola operación; se registra **un `MovimientoInsumo` suelto por línea** (sin `MovimientoEncabezado`).
 
+- **El destinatario puede ser cualquier entidad**: **Vehículo, Evento, Empleado o Secretaría** (mismo selector de destino que "Nuevo Movimiento"). El destinatario elegido se aplica a **todas** las líneas.
 - **Modal de 2 pasos**:
-  1. **Seleccionar empleado** — buscador sobre `EmpleadoMunicipal::activos()` (nombre/legajo/DNI).
+  1. **Seleccionar destinatario** — 4 botones de tipo (vehículo/evento/empleado/secretaría) + buscador/select del registro. Secretaría muestra además el combo **Área** (select de áreas + texto libre con Alpine.js). Botón **"Continuar"** avanza al paso 2 (valida que haya destinatario).
   2. **Insumos + tipos** — layout de 2 columnas: izquierda buscador+lista de insumos con stock > 0 (botón `(+)`), derecha las líneas agregadas, cada una con `select` de tipo + cantidad + quitar.
-- **Tipos disponibles por línea**: solo `Asignación con Reposición` y `Asignación sin Reposición` (el destino siempre es persona). Cada movimiento se guarda con `tipo_referencia='empleado'`, `id_referencia=<LEGAJO>`, `id_secretaria=null`, `area=null`.
+- **Permisos**: los insumos (orígenes) se filtran por `getDepositosAccesibles()` (igual que "Nuevo Movimiento"); las listas de destino (vehículos/eventos/empleados/secretarías) son globales, idénticas a "Nuevo Movimiento".
+- **Tipos disponibles por línea**: solo `Asignación con Reposición` y `Asignación sin Reposición`. Cada movimiento se guarda con los campos de destino resueltos por `multiDestinoFields()`: `tipo_referencia`/`id_referencia`/`id_secretaria`/`area` según el tipo (empleado→LEGAJO; secretaría→`id_referencia=id_secretaria` + `area`).
 - **Validación de stock**: se valida por insumo sumando todas las líneas del mismo insumo contra `stock_actual` (permite el mismo insumo en varias líneas con distinto tipo). Guardado en `DB::transaction`; `sincronizarStock()` una vez por insumo afectado.
-- **Propiedades**: prefijo `multi_*` (`showModalMultiple`, `multi_paso`, `multi_legajo`, `multi_lineas`, buscadores). **Métodos**: `abrirModalMultiple()`, `cerrarModalMultiple()`, `seleccionarEmpleadoMultiple()`, `multiVolverPaso()`, `agregarLineaMultiple()`, `quitarLineaMultiple()`, `guardarMultiple()`, `resetFormMultiple()`.
+- **Propiedades**: prefijo `multi_*` (`showModalMultiple`, `multi_paso`, `multi_tipo_destino`, `multi_id_referencia`, `multi_id_secretaria`, `multi_area`, `multi_areas_disponibles`, `multi_lineas`, buscadores). **Métodos**: `abrirModalMultiple()`, `cerrarModalMultiple()`, `multiSeleccionarTipoDestino()`, `multiSeleccionarDestino()`, `updatedMultiIdSecretaria()`, `multiContinuar()`, `multiVolverPaso()`, `agregarLineaMultiple()`, `quitarLineaMultiple()`, `guardarMultiple()`, `resetFormMultiple()`. Helpers privados: `multiDestinoValido()`, `multiDestinoFields()`, `multiNombreDestino()`.
 
 > Header de `/transferencias-insumos`: los botones **Filtros / Estadísticas / Exportar** son **solo ícono** (con `title` y badge flotante de filtros activos) para dar más ancho al buscador; los botones de acción (Nueva Transferencia / Nuevo Movimiento / Movimientos Múltiples) usan `whitespace-nowrap`.
 
