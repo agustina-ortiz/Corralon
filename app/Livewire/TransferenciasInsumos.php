@@ -122,12 +122,17 @@ class TransferenciasInsumos extends Component
     public $depositos_disponibles = [];
     public $tipos_movimiento_disponibles = [];
 
-    // ===== Movimientos Múltiples (varios insumos → un empleado, en una sola operación) =====
+    // ===== Movimientos Múltiples (varios insumos → un destinatario, en una sola operación) =====
     public $showModalMultiple = false;
-    public $multi_paso = 1;                     // 1 = elegir empleado, 2 = armar carrito
-    public $multi_search_empleado = '';
-    public $multi_mostrar_lista_empleado = false;
-    public $multi_legajo = null;                // LEGAJO del empleado elegido
+    public $multi_paso = 1;                     // 1 = elegir destinatario, 2 = armar carrito
+    // Destinatario: cualquier entidad (vehiculo/evento/empleado/secretaria), igual que "Nuevo Movimiento"
+    public $multi_tipo_destino = '';            // 'vehiculo','evento','empleado','secretaria'
+    public $multi_id_referencia = '';           // id del vehiculo/evento o LEGAJO del empleado
+    public $multi_search_destino = '';
+    public $multi_mostrar_lista_destino = false;
+    public $multi_id_secretaria = '';           // id secretaría (cuando tipo = secretaria)
+    public $multi_area = '';
+    public $multi_areas_disponibles = [];
     public $multi_search_insumo = '';
     public $multi_mostrar_lista_insumo = false;
     // Cada línea: ['insumo_id','insumo_nombre','unidad','stock','tipo','cantidad']
@@ -787,29 +792,52 @@ class TransferenciasInsumos extends Component
             }
         }
 
-        // Movimientos Múltiples: empleados (paso 1) e insumos (paso 2)
+        // Movimientos Múltiples: destinatarios (paso 1) e insumos (paso 2)
+        $multi_vehiculos = collect();
+        $multi_eventos = collect();
         $multi_empleados = collect();
         $multi_insumos = collect();
-        $multi_empleado_sel = null;
+        $multi_destino_sel = null;
 
         if ($this->showModalMultiple) {
-            if ($this->multi_paso === 1 && ($this->multi_mostrar_lista_empleado || $this->multi_search_empleado)) {
-                $multi_empleados = EmpleadoMunicipal::activos()
-                    ->when($this->multi_search_empleado, function($query) {
-                        $query->where(function($q) {
-                            $q->where('NOMBRE', 'like', '%' . $this->multi_search_empleado . '%')
-                              ->orWhere('LEGAJO', 'like', '%' . $this->multi_search_empleado . '%')
-                              ->orWhere('DNI', 'like', '%' . $this->multi_search_empleado . '%');
-                        });
-                    })
-                    ->orderBy('NOMBRE')
-                    ->limit(50)
-                    ->get();
+            // Paso 1: listas de búsqueda según el tipo de destino elegido
+            if ($this->multi_paso === 1 && ($this->multi_mostrar_lista_destino || $this->multi_search_destino)) {
+                if ($this->multi_tipo_destino === 'vehiculo') {
+                    $multi_vehiculos = Vehiculo::when($this->multi_search_destino, function($query) {
+                            $query->where(function($q) {
+                                $q->where('vehiculo', 'like', '%' . $this->multi_search_destino . '%')
+                                  ->orWhere('patente', 'like', '%' . $this->multi_search_destino . '%')
+                                  ->orWhere('marca_modelo', 'like', '%' . $this->multi_search_destino . '%')
+                                  ->orWhere('nro_patrimonio', 'like', '%' . $this->multi_search_destino . '%');
+                            });
+                        })
+                        ->orderBy('vehiculo')
+                        ->limit(50)
+                        ->get();
+                } elseif ($this->multi_tipo_destino === 'evento') {
+                    $multi_eventos = Evento::when($this->multi_search_destino, function($query) {
+                            $query->where('evento', 'like', '%' . $this->multi_search_destino . '%');
+                        })
+                        ->orderBy('evento')
+                        ->limit(50)
+                        ->get();
+                } elseif ($this->multi_tipo_destino === 'empleado') {
+                    $multi_empleados = EmpleadoMunicipal::activos()
+                        ->when($this->multi_search_destino, function($query) {
+                            $query->where(function($q) {
+                                $q->where('NOMBRE', 'like', '%' . $this->multi_search_destino . '%')
+                                  ->orWhere('LEGAJO', 'like', '%' . $this->multi_search_destino . '%')
+                                  ->orWhere('DNI', 'like', '%' . $this->multi_search_destino . '%');
+                            });
+                        })
+                        ->orderBy('NOMBRE')
+                        ->limit(50)
+                        ->get();
+                }
             }
 
-            if ($this->multi_legajo) {
-                $multi_empleado_sel = EmpleadoMunicipal::find($this->multi_legajo);
-            }
+            // Resolver el destinatario seleccionado (para mostrarlo en paso 2)
+            $multi_destino_sel = $this->multiNombreDestino();
 
             if ($this->multi_paso === 2 && ($this->multi_mostrar_lista_insumo || $this->multi_search_insumo)) {
                 $multi_insumos = Insumo::with(['categoriaInsumo', 'deposito'])
@@ -973,9 +1001,11 @@ class TransferenciasInsumos extends Component
             'vehiculos_destino' => $vehiculos_destino,
             'eventos_destino' => $eventos_destino,
             'empleados_destino' => $empleados_destino,
+            'multi_vehiculos' => $multi_vehiculos,
+            'multi_eventos' => $multi_eventos,
             'multi_empleados' => $multi_empleados,
             'multi_insumos' => $multi_insumos,
-            'multi_empleado_sel' => $multi_empleado_sel,
+            'multi_destino_sel' => $multi_destino_sel,
             'asignacionesPendientes' => $asignacionesPendientes,
             'secretarias' => $secretarias,
             // Pasar permisos a la vista
@@ -2026,9 +2056,9 @@ class TransferenciasInsumos extends Component
         $this->dispatch('refreshComponent');
     }
 
-    public function updatedMultiSearchEmpleado()
+    public function updatedMultiSearchDestino()
     {
-        $this->multi_mostrar_lista_empleado = true;
+        $this->multi_mostrar_lista_destino = true;
     }
 
     public function updatedMultiSearchInsumo()
@@ -2036,21 +2066,85 @@ class TransferenciasInsumos extends Component
         $this->multi_mostrar_lista_insumo = true;
     }
 
-    public function seleccionarEmpleadoMultiple($legajo)
+    /**
+     * Selecciona (o deselecciona) el tipo de destinatario del movimiento múltiple.
+     */
+    public function multiSeleccionarTipoDestino($tipo)
     {
-        $this->multi_legajo = $legajo;
-        $this->multi_search_empleado = '';
-        $this->multi_mostrar_lista_empleado = false;
+        $this->multi_tipo_destino = ($this->multi_tipo_destino === $tipo) ? '' : $tipo;
+        $this->multi_id_referencia = '';
+        $this->multi_search_destino = '';
+        $this->multi_mostrar_lista_destino = false;
+        $this->multi_id_secretaria = '';
+        $this->multi_area = '';
+        $this->multi_areas_disponibles = [];
+        $this->resetErrorBag(['multi_tipo_destino', 'multi_id_referencia', 'multi_id_secretaria']);
+    }
+
+    public function multiSeleccionarDestino($id)
+    {
+        $this->multi_id_referencia = $id;
+        $this->multi_search_destino = '';
+        $this->multi_mostrar_lista_destino = false;
+    }
+
+    public function updatedMultiIdSecretaria()
+    {
+        $this->multi_area = '';
+        $this->multi_areas_disponibles = $this->multi_id_secretaria
+            ? Area::where('id_secretaria', $this->multi_id_secretaria)->orderBy('area')->pluck('area')->toArray()
+            : [];
+    }
+
+    /** ¿Hay un destinatario válido elegido? */
+    private function multiDestinoValido(): bool
+    {
+        if ($this->multi_tipo_destino === 'secretaria') {
+            return !empty($this->multi_id_secretaria);
+        }
+        return in_array($this->multi_tipo_destino, ['vehiculo', 'evento', 'empleado']) && !empty($this->multi_id_referencia);
+    }
+
+    /**
+     * Resuelve [tipo_referencia, id_referencia, id_secretaria, area] del destinatario elegido.
+     */
+    private function multiDestinoFields(): array
+    {
+        if ($this->multi_tipo_destino === 'secretaria') {
+            return ['secretaria', $this->multi_id_secretaria, $this->multi_id_secretaria, $this->multi_area ?: null];
+        }
+        return [$this->multi_tipo_destino, $this->multi_id_referencia, null, null];
+    }
+
+    /** Nombre legible del destinatario elegido (para encabezado y mensajes). */
+    private function multiNombreDestino(): string
+    {
+        return match ($this->multi_tipo_destino) {
+            'vehiculo'   => optional(Vehiculo::find($this->multi_id_referencia))->vehiculo ?? '',
+            'evento'     => optional(Evento::find($this->multi_id_referencia))->evento ?? '',
+            'empleado'   => optional(EmpleadoMunicipal::find($this->multi_id_referencia))->nombre_formateado ?? '',
+            'secretaria' => 'Secretaría: ' . (optional(Secretaria::find($this->multi_id_secretaria))->secretaria ?? '')
+                            . ($this->multi_area ? " ({$this->multi_area})" : ''),
+            default      => '',
+        };
+    }
+
+    /** Avanza al paso 2 (armar carrito) si hay un destinatario válido. */
+    public function multiContinuar()
+    {
+        if (!$this->multiDestinoValido()) {
+            session()->flash('error', 'Debe seleccionar un destinatario.');
+            return;
+        }
         $this->multi_paso = 2;
     }
 
     public function multiVolverPaso()
     {
-        // Volver a elegir empleado; conserva las líneas ya cargadas.
+        // Volver a elegir destinatario; conserva las líneas ya cargadas.
         $this->multi_paso = 1;
-        $this->multi_legajo = null;
-        $this->multi_search_empleado = '';
-        $this->multi_mostrar_lista_empleado = false;
+        $this->multi_search_destino = '';
+        $this->multi_mostrar_lista_destino = false;
     }
 
     public function agregarLineaMultiple($insumoId)
@@ -2100,10 +2194,8 @@ class TransferenciasInsumos extends Component
         }
 
         // --- Validaciones ---
-        $empleado = EmpleadoMunicipal::find($this->multi_legajo);
-        if (!$empleado) {
-            $this->addError('multi_legajo', 'Debe seleccionar un empleado.');
-            session()->flash('error', 'Debe seleccionar un empleado.');
+        if (!$this->multiDestinoValido()) {
+            session()->flash('error', 'Debe seleccionar un destinatario.');
             return;
         }
 
@@ -2167,6 +2259,8 @@ class TransferenciasInsumos extends Component
                 throw new \Exception('No se encontraron los tipos de movimiento de asignación.');
             }
 
+            [$tipoRef, $idRef, $idSec, $area] = $this->multiDestinoFields();
+
             $insumosAfectados = [];
 
             foreach ($this->multi_lineas as $linea) {
@@ -2182,10 +2276,10 @@ class TransferenciasInsumos extends Component
                     'fecha_devolucion' => null,
                     'id_usuario' => Auth::id(),
                     'id_deposito_entrada' => $insumo->id_deposito,
-                    'id_referencia' => $empleado->LEGAJO,
-                    'tipo_referencia' => 'empleado',
-                    'id_secretaria' => null,
-                    'area' => null,
+                    'id_referencia' => $idRef,
+                    'tipo_referencia' => $tipoRef,
+                    'id_secretaria' => $idSec,
+                    'area' => $area,
                 ]);
 
                 $insumosAfectados[$insumo->id] = $insumo;
@@ -2198,7 +2292,8 @@ class TransferenciasInsumos extends Component
             DB::commit();
 
             $cant = count($this->multi_lineas);
-            session()->flash('message', "{$cant} " . ($cant === 1 ? 'movimiento registrado' : 'movimientos registrados') . " para {$empleado->nombre_formateado}.");
+            $destinoNombre = $this->multiNombreDestino();
+            session()->flash('message', "{$cant} " . ($cant === 1 ? 'movimiento registrado' : 'movimientos registrados') . " para {$destinoNombre}.");
 
             \Illuminate\Support\Facades\Cache::flush();
 
@@ -2215,9 +2310,13 @@ class TransferenciasInsumos extends Component
     private function resetFormMultiple()
     {
         $this->multi_paso = 1;
-        $this->multi_search_empleado = '';
-        $this->multi_mostrar_lista_empleado = false;
-        $this->multi_legajo = null;
+        $this->multi_tipo_destino = '';
+        $this->multi_id_referencia = '';
+        $this->multi_search_destino = '';
+        $this->multi_mostrar_lista_destino = false;
+        $this->multi_id_secretaria = '';
+        $this->multi_area = '';
+        $this->multi_areas_disponibles = [];
         $this->multi_search_insumo = '';
         $this->multi_mostrar_lista_insumo = false;
         $this->multi_lineas = [];

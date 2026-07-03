@@ -1673,64 +1673,209 @@
                             </button>
                         </div>
 
-                        {{-- PASO 1: Seleccionar empleado --}}
+                        {{-- PASO 1: Seleccionar destinatario (vehículo/evento/empleado/secretaría) --}}
                         @if($multi_paso === 1)
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Destinatario (Empleado) *</label>
-                                <div class="relative">
-                                    <input
-                                        type="text"
-                                        wire:model.live="multi_search_empleado"
-                                        wire:focus="$set('multi_mostrar_lista_empleado', true)"
-                                        placeholder="Buscar por nombre, legajo o DNI..."
-                                        class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200"
-                                        autocomplete="off"
-                                    >
-                                    <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
+                            {{-- Selector de tipo de destino --}}
+                            <div class="mb-5">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Destinatario *</label>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <button type="button" wire:click="multiSeleccionarTipoDestino('vehiculo')"
+                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $multi_tipo_destino === 'vehiculo' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}">
+                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">Vehículo</span>
+                                    </button>
+                                    <button type="button" wire:click="multiSeleccionarTipoDestino('evento')"
+                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $multi_tipo_destino === 'evento' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}">
+                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">Evento</span>
+                                    </button>
+                                    <button type="button" wire:click="multiSeleccionarTipoDestino('empleado')"
+                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $multi_tipo_destino === 'empleado' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}">
+                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">Empleado</span>
+                                    </button>
+                                    <button type="button" wire:click="multiSeleccionarTipoDestino('secretaria')"
+                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $multi_tipo_destino === 'secretaria' ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}">
+                                        <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                        <span class="text-sm font-medium">Secretaría</span>
+                                    </button>
                                 </div>
-
-                                @if($multi_mostrar_lista_empleado)
-                                    @if($multi_empleados->count() > 0)
-                                        <div class="absolute z-50 w-full max-w-[calc(100%-3rem)] mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto">
-                                            <ul class="py-2">
-                                                @foreach($multi_empleados as $emp)
-                                                    <li>
-                                                        <button
-                                                            type="button"
-                                                            wire:click="seleccionarEmpleadoMultiple({{ $emp->LEGAJO }})"
-                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                                        >
-                                                            <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
-                                                            <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @elseif($multi_search_empleado)
-                                        <div class="absolute z-50 w-full max-w-[calc(100%-3rem)] mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                            <div class="px-4 py-6 text-center text-gray-400">
-                                                <p class="text-sm">No se encontraron empleados</p>
-                                            </div>
-                                        </div>
-                                    @endif
-                                @endif
-                                @error('multi_legajo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
+
+                            {{-- Buscar y seleccionar vehículo/evento/empleado --}}
+                            @if(in_array($multi_tipo_destino, ['vehiculo', 'evento', 'empleado']))
+                                <div class="mb-4 relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Seleccionar {{ $multi_tipo_destino === 'vehiculo' ? 'Vehículo' : ($multi_tipo_destino === 'evento' ? 'Evento' : 'Empleado') }} *
+                                    </label>
+
+                                    @if($multi_id_referencia)
+                                        @php
+                                            if ($multi_tipo_destino === 'vehiculo') {
+                                                $multiDestinoSeleccionado = \App\Models\Vehiculo::find($multi_id_referencia);
+                                            } elseif ($multi_tipo_destino === 'evento') {
+                                                $multiDestinoSeleccionado = \App\Models\Evento::find($multi_id_referencia);
+                                            } else {
+                                                $multiDestinoSeleccionado = \App\Models\EmpleadoMunicipal::find($multi_id_referencia);
+                                            }
+                                        @endphp
+                                        <div class="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-xl p-3">
+                                            <div>
+                                                @if($multi_tipo_destino === 'vehiculo' && $multiDestinoSeleccionado)
+                                                    <div class="text-sm font-medium text-teal-900">{{ $multiDestinoSeleccionado->vehiculo }}</div>
+                                                    <div class="text-xs text-teal-700">{{ $multiDestinoSeleccionado->patente }} • {{ $multiDestinoSeleccionado->marca_modelo }}</div>
+                                                @elseif($multi_tipo_destino === 'evento' && $multiDestinoSeleccionado)
+                                                    <div class="text-sm font-medium text-teal-900">{{ $multiDestinoSeleccionado->evento }}</div>
+                                                    <div class="text-xs text-teal-700">{{ $multiDestinoSeleccionado->fecha?->format('d/m/Y') }} • {{ $multiDestinoSeleccionado->ubicacion }}</div>
+                                                @elseif($multi_tipo_destino === 'empleado' && $multiDestinoSeleccionado)
+                                                    <div class="text-sm font-medium text-teal-900">{{ $multiDestinoSeleccionado->nombre_formateado }}</div>
+                                                    <div class="text-xs text-teal-700">Legajo {{ $multiDestinoSeleccionado->LEGAJO }} • DNI {{ number_format($multiDestinoSeleccionado->DNI, 0, '', '.') }}</div>
+                                                @endif
+                                            </div>
+                                            <button type="button" wire:click="$set('multi_id_referencia', '')" class="text-teal-600 hover:text-teal-800">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @else
+                                        <div class="relative">
+                                            <input
+                                                type="text"
+                                                wire:model.live="multi_search_destino"
+                                                wire:focus="$set('multi_mostrar_lista_destino', true)"
+                                                placeholder="Buscar {{ $multi_tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($multi_tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
+                                                class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200"
+                                                autocomplete="off"
+                                            >
+                                            <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                            </svg>
+                                        </div>
+
+                                        @if($multi_mostrar_lista_destino)
+                                            @if($multi_tipo_destino === 'vehiculo' && $multi_vehiculos->count() > 0)
+                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                    <ul class="py-2">
+                                                        @foreach($multi_vehiculos as $v)
+                                                            <li>
+                                                                <button type="button" wire:click="multiSeleccionarDestino({{ $v->id }})"
+                                                                    class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                    <div class="text-sm font-medium text-gray-900">{{ $v->vehiculo }}</div>
+                                                                    <div class="text-xs text-gray-500 mt-0.5">{{ $v->patente }} • {{ $v->marca_modelo }}</div>
+                                                                </button>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @elseif($multi_tipo_destino === 'evento' && $multi_eventos->count() > 0)
+                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                    <ul class="py-2">
+                                                        @foreach($multi_eventos as $ev)
+                                                            <li>
+                                                                <button type="button" wire:click="multiSeleccionarDestino({{ $ev->id }})"
+                                                                    class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                    <div class="text-sm font-medium text-gray-900">{{ $ev->evento }}</div>
+                                                                    <div class="text-xs text-gray-500 mt-0.5">{{ $ev->fecha?->format('d/m/Y') }} • {{ $ev->ubicacion }}</div>
+                                                                </button>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @elseif($multi_tipo_destino === 'empleado' && $multi_empleados->count() > 0)
+                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                                    <ul class="py-2">
+                                                        @foreach($multi_empleados as $emp)
+                                                            <li>
+                                                                <button type="button" wire:click="multiSeleccionarDestino({{ $emp->LEGAJO }})"
+                                                                    class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
+                                                                    <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
+                                                                    <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
+                                                                </button>
+                                                            </li>
+                                                        @endforeach
+                                                    </ul>
+                                                </div>
+                                            @elseif($multi_search_destino)
+                                                <div class="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
+                                                    <div class="px-4 py-6 text-center text-gray-400">
+                                                        <p class="text-sm">No se encontraron {{ $multi_tipo_destino === 'vehiculo' ? 'vehículos' : ($multi_tipo_destino === 'evento' ? 'eventos' : 'empleados') }}</p>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    @endif
+                                    @error('multi_id_referencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                </div>
+                            @elseif($multi_tipo_destino === 'secretaria')
+                                {{-- Secretaría y Área --}}
+                                <div class="mb-4 grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría *</label>
+                                        <select wire:model.live="multi_id_secretaria"
+                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200">
+                                            <option value="">— Seleccionar —</option>
+                                            @foreach($secretarias as $sec)
+                                                <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('multi_id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMulti?.focus()) })">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                                        <template x-if="!modoLibre">
+                                            <div>
+                                                <select wire:model="multi_area"
+                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200">
+                                                    <option value="">— Seleccionar —</option>
+                                                    @foreach($multi_areas_disponibles as $area)
+                                                        <option value="{{ $area }}">{{ $area }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <button type="button" @click="modoLibre = true; $wire.set('multi_area', '')" class="text-xs text-teal-600 hover:text-teal-800 mt-1 inline-flex items-center gap-1">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                    Escribir área manualmente
+                                                </button>
+                                            </div>
+                                        </template>
+                                        <template x-if="modoLibre">
+                                            <div>
+                                                <input type="text" wire:model="multi_area" x-ref="areaInputMulti" placeholder="Escribir nombre del área"
+                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all duration-200">
+                                                @if(count($multi_areas_disponibles) > 0)
+                                                    <button type="button" @click="modoLibre = false; $wire.set('multi_area', '')" class="text-xs text-teal-600 hover:text-teal-800 mt-1 inline-flex items-center gap-1">
+                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                        Seleccionar de la lista
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </template>
+                                        @if($multi_id_secretaria && count($multi_areas_disponibles) === 0)
+                                            <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
                         @endif
 
                         {{-- PASO 2: Insumos + tipos --}}
                         @if($multi_paso === 2)
-                            {{-- Empleado seleccionado --}}
+                            {{-- Destinatario seleccionado --}}
                             <div class="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-xl p-3 mb-5">
                                 <div>
-                                    <div class="text-xs text-teal-700 uppercase tracking-wide font-medium">Destinatario</div>
-                                    @if($multi_empleado_sel)
-                                        <div class="text-sm font-semibold text-teal-900">{{ $multi_empleado_sel->nombre_formateado }}</div>
-                                        <div class="text-xs text-teal-700">Legajo {{ $multi_empleado_sel->LEGAJO }} • DNI {{ number_format($multi_empleado_sel->DNI, 0, '', '.') }}</div>
-                                    @endif
+                                    <div class="text-xs text-teal-700 uppercase tracking-wide font-medium">
+                                        Destinatario · {{ ucfirst($multi_tipo_destino) }}
+                                    </div>
+                                    <div class="text-sm font-semibold text-teal-900">{{ $multi_destino_sel }}</div>
                                 </div>
                                 <button type="button" wire:click="multiVolverPaso" class="text-sm text-teal-700 hover:text-teal-900 font-medium underline">
                                     Cambiar
@@ -1739,7 +1884,7 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {{-- Columna izquierda: buscador + lista de insumos --}}
-                                <div>
+                                <div class="flex flex-col">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Agregar Insumo</label>
                                     <div class="relative">
                                         <input
@@ -1755,7 +1900,7 @@
                                         </svg>
                                     </div>
 
-                                    <div class="mt-2 border border-gray-200 rounded-xl max-h-80 overflow-y-auto">
+                                    <div class="mt-2 border border-gray-200 rounded-xl h-56 overflow-y-auto">
                                         @if($multi_insumos->count() > 0)
                                             <ul class="divide-y divide-gray-100">
                                                 @foreach($multi_insumos as $ins)
@@ -1787,12 +1932,12 @@
                                 </div>
 
                                 {{-- Columna derecha: insumos agregados con tipo + cantidad --}}
-                                <div>
+                                <div class="flex flex-col">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">
                                         Insumos agregados
                                         <span class="text-gray-400 font-normal">({{ count($multi_lineas) }})</span>
                                     </label>
-                                    <div class="border border-gray-200 rounded-xl max-h-80 overflow-y-auto">
+                                    <div class="border border-gray-200 rounded-xl flex-1 min-h-0 max-h-35 overflow-y-auto">
                                         @forelse($multi_lineas as $index => $linea)
                                             <div class="p-3 border-b border-gray-100 last:border-b-0">
                                                 <div class="flex items-start justify-between gap-2 mb-2">
@@ -1856,6 +2001,18 @@
                                 <button type="button" wire:click="cerrarModalMultiple" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium">
                                     Cancelar
                                 </button>
+                                @if($multi_paso === 1)
+                                    <button
+                                        type="button"
+                                        wire:click="multiContinuar"
+                                        class="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl hover:from-teal-700 hover:to-teal-800 shadow-lg shadow-teal-500/30 transition-all duration-200 font-medium flex items-center gap-1"
+                                    >
+                                        Continuar
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
+                                    </button>
+                                @endif
                                 @if($multi_paso === 2)
                                     <button
                                         type="button"
