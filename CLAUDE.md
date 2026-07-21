@@ -55,7 +55,7 @@ routes/
 | `Deposito` | `depositos` | Subdivisiones dentro de un corralon |
 | `Insumo` | `insumos` | Items de inventario |
 | `Maquinaria` | `maquinarias` | Equipos/máquinas |
-| `Vehiculo` | `vehiculos` | Flota vehicular (nro_patrimonio, marca_modelo, anio, patente, combustible, VTV, póliza, origen, jurisdiccion_procedencia, nro_telepase, estado, id_secretaria). Estados: `EN USO`, `BAJA`, `MANTENIMIENTO` |
+| `Vehiculo` | `vehiculos` | Flota vehicular (nro_patrimonio, marca_modelo, anio, patente, combustible, VTV, póliza, origen, jurisdiccion_procedencia, nro_telepase, estado, id_secretaria, id_deposito). Estados: `EN USO`, `BAJA`, `MANTENIMIENTO` |
 | `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
 | `Empleado` | `empleados` | Personal (tabla local, legada — el tab `/empleados` ya no la usa) |
 | `Evento` | `eventos` | Eventos programados |
