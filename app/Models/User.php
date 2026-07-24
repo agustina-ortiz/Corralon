@@ -16,6 +16,7 @@ class User extends Authenticatable
         'corralones_permitidos',
         'acceso_todos_corralones',
         'dashboard_widgets',
+        'estadisticas_widgets',
         'id_rol',
     ];
 
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'corralones_permitidos' => 'array',
         'acceso_todos_corralones' => 'boolean',
         'dashboard_widgets' => 'array',
+        'estadisticas_widgets' => 'array',
     ];
 
     // Cache de permisos para evitar queries repetidas en un mismo request
@@ -55,6 +57,22 @@ class User extends Authenticatable
         return array_values(array_filter(
             $guardados,
             fn($key) => isset($config[$key]) && $this->tieneAccesoAModulo($config[$key]['permiso_modulo'] ?? $key)
+        ));
+    }
+
+    /**
+     * Retorna las claves de widgets de estadísticas activas para el usuario,
+     * combinando sus preferencias guardadas con el filtro de permisos de módulo.
+     * (null en 'estadisticas_widgets' = mostrar todos los que tenga permiso de ver)
+     */
+    public function estadisticasActivas(): array
+    {
+        $config    = config('estadisticas.widgets', []);
+        $guardados = $this->estadisticas_widgets ?? array_keys($config);
+
+        return array_values(array_filter(
+            $guardados,
+            fn($key) => isset($config[$key]) && $this->tieneAccesoAModulo($config[$key]['permiso'] ?? $key)
         ));
     }
 

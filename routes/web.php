@@ -28,6 +28,10 @@ Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
 
+Route::get('/estadisticas', \App\Livewire\Estadisticas::class)
+    ->middleware(['auth'])
+    ->name('estadisticas');
+
 Route::get('/insumos', AbmInsumos::class)
     ->middleware(['auth'])
     ->name('insumos');
