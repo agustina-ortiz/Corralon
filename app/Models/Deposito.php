@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\FiltraPorPermisosCorralon;
 
@@ -39,6 +40,19 @@ class Deposito extends Model
     public function corralon(): BelongsTo
     {
         return $this->belongsTo(Corralon::class, 'id_corralon');
+    }
+
+    /**
+     * Secretarías a las que está asignado el depósito (pivote muchos-a-muchos).
+     */
+    public function secretarias(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Secretaria::class,
+            'depositos_secretarias',
+            'id_deposito',
+            'id_secretaria'
+        )->withTimestamps();
     }
 
     public function cuadrillas(): HasMany
