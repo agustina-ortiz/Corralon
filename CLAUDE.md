@@ -59,7 +59,7 @@ routes/
 | `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
 | `Empleado` | `empleados` | Personal (tabla local, legada — el tab `/empleados` ya no la usa) |
 | `Evento` | `eventos` | Eventos programados |
-| `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relación `areas()` |
+| `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relaciones `areas()`, `depositos()` (belongsToMany vía `depositos_secretarias`) |
 | `Area` | `areas` | Áreas dentro de una secretaría (`id_secretaria`, `area`) |
 | `MovimientoInsumo` | `movimiento_insumos` | Movimientos de stock. Campos opcionales `id_secretaria` y `area` (Ajuste Negativo), `nro_orden_compra` y `observaciones` |
 | `MovimientoMaquinaria` | `movimiento_maquinarias` | Movimientos de equipos. Campos opcionales `id_secretaria` y `area` (Ajuste Negativo), `nro_orden_compra` y `observaciones` |
@@ -73,6 +73,7 @@ routes/
 | `UsuarioPermiso` | `usuario_permisos` | Permisos granulares: usuario + corralón + depósito + módulo + nivel |
 | `ComprobanteMovimiento` | `comprobantes_movimiento` | Archivos adjuntos a movimientos de insumos (órdenes de compra, recibos) |
 | `ComprobanteMovimientoMaquinaria` | `comprobantes_movimiento_maquinaria` | Archivos adjuntos a movimientos de maquinarias (FK a `movimiento_maquinarias`) |
+| _(pivote)_ | `depositos_secretarias` | Pivote muchos-a-muchos secretaría ↔ depósito (`id_secretaria`, `id_deposito`). **Sin ABM** — se carga directo en la base. Relaciones `Secretaria::depositos()` / `Deposito::secretarias()`. **Gobierna el acceso a `/vehiculos`** (ver nota abajo) |
 | `EmpleadoMunicipal` | `in_maestro` (BD: `munimer_inasi`) | Empleados municipales del sistema INASI (conexión secundaria, solo lectura). PK: `LEGAJO`. Const `DEPTO_CORRALON = 36`. Scopes `activos()` y `porDepto($depto)`, accessor `nombre_formateado`. Es la fuente del tab `/empleados` (que ahora lista **todos** los activos, sin filtrar por DEPTO) |
 
 ---
@@ -82,6 +83,7 @@ routes/
 | Ruta | Componente | Módulo de permiso |
 |------|-----------|------------------|
 | `/dashboard` | DashboardController | autenticado |
+| `/estadisticas` | Estadisticas | autenticado (widgets gated por módulo) |
 | `/insumos` | AbmInsumos | `insumos` |
 | `/maquinarias` | AbmMaquinarias | `maquinarias` |
 | `/vehiculos` | AbmVehiculos | `vehiculos` |
@@ -341,6 +343,29 @@ Los movimientos (`movimiento_insumos`, `movimiento_maquinarias`) tienen:
 Orden de ejecución: Corralones → Depositos → Categorías → Insumos → InsumosEconomia → Maquinarias → Vehículos → Choferes
 
 ---
+
+## Acceso a Vehículos — POR SECRETARÍA (no por depósito)
+
+A diferencia de Insumos/Maquinaria (que filtran por `id_deposito` vía trait `FiltraPorPermisos`), el acceso a vehículos se rige por **`vehiculo.id_secretaria`** a través del pivote `depositos_secretarias`:
+
+- Un no-admin ve un vehículo si su `id_secretaria` está vinculada (pivote) a **alguno de los depósitos a los que tiene acceso** en el módulo `vehiculos`. El **administrador ve todos**.
+- Implementado sobrescribiendo `scopePorCorralonesPermitidos()` **solo en el modelo `Vehiculo`** (no toca el trait; Insumo/Maquinaria intactos). `AbmVehiculos::render()` sigue llamando `->porCorralonesPermitidos()` sin cambios.
+- Motivo: **ningún vehículo tiene `id_deposito` cargado** (todos null); el dato real es `id_secretaria`. El filtro viejo por depósito mostraba 0 vehículos a los no-admin.
+- **Requisito operativo:** hasta que se cargue el pivote `depositos_secretarias`, los no-admin ven **0 vehículos** (el admin ve todo igual). Los vehículos sin `id_secretaria` solo los ve el admin.
+- En **Estadísticas** (`Estadisticas::vehiculosFiltrados()`) se aplica la misma lógica por secretaría (admin sin filtros de ubicación → todos).
+
+## Solapa Estadísticas (`/estadisticas`)
+
+Solapa dedicada de estadísticas con **gráficos customizables por usuario** (mismo patrón que los widgets del dashboard). Componente `App\Livewire\Estadisticas`, vista `resources/views/livewire/estadisticas.blade.php`, link en el sidebar (bajo Dashboard, gated por acceso a algún módulo con estadísticas).
+
+- **Config fuente única:** `config/estadisticas.php` → `grupos` (Insumos/Maquinarias/Vehículos/Movimientos/Otros) y `widgets` (cada uno: `label`, `grupo`, `permiso` de módulo, `chart` en `donut|barras|series|lista`, opcional `usa_fecha`).
+- **Preferencias por usuario:** columna JSON `users.estadisticas_widgets` (nullable; null = mostrar todos los que tenga permiso). Método `User::estadisticasActivas()` combina preferencias + `tieneAccesoAModulo`. Migración `2026_07_24_120000_add_estadisticas_widgets_to_users_table`.
+- **Filtros globales de la solapa:** corralón, depósito (dependiente del corralón), fecha desde, fecha hasta (`wire:model.live`). El helper `depositosConstraint($modulo)` combina permisos del usuario con los filtros corralón/depósito; los widgets `usa_fecha` (movimientos, eventos) respetan el rango.
+- **Gráficos en SVG/CSS server-side** (sin JS ni dependencias): partials reutilizables en `resources/views/livewire/partials/`: `chart-donut.blade.php` (torta SVG con leyenda + %), `chart-barras.blade.php` (barras horizontales CSS), `chart-series.blade.php` (barras verticales agrupadas Entradas vs. Salidas). El tipo `lista` (choferes con licencia por vencer) se renderiza inline en la vista.
+- **Widgets incluidos:** Insumos (por categoría, estado de stock, top 10 por stock, por unidad, stock por depósito), Maquinarias (por categoría, disponibles vs. asignadas, por depósito), Vehículos (por estado, por secretaría, por combustible, estado VTV), Movimientos de insumos (entradas/salidas por mes, por tipo, top insumos movidos, asignaciones por tipo de destino, por usuario), Choferes (licencias por vencer 60d), Eventos (por mes).
+- **Cálculo:** `Estadisticas::calcular($key, $cfg, &$movsCache)` (un `switch` por widget). Los widgets de movimientos comparten una colección `$movsCache` (helper `movimientos()`) filtrada por permisos + depósito + fechas para evitar refetch. Solo se calculan los widgets activos (como el dashboard).
+- **Modal "Personalizar":** checkboxes agrupados por `grupos`, filtrados por permiso; guarda en `estadisticas_widgets`.
+- **Agregar un widget nuevo:** 1) entrada en `config/estadisticas.php`, 2) case en `calcular()`, 3) ya se renderiza solo por su `chart` (donut/barras/series) o agregar bloque inline si es un tipo nuevo.
 
 ## Dashboard — Alertas
 
