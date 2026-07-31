@@ -1,7 +1,10 @@
 <div>
     <!-- Panel de filtros + acciones -->
     @php
-        $filtrosActivos = collect([$filtro_corralon, $filtro_deposito, $fecha_desde, $fecha_hasta])->filter()->count();
+        $filtrosActivos = collect([
+            $filtro_corralon, $filtro_deposito, $fecha_desde, $fecha_hasta,
+            $filtro_categoria_insumo, $filtro_categoria_maquinaria, $filtro_tipo_movimiento,
+        ])->filter()->count();
     @endphp
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
         <!-- Encabezado -->
@@ -19,7 +22,7 @@
                             <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-[11px] font-bold text-white bg-[#77BF43] rounded-full">{{ $filtrosActivos }}</span>
                         @endif
                     </h3>
-                    <p class="text-xs text-gray-400">Acotá las estadísticas por ubicación y período</p>
+                    <p class="text-xs text-gray-400">Acotá las estadísticas por ubicación, período, categoría y tipo de movimiento</p>
                 </div>
             </div>
 
@@ -97,7 +100,53 @@
                     </label>
                     <input type="date" wire:model.live="fecha_hasta" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
                 </div>
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 10V5a2 2 0 012-2z"></path>
+                        </svg>
+                        Categoría de insumo
+                    </label>
+                    <select wire:model.live="filtro_categoria_insumo" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todas las categorías</option>
+                        @foreach($categoriasInsumos as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Categoría de maquinaria
+                    </label>
+                    <select wire:model.live="filtro_categoria_maquinaria" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todas las categorías</option>
+                        @foreach($categoriasMaquinarias as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                        </svg>
+                        Tipo de movimiento
+                    </label>
+                    <select wire:model.live="filtro_tipo_movimiento" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todos los tipos</option>
+                        @foreach($tiposMovimiento as $tm)
+                            <option value="{{ $tm->id }}">{{ $tm->tipo_movimiento }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
+            <p class="mt-3 text-[11px] text-gray-400">
+                Los filtros de categoría aplican a los gráficos de insumos y maquinarias; el de tipo de movimiento, a los gráficos de movimientos de insumos.
+            </p>
         </div>
     </div>
 

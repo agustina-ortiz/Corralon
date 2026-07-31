@@ -9,6 +9,8 @@ use App\Models\Chofer;
 use App\Models\Evento;
 use App\Models\Corralon;
 use App\Models\Deposito;
+use App\Models\CategoriaInsumo;
+use App\Models\CategoriaMaquinaria;
 use App\Models\MovimientoInsumo;
 use App\Models\TipoMovimiento;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +25,9 @@ class Estadisticas extends Component
     public $filtro_deposito = '';
     public $fecha_desde = '';
     public $fecha_hasta = '';
+    public $filtro_categoria_insumo = '';
+    public $filtro_categoria_maquinaria = '';
+    public $filtro_tipo_movimiento = '';
 
     // Modal "Personalizar"
     public bool $modalPersonalizar = false;
@@ -39,6 +44,9 @@ class Estadisticas extends Component
         $this->filtro_deposito = '';
         $this->fecha_desde = '';
         $this->fecha_hasta = '';
+        $this->filtro_categoria_insumo = '';
+        $this->filtro_categoria_maquinaria = '';
+        $this->filtro_tipo_movimiento = '';
     }
 
     public function abrirModalPersonalizar(): void
@@ -82,6 +90,20 @@ class Estadisticas extends Component
         return $permitidos;
     }
 
+    /** Query base de insumos: permisos + corralón/depósito + categoría. */
+    private function insumosQuery()
+    {
+        return Insumo::whereIn('id_deposito', $this->depositosConstraint('insumos'))
+            ->when($this->filtro_categoria_insumo, fn($q) => $q->where('id_categoria', $this->filtro_categoria_insumo));
+    }
+
+    /** Query base de maquinarias: permisos + corralón/depósito + categoría. */
+    private function maquinariasQuery()
+    {
+        return Maquinaria::whereIn('id_deposito', $this->depositosConstraint('maquinarias'))
+            ->when($this->filtro_categoria_maquinaria, fn($q) => $q->where('id_categoria_maquinaria', $this->filtro_categoria_maquinaria));
+    }
+
     private function rangoFechas(): array
     {
         return [
@@ -110,8 +132,7 @@ class Estadisticas extends Component
 
             // ---------- INSUMOS ----------
             case 'ins_categoria':
-                $insumos = Insumo::with('categoriaInsumo')
-                    ->whereIn('id_deposito', $this->depositosConstraint('insumos'))->get();
+                $insumos = $this->insumosQuery()->with('categoriaInsumo')->get();
                 $payload['data'] = $insumos
                     ->groupBy(fn($i) => $i->categoriaInsumo->nombre ?? 'Sin categoría')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => $g->count()])
@@ -119,8 +140,8 @@ class Estadisticas extends Component
                 break;
 
             case 'ins_estado_stock':
-                $insumos = Insumo::whereIn('id_deposito', $this->depositosConstraint('insumos'))->get();
-                $sin = $insumos->filter(fn($i) => (float) $i->stock_actual <= 0)->count();
+                $insumos = $this->insumosQuery()->get();
+                $sin =$insumos->filter(fn($i) => (float) $i->stock_actual <= 0)->count();
                 $bajo = $insumos->filter(fn($i) => (float) $i->stock_actual > 0 && (float) $i->stock_actual < (float) $i->stock_minimo)->count();
                 $ok = $insumos->count() - $sin - $bajo;
                 $payload['data'] = [
@@ -132,14 +153,14 @@ class Estadisticas extends Component
 
             case 'ins_top_stock':
                 $payload['decimales'] = 2;
-                $payload['data'] = Insumo::whereIn('id_deposito', $this->depositosConstraint('insumos'))
+                $payload['data'] = $this->insumosQuery()
                     ->orderByDesc('stock_actual')->take(10)->get()
                     ->map(fn($i) => ['label' => $i->insumo, 'value' => (float) $i->stock_actual])
                     ->all();
                 break;
 
             case 'ins_unidad':
-                $insumos = Insumo::whereIn('id_deposito', $this->depositosConstraint('insumos'))->get();
+                $insumos = $this->insumosQuery()->get();
                 $payload['data'] = $insumos
                     ->groupBy(fn($i) => $i->unidad ?: 'Sin unidad')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => $g->count()])
@@ -148,8 +169,7 @@ class Estadisticas extends Component
 
             case 'ins_stock_deposito':
                 $payload['decimales'] = 2;
-                $insumos = Insumo::with('deposito')
-                    ->whereIn('id_deposito', $this->depositosConstraint('insumos'))->get();
+                $insumos = $this->insumosQuery()->with('deposito')->get();
                 $payload['data'] = $insumos
                     ->groupBy(fn($i) => $i->deposito->deposito ?? 'Sin depósito')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => $g->sum(fn($i) => (float) $i->stock_actual)])
@@ -158,8 +178,7 @@ class Estadisticas extends Component
 
             // ---------- MAQUINARIAS ----------
             case 'maq_categoria':
-                $maqs = Maquinaria::with('categoriaMaquinaria')
-                    ->whereIn('id_deposito', $this->depositosConstraint('maquinarias'))->get();
+                $maqs = $this->maquinariasQuery()->with('categoriaMaquinaria')->get();
                 $payload['data'] = $maqs
                     ->groupBy(fn($m) => $m->categoriaMaquinaria->nombre ?? 'Sin categoría')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => $g->count()])
@@ -167,7 +186,7 @@ class Estadisticas extends Component
                 break;
 
             case 'maq_disponibilidad':
-                $maqs = Maquinaria::whereIn('id_deposito', $this->depositosConstraint('maquinarias'))->get();
+                $maqs = $this->maquinariasQuery()->get();
                 $total = (int) $maqs->sum('cantidad');
                 $disp = (int) $maqs->sum(fn($m) => (int) $m->cantidad_disponible);
                 $asig = max(0, $total - $disp);
@@ -178,8 +197,7 @@ class Estadisticas extends Component
                 break;
 
             case 'maq_deposito':
-                $maqs = Maquinaria::with('deposito')
-                    ->whereIn('id_deposito', $this->depositosConstraint('maquinarias'))->get();
+                $maqs = $this->maquinariasQuery()->with('deposito')->get();
                 $payload['data'] = $maqs
                     ->groupBy(fn($m) => $m->deposito->deposito ?? 'Sin depósito')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => (int) $g->sum('cantidad')])
@@ -354,11 +372,14 @@ class Estadisticas extends Component
     {
         if ($cache !== null) return $cache;
 
-        $insumoIds = Insumo::whereIn('id_deposito', $this->depositosConstraint('movimientos_insumos'))->pluck('id');
+        $insumoIds = Insumo::whereIn('id_deposito', $this->depositosConstraint('movimientos_insumos'))
+            ->when($this->filtro_categoria_insumo, fn($q) => $q->where('id_categoria', $this->filtro_categoria_insumo))
+            ->pluck('id');
         [$desde, $hasta] = $this->rangoFechas();
 
         $cache = MovimientoInsumo::with(['tipoMovimiento', 'insumo:id,insumo', 'usuario:id,name'])
             ->whereIn('id_insumo', $insumoIds)
+            ->when($this->filtro_tipo_movimiento, fn($q) => $q->where('id_tipo_movimiento', $this->filtro_tipo_movimiento))
             ->when($desde, fn($q) => $q->whereDate('fecha', '>=', $desde))
             ->when($hasta, fn($q) => $q->whereDate('fecha', '<=', $hasta))
             ->get();
@@ -400,6 +421,11 @@ class Estadisticas extends Component
             ->when($this->filtro_corralon, fn($q) => $q->where('id_corralon', $this->filtro_corralon))
             ->orderBy('deposito')->get();
 
+        $categoriasInsumos = CategoriaInsumo::orderBy('nombre')->get();
+        $categoriasMaquinarias = CategoriaMaquinaria::orderBy('nombre')->get();
+        $tiposMovimiento = TipoMovimiento::whereIn('tipo', ['I', 'IM'])
+            ->orderBy('tipo_movimiento')->get();
+
         return view('livewire.estadisticas', [
             'widgets'          => $widgets,
             'config'           => $config,
@@ -407,6 +433,9 @@ class Estadisticas extends Component
             'opcionesPorGrupo' => $opcionesPorGrupo,
             'corralones'       => $corralones,
             'depositos'        => $depositos,
+            'categoriasInsumos'     => $categoriasInsumos,
+            'categoriasMaquinarias' => $categoriasMaquinarias,
+            'tiposMovimiento'       => $tiposMovimiento,
             'hayWidgets'       => count($widgets) > 0,
             'sinOpciones'      => count($opcionesPorGrupo) === 0,
         ])->layout('layouts.app', ['header' => 'Estadísticas']);
