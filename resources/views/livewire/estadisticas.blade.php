@@ -4,7 +4,7 @@
         $filtrosActivos = collect([
             $filtro_corralon, $filtro_deposito, $fecha_desde, $fecha_hasta,
             $filtro_categoria_insumo, $filtro_categoria_maquinaria, $filtro_tipo_movimiento,
-            $filtro_secretaria, $filtro_area,
+            $filtro_tipo_destino, $filtro_destino_id, $filtro_area,
         ])->filter()->count();
     @endphp
     {{-- Sin overflow-hidden: recortaría el desplegable de tipos de movimiento --}}
@@ -195,16 +195,71 @@
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
-                        Destino — Secretaría
+                        Destino — Tipo
                     </label>
-                    <select wire:model.live="filtro_secretaria" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todas las secretarías</option>
-                        @foreach($secretarias as $sec)
-                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                    <select wire:model.live="filtro_tipo_destino" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todos los destinos</option>
+                        @foreach($tiposDestino as $valor => $etiqueta)
+                            <option value="{{ $valor }}">{{ $etiqueta }}</option>
                         @endforeach
                     </select>
                 </div>
-                @if($filtro_secretaria)
+                @if($filtro_tipo_destino)
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        {{ $tiposDestino[$filtro_tipo_destino] }}
+                    </label>
+                    <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.window="abierto = false">
+                        <button type="button" @click="abierto = !abierto; $nextTick(() => $refs.buscadorDestino && $refs.buscadorDestino.focus())"
+                                class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left bg-white border border-gray-200 rounded-xl hover:border-gray-300 focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                            <span class="truncate {{ $destinoLabel ? 'text-gray-700' : 'text-gray-500' }}">
+                                {{ $destinoLabel ?: 'Todos' }}
+                            </span>
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" :class="abierto && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <div x-show="abierto" x-transition.opacity style="display: none"
+                             class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                            <div class="p-2 border-b border-gray-100 bg-gray-50">
+                                <input type="text" x-ref="buscadorDestino"
+                                       wire:model.live.debounce.300ms="filtro_destino_busqueda"
+                                       placeholder="Buscar…"
+                                       class="w-full px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43]">
+                            </div>
+                            <div class="max-h-60 overflow-y-auto py-1">
+                                <button type="button" wire:click="limpiarDestino" @click="abierto = false"
+                                        class="w-full text-left px-3 py-2 text-sm {{ $filtro_destino_id === '' ? 'text-[#4a7a2a] font-semibold bg-[#77BF43]/5' : 'text-gray-500' }} hover:bg-[#77BF43]/5">
+                                    Todos
+                                </button>
+                                @forelse($opcionesDestino as $op)
+                                    <button type="button" wire:key="dest-{{ $op['id'] }}"
+                                            wire:click="seleccionarDestino('{{ $op['id'] }}')" @click="abierto = false"
+                                            class="w-full text-left px-3 py-2 text-sm hover:bg-[#77BF43]/5 {{ (string) $filtro_destino_id === (string) $op['id'] ? 'text-[#4a7a2a] font-semibold bg-[#77BF43]/5' : 'text-gray-700' }}">
+                                        <span class="block truncate" title="{{ $op['label'] }}">{{ $op['label'] }}</span>
+                                        @if($op['detalle'])
+                                            <span class="block text-[11px] text-gray-400 truncate">{{ $op['detalle'] }}</span>
+                                        @endif
+                                    </button>
+                                @empty
+                                    <p class="px-3 py-3 text-sm text-gray-400">Sin resultados</p>
+                                @endforelse
+                            </div>
+                            @if($opcionesDestino->count() >= 50)
+                                <p class="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100 bg-gray-50">
+                                    Mostrando los primeros 50 — refiná la búsqueda.
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endif
+                @if($filtro_tipo_destino === 'secretaria' && $filtro_destino_id !== '')
                 <div>
                     <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +280,7 @@
                 @endif
             </div>
             <p class="mt-3 text-[11px] text-gray-400">
-                Los filtros de categoría aplican a los gráficos de insumos y maquinarias; los de tipos de movimiento (podés elegir varios) y destino (secretaría/área), a los gráficos de movimientos de insumos.
+                Los filtros de categoría aplican a los gráficos de insumos y maquinarias; los de tipos de movimiento (podés elegir varios) y destino (vehículo, evento, empleado o secretaría/área), a los gráficos de movimientos de insumos.
             </p>
         </div>
     </div>

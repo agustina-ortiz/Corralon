@@ -15,6 +15,7 @@ use App\Models\MovimientoInsumo;
 use App\Models\TipoMovimiento;
 use App\Models\Secretaria;
 use App\Models\Area;
+use App\Models\EmpleadoMunicipal;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -32,9 +33,20 @@ class Estadisticas extends Component
     /** Multi-selección: IDs de tipos de movimiento a incluir (vacío = todos) */
     public array $filtro_tipo_movimiento = [];
 
-    // Destino de los movimientos: secretaría + área (el área depende de la secretaría)
-    public $filtro_secretaria = '';
+    // Destino de los movimientos: tipo (vehículo/evento/empleado/secretaría) + registro concreto.
+    // Para secretaría se habilita además el filtro de área.
+    public $filtro_tipo_destino = '';      // '', 'vehiculo', 'evento', 'empleado', 'secretaria'
+    public $filtro_destino_id = '';        // id del registro elegido (secretaría => id_secretaria)
+    public $filtro_destino_busqueda = '';  // texto del buscador del desplegable
     public $filtro_area = '';
+
+    /** Tipos de destino disponibles en el filtro. */
+    public const TIPOS_DESTINO = [
+        'vehiculo'   => 'Vehículo',
+        'evento'     => 'Evento',
+        'empleado'   => 'Empleado',
+        'secretaria' => 'Secretaría',
+    ];
 
     /** Página actual del widget paginado "Insumos por stock" */
     public int $pagina_ins_stock = 1;
@@ -49,10 +61,29 @@ class Estadisticas extends Component
         $this->filtro_deposito = '';
     }
 
-    /** Al cambiar de secretaría, el área elegida deja de tener sentido. */
-    public function updatingFiltroSecretaria(): void
+    /** Al cambiar el tipo de destino se descarta el registro elegido y el área. */
+    public function updatingFiltroTipoDestino(): void
     {
+        $this->filtro_destino_id = '';
+        $this->filtro_destino_busqueda = '';
         $this->filtro_area = '';
+    }
+
+    /** Elige un registro concreto de destino desde el desplegable con buscador. */
+    public function seleccionarDestino($id): void
+    {
+        $this->filtro_destino_id = (string) $id;
+        $this->filtro_area = '';
+        $this->pagina_ins_stock = 1;
+    }
+
+    /** Vuelve el destino a "todos" dentro del tipo elegido. */
+    public function limpiarDestino(): void
+    {
+        $this->filtro_destino_id = '';
+        $this->filtro_destino_busqueda = '';
+        $this->filtro_area = '';
+        $this->pagina_ins_stock = 1;
     }
 
     /** Cualquier cambio de filtro vuelve los widgets paginados a la primera página. */
@@ -91,7 +122,9 @@ class Estadisticas extends Component
         $this->filtro_categoria_insumo = '';
         $this->filtro_categoria_maquinaria = '';
         $this->filtro_tipo_movimiento = [];
-        $this->filtro_secretaria = '';
+        $this->filtro_tipo_destino = '';
+        $this->filtro_destino_id = '';
+        $this->filtro_destino_busqueda = '';
         $this->filtro_area = '';
         $this->pagina_ins_stock = 1;
     }
@@ -448,13 +481,90 @@ class Estadisticas extends Component
         $cache = MovimientoInsumo::with(['tipoMovimiento', 'insumo:id,insumo', 'usuario:id,name'])
             ->whereIn('id_insumo', $insumoIds)
             ->when($this->tiposMovimientoSeleccionados(), fn($q, $tipos) => $q->whereIn('id_tipo_movimiento', $tipos))
-            ->when($this->filtro_secretaria, fn($q) => $q->where('id_secretaria', $this->filtro_secretaria))
-            ->when($this->filtro_area, fn($q) => $q->where('area', $this->filtro_area))
+            ->when($this->filtro_tipo_destino, fn($q) => $q->where('tipo_referencia', $this->filtro_tipo_destino))
+            ->when($this->filtro_tipo_destino && $this->filtro_destino_id !== '', function ($q) {
+                // En secretaría el dato canónico es id_secretaria; en el resto, id_referencia.
+                $this->filtro_tipo_destino === 'secretaria'
+                    ? $q->where('id_secretaria', $this->filtro_destino_id)
+                    : $q->where('id_referencia', $this->filtro_destino_id);
+            })
+            ->when($this->filtro_tipo_destino === 'secretaria' && $this->filtro_area, fn($q) => $q->where('area', $this->filtro_area))
             ->when($desde, fn($q) => $q->whereDate('fecha', '>=', $desde))
             ->when($hasta, fn($q) => $q->whereDate('fecha', '<=', $hasta))
             ->get();
 
         return $cache;
+    }
+
+    /**
+     * Opciones del desplegable de destino según el tipo elegido, acotadas por
+     * el texto del buscador. Devuelve una colección de ['id', 'label', 'detalle'].
+     */
+    private function opcionesDestino()
+    {
+        $b = trim((string) $this->filtro_destino_busqueda);
+
+        switch ($this->filtro_tipo_destino) {
+            case 'vehiculo':
+                return Vehiculo::when($b, fn($q) => $q->where(fn($s) => $s
+                        ->where('vehiculo', 'like', "%{$b}%")
+                        ->orWhere('patente', 'like', "%{$b}%")
+                        ->orWhere('marca_modelo', 'like', "%{$b}%")
+                        ->orWhere('nro_patrimonio', 'like', "%{$b}%")))
+                    ->orderBy('vehiculo')->limit(50)->get()
+                    ->map(fn($v) => [
+                        'id'      => $v->id,
+                        'label'   => $v->vehiculo ?: ($v->marca_modelo ?: "Vehículo #{$v->id}"),
+                        'detalle' => trim(($v->patente ? $v->patente : '') . ($v->marca_modelo ? ' · ' . $v->marca_modelo : ''), ' ·'),
+                    ]);
+
+            case 'evento':
+                return Evento::when($b, fn($q) => $q->where('evento', 'like', "%{$b}%"))
+                    ->orderBy('evento')->limit(50)->get()
+                    ->map(fn($e) => [
+                        'id'      => $e->id,
+                        'label'   => $e->evento,
+                        'detalle' => $e->fecha ? $e->fecha->format('d/m/Y') : '',
+                    ]);
+
+            case 'empleado':
+                return EmpleadoMunicipal::activos()
+                    ->when($b, fn($q) => $q->where(fn($s) => $s
+                        ->where('NOMBRE', 'like', "%{$b}%")
+                        ->orWhere('LEGAJO', 'like', "%{$b}%")
+                        ->orWhere('DNI', 'like', "%{$b}%")))
+                    ->orderBy('NOMBRE')->limit(50)->get()
+                    ->map(fn($e) => [
+                        'id'      => $e->LEGAJO,
+                        'label'   => $e->nombre_formateado,
+                        'detalle' => 'Legajo ' . $e->LEGAJO,
+                    ]);
+
+            case 'secretaria':
+                return Secretaria::when($b, fn($q) => $q->where('secretaria', 'like', "%{$b}%"))
+                    ->orderBy('secretaria')->limit(50)->get()
+                    ->map(fn($s) => ['id' => $s->id, 'label' => $s->secretaria, 'detalle' => '']);
+        }
+
+        return collect();
+    }
+
+    /** Nombre legible del destino elegido (para mostrar en el botón del desplegable). */
+    private function destinoLabel(): string
+    {
+        if (!$this->filtro_tipo_destino || $this->filtro_destino_id === '') {
+            return '';
+        }
+
+        $id = $this->filtro_destino_id;
+
+        return match ($this->filtro_tipo_destino) {
+            'vehiculo'   => optional(Vehiculo::find($id))->vehiculo ?? "Vehículo #{$id}",
+            'evento'     => optional(Evento::find($id))->evento ?? "Evento #{$id}",
+            'empleado'   => optional(EmpleadoMunicipal::find($id))->nombre_formateado ?? "Legajo {$id}",
+            'secretaria' => optional(Secretaria::find($id))->secretaria ?? "Secretaría #{$id}",
+            default      => '',
+        };
     }
 
     public function render()
@@ -496,10 +606,11 @@ class Estadisticas extends Component
         $tiposMovimiento = TipoMovimiento::whereIn('tipo', ['I', 'IM'])
             ->orderBy('tipo_movimiento')->get();
 
-        // Destino: secretarías y, si hay una elegida, sus áreas
-        $secretarias = Secretaria::orderBy('secretaria')->get();
-        $areas = $this->filtro_secretaria
-            ? Area::where('id_secretaria', $this->filtro_secretaria)->orderBy('area')->get()
+        // Destino: opciones del tipo elegido + áreas (solo cuando el destino es una secretaría)
+        $opcionesDestino = $this->opcionesDestino();
+        $destinoLabel    = $this->destinoLabel();
+        $areas = ($this->filtro_tipo_destino === 'secretaria' && $this->filtro_destino_id !== '')
+            ? Area::where('id_secretaria', $this->filtro_destino_id)->orderBy('area')->get()
             : collect();
 
         return view('livewire.estadisticas', [
@@ -512,7 +623,9 @@ class Estadisticas extends Component
             'categoriasInsumos'     => $categoriasInsumos,
             'categoriasMaquinarias' => $categoriasMaquinarias,
             'tiposMovimiento'       => $tiposMovimiento,
-            'secretarias'           => $secretarias,
+            'tiposDestino'          => self::TIPOS_DESTINO,
+            'opcionesDestino'       => $opcionesDestino,
+            'destinoLabel'          => $destinoLabel,
             'areas'                 => $areas,
             'hayWidgets'       => count($widgets) > 0,
             'sinOpciones'      => count($opcionesPorGrupo) === 0,
