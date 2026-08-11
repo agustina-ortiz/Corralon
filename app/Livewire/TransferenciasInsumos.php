@@ -135,6 +135,7 @@ class TransferenciasInsumos extends Component
     public $multi_areas_disponibles = [];
     public $multi_search_insumo = '';
     public $multi_mostrar_lista_insumo = false;
+    public $multi_observaciones = '';           // se guarda en todos los movimientos generados
     // Cada línea: ['insumo_id','insumo_nombre','unidad','stock','tipo','cantidad']
     // tipo ∈ ['asignacion_con_reposicion','asignacion_sin_reposicion']
     public $multi_lineas = [];
@@ -2204,6 +2205,12 @@ class TransferenciasInsumos extends Component
             return;
         }
 
+        if (mb_strlen((string) $this->multi_observaciones) > 1000) {
+            $this->addError('multi_observaciones', 'Las observaciones no pueden superar los 1000 caracteres.');
+            session()->flash('error', 'Las observaciones son demasiado largas.');
+            return;
+        }
+
         $tiposValidos = ['asignacion_con_reposicion', 'asignacion_sin_reposicion'];
         $errores = false;
 
@@ -2281,6 +2288,7 @@ class TransferenciasInsumos extends Component
                     'tipo_referencia' => $tipoRef,
                     'id_secretaria' => $idSec,
                     'area' => $area,
+                    'observaciones' => $this->multi_observaciones ?: null,
                 ]);
 
                 $insumosAfectados[$insumo->id] = $insumo;
@@ -2320,6 +2328,7 @@ class TransferenciasInsumos extends Component
         $this->multi_areas_disponibles = [];
         $this->multi_search_insumo = '';
         $this->multi_mostrar_lista_insumo = false;
+        $this->multi_observaciones = '';
         $this->multi_lineas = [];
         $this->resetErrorBag();
     }

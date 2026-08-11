@@ -622,6 +622,14 @@
                                         <div class="text-sm font-medium text-gray-900">{{ $movimiento->insumo->insumo }}</div>
                                     @endif
                                     <div class="text-xs text-gray-500">{{ $movimiento->insumo->categoriaInsumo->nombre }}</div>
+                                    @if($movimiento->observaciones)
+                                        <div class="flex items-start gap-1 mt-1 text-xs text-gray-400 max-w-xs" title="{{ $movimiento->observaciones }}">
+                                            <svg class="w-3.5 h-3.5 flex-shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                                            </svg>
+                                            <span class="line-clamp-2">{{ $movimiento->observaciones }}</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                             @php $esSalida = $movimiento->tipoMovimiento->esSalida(); @endphp
@@ -2005,6 +2013,21 @@
                                         @endforelse
                                     </div>
                                 </div>
+                            </div>
+
+                            {{-- Observaciones: se guardan en todos los movimientos generados --}}
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Observaciones <span class="text-gray-400 font-normal">(opcional)</span>
+                                </label>
+                                <textarea
+                                    wire:model="multi_observaciones"
+                                    rows="2"
+                                    maxlength="1000"
+                                    placeholder="Comentario aplicado a todos los movimientos de esta carga..."
+                                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none"
+                                ></textarea>
+                                @error('multi_observaciones') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         @endif
 
