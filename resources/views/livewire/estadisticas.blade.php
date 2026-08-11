@@ -1,4 +1,10 @@
 <div>
+    @if (session()->has('error'))
+        <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
+            {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Panel de filtros + acciones -->
     @php
         $filtrosActivos = collect([
@@ -44,6 +50,15 @@
                         Limpiar
                     </button>
                 @endif
+                <button wire:click="exportarPdf" wire:loading.attr="disabled" wire:target="exportarPdf"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors whitespace-nowrap"
+                        title="Descargar los gráficos visibles en PDF">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="exportarPdf">Imprimir PDF</span>
+                    <span wire:loading wire:target="exportarPdf">Generando…</span>
+                </button>
                 <button wire:click="abrirModalPersonalizar" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#77BF43] rounded-xl shadow-sm hover:bg-[#69ab3a] transition-colors whitespace-nowrap">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
@@ -357,6 +372,22 @@
                         @break
                 @endswitch
             @endforeach
+        </div>
+    @elseif($todosVacios)
+        <div class="text-center py-16 text-gray-400">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+            </svg>
+            <p class="font-medium text-gray-500">Ningún gráfico tiene datos con estos filtros</p>
+            <p class="text-sm mt-1">Probá acotar menos la búsqueda o limpiar los filtros.</p>
+            @if($filtrosActivos > 0)
+                <button wire:click="limpiarFiltros" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Limpiar filtros
+                </button>
+            @endif
         </div>
     @elseif($sinOpciones)
         <div class="text-center py-16 text-gray-400">

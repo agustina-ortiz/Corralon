@@ -16,6 +16,8 @@ use App\Models\TipoMovimiento;
 use App\Models\Secretaria;
 use App\Models\Area;
 use App\Models\EmpleadoMunicipal;
+use App\Support\GraficoPng;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -446,6 +448,34 @@ class Estadisticas extends Component
     }
 
     /**
+     * ¿El widget tiene algo para mostrar con los filtros actuales?
+     * Los que quedan vacíos no se renderizan (ocupan lugar y no informan nada).
+     */
+    private function tieneDatos(array $w): bool
+    {
+        switch ($w['tipo']) {
+            case 'donut':
+                return collect($w['data'])->sum(fn($d) => (float) ($d['value'] ?? 0)) > 0;
+
+            case 'barras':
+                // En modo paginado se muestran también los ítems en 0: alcanza con que haya ítems.
+                return $w['paginacion']
+                    ? ($w['paginacion']['total'] ?? 0) > 0
+                    : collect($w['data'])->contains(fn($d) => (float) ($d['value'] ?? 0) > 0);
+
+            case 'series':
+                return collect($w['data'])->sum(fn($d) => (float) ($d['entradas'] ?? 0) + (float) ($d['salidas'] ?? 0)) > 0;
+
+            case 'lista':
+                return $w['data'] instanceof \Illuminate\Support\Collection
+                    ? $w['data']->count() > 0
+                    : count($w['data']) > 0;
+        }
+
+        return true;
+    }
+
+    /**
      * Vehículos filtrados por acceso POR SECRETARÍA (pivote depositos_secretarias)
      * + filtros de corralón/depósito. El acceso de vehículos no usa id_deposito.
      * Admin sin filtros de ubicación => todos los vehículos.
@@ -567,6 +597,97 @@ class Estadisticas extends Component
         };
     }
 
+    // ================================================================
+    // EXPORTACIÓN A PDF
+    // ================================================================
+
+    /** Texto con los filtros activos, para el subtítulo del PDF. */
+    private function descripcionFiltros(): string
+    {
+        $partes = [];
+
+        if ($this->filtro_corralon) {
+            $partes[] = 'Corralón: ' . (optional(Corralon::find($this->filtro_corralon))->descripcion ?? $this->filtro_corralon);
+        }
+        if ($this->filtro_deposito) {
+            $partes[] = 'Depósito: ' . (optional(Deposito::find($this->filtro_deposito))->deposito ?? $this->filtro_deposito);
+        }
+        if ($this->fecha_desde) {
+            $partes[] = 'Desde: ' . Carbon::parse($this->fecha_desde)->format('d/m/Y');
+        }
+        if ($this->fecha_hasta) {
+            $partes[] = 'Hasta: ' . Carbon::parse($this->fecha_hasta)->format('d/m/Y');
+        }
+        if ($this->filtro_categoria_insumo) {
+            $partes[] = 'Cat. insumo: ' . (optional(CategoriaInsumo::find($this->filtro_categoria_insumo))->nombre ?? $this->filtro_categoria_insumo);
+        }
+        if ($this->filtro_categoria_maquinaria) {
+            $partes[] = 'Cat. maquinaria: ' . (optional(CategoriaMaquinaria::find($this->filtro_categoria_maquinaria))->nombre ?? $this->filtro_categoria_maquinaria);
+        }
+        if ($tipos = $this->tiposMovimientoSeleccionados()) {
+            $nombres = TipoMovimiento::whereIn('id', $tipos)->pluck('tipo_movimiento')->all();
+            $partes[] = 'Tipo(s) de movimiento: ' . implode(', ', $nombres);
+        }
+        if ($this->filtro_tipo_destino) {
+            $destino = self::TIPOS_DESTINO[$this->filtro_tipo_destino] ?? $this->filtro_tipo_destino;
+            $etiqueta = $this->destinoLabel();
+            $partes[] = 'Destino: ' . $destino . ($etiqueta ? ' — ' . $etiqueta : '');
+        }
+        if ($this->filtro_area) {
+            $partes[] = 'Área: ' . $this->filtro_area;
+        }
+
+        return implode(' · ', $partes);
+    }
+
+    /**
+     * Genera un PDF con los mismos gráficos (y filtros) que se ven en pantalla.
+     * Las donas se dibujan como PNG (GD) porque dompdf no renderiza el SVG de la vista.
+     */
+    public function exportarPdf()
+    {
+        // dompdf es intensivo en memoria/tiempo; se suben los límites solo acá.
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(300);
+
+        $user     = Auth::user();
+        $activos  = $user->estadisticasActivas();
+        $config   = config('estadisticas.widgets', []);
+        $movsCache = null;
+
+        $widgets = [];
+        foreach ($activos as $key) {
+            if (!isset($config[$key])) continue;
+            $w = $this->calcular($key, $config[$key], $movsCache);
+            if (!$this->tieneDatos($w)) continue; // no se exportan recuadros vacíos
+            $w['imagen'] = $w['tipo'] === 'donut' ? GraficoPng::donut($w['data']) : '';
+            $widgets[$key] = $w;
+        }
+
+        if (count($widgets) === 0) {
+            session()->flash('error', 'No hay gráficos con datos para exportar. Revisá los filtros o elegí otras estadísticas en "Personalizar".');
+            return;
+        }
+
+        try {
+            $pdf = Pdf::loadView('exports.estadisticas-pdf', [
+                'widgets' => $widgets,
+                'paleta'  => GraficoPng::PALETA,
+                'filtros' => $this->descripcionFiltros(),
+                'usuario' => $user->name,
+            ])->setPaper('a4', 'portrait');
+
+            $path = storage_path('app/estadisticas_' . uniqid() . '.pdf');
+            $pdf->save($path);
+
+            return response()->download($path, 'estadisticas_' . now()->format('Ymd_His') . '.pdf')
+                ->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            session()->flash('error', 'No se pudo generar el PDF: ' . $e->getMessage());
+            return;
+        }
+    }
+
     public function render()
     {
         $user = Auth::user();
@@ -578,10 +699,16 @@ class Estadisticas extends Component
         // Cache de movimientos compartido entre los widgets de movimientos
         $movsCache = null;
 
+        // Solo se renderizan los widgets con datos: los vacíos ocupan lugar y no informan nada.
         $widgets = [];
+        $activosConfigurados = 0;
         foreach ($activos as $key) {
             if (!isset($config[$key])) continue;
-            $widgets[$key] = $this->calcular($key, $config[$key], $movsCache);
+            $activosConfigurados++;
+            $w = $this->calcular($key, $config[$key], $movsCache);
+            if ($this->tieneDatos($w)) {
+                $widgets[$key] = $w;
+            }
         }
 
         // Opciones del modal (filtradas por permiso), agrupadas
@@ -628,6 +755,8 @@ class Estadisticas extends Component
             'destinoLabel'          => $destinoLabel,
             'areas'                 => $areas,
             'hayWidgets'       => count($widgets) > 0,
+            // Hay gráficos elegidos pero todos quedaron vacíos por los filtros
+            'todosVacios'      => count($widgets) === 0 && $activosConfigurados > 0,
             'sinOpciones'      => count($opcionesPorGrupo) === 0,
         ])->layout('layouts.app', ['header' => 'Estadísticas']);
     }
