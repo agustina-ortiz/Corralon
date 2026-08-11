@@ -13,6 +13,8 @@ use App\Models\CategoriaInsumo;
 use App\Models\CategoriaMaquinaria;
 use App\Models\MovimientoInsumo;
 use App\Models\TipoMovimiento;
+use App\Models\Secretaria;
+use App\Models\Area;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
@@ -27,7 +29,16 @@ class Estadisticas extends Component
     public $fecha_hasta = '';
     public $filtro_categoria_insumo = '';
     public $filtro_categoria_maquinaria = '';
-    public $filtro_tipo_movimiento = '';
+    /** Multi-selección: IDs de tipos de movimiento a incluir (vacío = todos) */
+    public array $filtro_tipo_movimiento = [];
+
+    // Destino de los movimientos: secretaría + área (el área depende de la secretaría)
+    public $filtro_secretaria = '';
+    public $filtro_area = '';
+
+    /** Página actual del widget paginado "Insumos por stock" */
+    public int $pagina_ins_stock = 1;
+    public const INS_STOCK_POR_PAGINA = 10;
 
     // Modal "Personalizar"
     public bool $modalPersonalizar = false;
@@ -38,6 +49,39 @@ class Estadisticas extends Component
         $this->filtro_deposito = '';
     }
 
+    /** Al cambiar de secretaría, el área elegida deja de tener sentido. */
+    public function updatingFiltroSecretaria(): void
+    {
+        $this->filtro_area = '';
+    }
+
+    /** Cualquier cambio de filtro vuelve los widgets paginados a la primera página. */
+    public function updated($name): void
+    {
+        if (str_starts_with($name, 'filtro_') || str_starts_with($name, 'fecha_')) {
+            $this->pagina_ins_stock = 1;
+        }
+    }
+
+    /** IDs (int) de tipos de movimiento seleccionados; array vacío = sin filtro. */
+    private function tiposMovimientoSeleccionados(): array
+    {
+        return array_values(array_filter(array_map('intval', $this->filtro_tipo_movimiento)));
+    }
+
+    /** Deselecciona todos los tipos de movimiento. */
+    public function limpiarTiposMovimiento(): void
+    {
+        $this->filtro_tipo_movimiento = [];
+        $this->pagina_ins_stock = 1;
+    }
+
+    /** Navegación del widget paginado "Insumos por stock". */
+    public function irAPaginaInsStock(int $pagina): void
+    {
+        $this->pagina_ins_stock = max(1, $pagina);
+    }
+
     public function limpiarFiltros(): void
     {
         $this->filtro_corralon = '';
@@ -46,7 +90,10 @@ class Estadisticas extends Component
         $this->fecha_hasta = '';
         $this->filtro_categoria_insumo = '';
         $this->filtro_categoria_maquinaria = '';
-        $this->filtro_tipo_movimiento = '';
+        $this->filtro_tipo_movimiento = [];
+        $this->filtro_secretaria = '';
+        $this->filtro_area = '';
+        $this->pagina_ins_stock = 1;
     }
 
     public function abrirModalPersonalizar(): void
@@ -126,6 +173,8 @@ class Estadisticas extends Component
             'titulo'    => $cfg['label'],
             'decimales' => 0,
             'data'      => [],
+            'max'        => null,  // escala fija de las barras (widgets paginados)
+            'paginacion' => null,  // ['pagina','total_paginas','total','desde','hasta','metodo']
         ];
 
         switch ($key) {
@@ -152,11 +201,30 @@ class Estadisticas extends Component
                 break;
 
             case 'ins_top_stock':
+                // Muestra TODOS los insumos ordenados por stock, paginados de a 10.
                 $payload['decimales'] = 2;
+                $porPagina    = self::INS_STOCK_POR_PAGINA;
+                $total        = $this->insumosQuery()->count();
+                $totalPaginas = max(1, (int) ceil($total / $porPagina));
+                $pagina       = min(max(1, $this->pagina_ins_stock), $totalPaginas);
+                $this->pagina_ins_stock = $pagina;
+
                 $payload['data'] = $this->insumosQuery()
-                    ->orderByDesc('stock_actual')->take(10)->get()
+                    ->orderByDesc('stock_actual')->orderBy('id')
+                    ->skip(($pagina - 1) * $porPagina)->take($porPagina)->get()
                     ->map(fn($i) => ['label' => $i->insumo, 'value' => (float) $i->stock_actual])
                     ->all();
+
+                // Escala global: las barras son comparables entre páginas
+                $payload['max'] = (float) ($this->insumosQuery()->max('stock_actual') ?: 1);
+                $payload['paginacion'] = [
+                    'pagina'        => $pagina,
+                    'total_paginas' => $totalPaginas,
+                    'total'         => $total,
+                    'desde'         => $total ? (($pagina - 1) * $porPagina) + 1 : 0,
+                    'hasta'         => min($pagina * $porPagina, $total),
+                    'metodo'        => 'irAPaginaInsStock',
+                ];
                 break;
 
             case 'ins_unidad':
@@ -379,7 +447,9 @@ class Estadisticas extends Component
 
         $cache = MovimientoInsumo::with(['tipoMovimiento', 'insumo:id,insumo', 'usuario:id,name'])
             ->whereIn('id_insumo', $insumoIds)
-            ->when($this->filtro_tipo_movimiento, fn($q) => $q->where('id_tipo_movimiento', $this->filtro_tipo_movimiento))
+            ->when($this->tiposMovimientoSeleccionados(), fn($q, $tipos) => $q->whereIn('id_tipo_movimiento', $tipos))
+            ->when($this->filtro_secretaria, fn($q) => $q->where('id_secretaria', $this->filtro_secretaria))
+            ->when($this->filtro_area, fn($q) => $q->where('area', $this->filtro_area))
             ->when($desde, fn($q) => $q->whereDate('fecha', '>=', $desde))
             ->when($hasta, fn($q) => $q->whereDate('fecha', '<=', $hasta))
             ->get();
@@ -426,6 +496,12 @@ class Estadisticas extends Component
         $tiposMovimiento = TipoMovimiento::whereIn('tipo', ['I', 'IM'])
             ->orderBy('tipo_movimiento')->get();
 
+        // Destino: secretarías y, si hay una elegida, sus áreas
+        $secretarias = Secretaria::orderBy('secretaria')->get();
+        $areas = $this->filtro_secretaria
+            ? Area::where('id_secretaria', $this->filtro_secretaria)->orderBy('area')->get()
+            : collect();
+
         return view('livewire.estadisticas', [
             'widgets'          => $widgets,
             'config'           => $config,
@@ -436,6 +512,8 @@ class Estadisticas extends Component
             'categoriasInsumos'     => $categoriasInsumos,
             'categoriasMaquinarias' => $categoriasMaquinarias,
             'tiposMovimiento'       => $tiposMovimiento,
+            'secretarias'           => $secretarias,
+            'areas'                 => $areas,
             'hayWidgets'       => count($widgets) > 0,
             'sinOpciones'      => count($opcionesPorGrupo) === 0,
         ])->layout('layouts.app', ['header' => 'Estadísticas']);

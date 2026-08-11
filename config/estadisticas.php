@@ -43,7 +43,7 @@ return [
             'chart'   => 'donut',
         ],
         'ins_top_stock' => [
-            'label'   => 'Top 10 insumos por stock',
+            'label'   => 'Insumos por stock',
             'grupo'   => 'insumos',
             'permiso' => 'insumos',
             'chart'   => 'barras',

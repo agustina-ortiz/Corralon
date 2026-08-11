@@ -4,11 +4,13 @@
         $filtrosActivos = collect([
             $filtro_corralon, $filtro_deposito, $fecha_desde, $fecha_hasta,
             $filtro_categoria_insumo, $filtro_categoria_maquinaria, $filtro_tipo_movimiento,
+            $filtro_secretaria, $filtro_area,
         ])->filter()->count();
     @endphp
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+    {{-- Sin overflow-hidden: recortaría el desplegable de tipos de movimiento --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
         <!-- Encabezado -->
-        <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white rounded-t-2xl">
             <div class="flex items-center gap-3">
                 <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-[#77BF43]/10 text-[#77BF43]">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,16 +138,94 @@
                         </svg>
                         Tipo de movimiento
                     </label>
-                    <select wire:model.live="filtro_tipo_movimiento" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todos los tipos</option>
-                        @foreach($tiposMovimiento as $tm)
-                            <option value="{{ $tm->id }}">{{ $tm->tipo_movimiento }}</option>
+                    @php
+                        $tiposSeleccionados = collect($filtro_tipo_movimiento)->filter()->map(fn($v) => (int) $v);
+                        $nombresSeleccionados = $tiposMovimiento->whereIn('id', $tiposSeleccionados->all())->pluck('tipo_movimiento');
+                    @endphp
+                    <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.window="abierto = false">
+                        <button type="button" @click="abierto = !abierto"
+                                class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left bg-white border border-gray-200 rounded-xl hover:border-gray-300 focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                            <span class="truncate {{ $nombresSeleccionados->count() ? 'text-gray-700' : 'text-gray-500' }}">
+                                @if($nombresSeleccionados->count() === 0)
+                                    Todos los tipos
+                                @elseif($nombresSeleccionados->count() === 1)
+                                    {{ $nombresSeleccionados->first() }}
+                                @else
+                                    {{ $nombresSeleccionados->count() }} tipos seleccionados
+                                @endif
+                            </span>
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" :class="abierto && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+
+                        <div x-show="abierto" x-transition.opacity style="display: none"
+                             class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                            <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
+                                <span class="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Elegí uno o varios</span>
+                                @if($nombresSeleccionados->count() > 0)
+                                    <button type="button" wire:click="limpiarTiposMovimiento" class="text-[11px] font-medium text-gray-500 hover:text-gray-700">
+                                        Limpiar
+                                    </button>
+                                @endif
+                            </div>
+                            <div class="max-h-60 overflow-y-auto py-1">
+                                @forelse($tiposMovimiento as $tm)
+                                    <label class="flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-[#77BF43]/5 cursor-pointer">
+                                        <input type="checkbox" wire:model.live="filtro_tipo_movimiento" value="{{ $tm->id }}"
+                                               class="w-4 h-4 rounded text-[#77BF43] border-gray-300 focus:ring-[#77BF43]">
+                                        <span class="truncate" title="{{ $tm->tipo_movimiento }}">{{ $tm->tipo_movimiento }}</span>
+                                    </label>
+                                @empty
+                                    <p class="px-3 py-3 text-sm text-gray-400">No hay tipos disponibles</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                    @if($nombresSeleccionados->count() > 1)
+                        <div class="flex flex-wrap gap-1 mt-2">
+                            @foreach($nombresSeleccionados as $nombre)
+                                <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium text-[#4a7a2a] bg-[#77BF43]/10 rounded-full">{{ $nombre }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        Destino — Secretaría
+                    </label>
+                    <select wire:model.live="filtro_secretaria" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todas las secretarías</option>
+                        @foreach($secretarias as $sec)
+                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
                         @endforeach
                     </select>
                 </div>
+                @if($filtro_secretaria)
+                <div>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        Destino — Área
+                    </label>
+                    <select wire:model.live="filtro_area" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
+                        <option value="">Todas las áreas</option>
+                        @foreach($areas as $ar)
+                            <option value="{{ $ar->area }}">{{ $ar->area }}</option>
+                        @endforeach
+                    </select>
+                    @if($areas->count() === 0)
+                        <p class="mt-1.5 text-[11px] text-gray-400">Esta secretaría no tiene áreas cargadas.</p>
+                    @endif
+                </div>
+                @endif
             </div>
             <p class="mt-3 text-[11px] text-gray-400">
-                Los filtros de categoría aplican a los gráficos de insumos y maquinarias; el de tipo de movimiento, a los gráficos de movimientos de insumos.
+                Los filtros de categoría aplican a los gráficos de insumos y maquinarias; los de tipos de movimiento (podés elegir varios) y destino (secretaría/área), a los gráficos de movimientos de insumos.
             </p>
         </div>
     </div>
@@ -160,7 +240,13 @@
                         @break
 
                     @case('barras')
-                        @include('livewire.partials.chart-barras', ['titulo' => $w['titulo'], 'data' => $w['data'], 'decimales' => $w['decimales']])
+                        @include('livewire.partials.chart-barras', [
+                            'titulo' => $w['titulo'],
+                            'data' => $w['data'],
+                            'decimales' => $w['decimales'],
+                            'maxFijo' => $w['max'] ?? null,
+                            'paginacion' => $w['paginacion'] ?? null,
+                        ])
                         @break
 
                     @case('series')
