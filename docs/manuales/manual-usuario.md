@@ -516,11 +516,12 @@ Los movimientos individuales se usan para registrar entradas, salidas y asignaci
    - Comprobantes (opcional): Adjunte hasta 5 archivos (PDF, JPG o PNG, máx. 5 MB cada uno) como respaldo
 
    **Para Asignaciones (con o sin reposición):**
-   - Tipo de destino: **Vehículo**, **Evento** o **Empleado**
+   - Tipo de destino: **Vehículo**, **Evento**, **Empleado** o **Secretaría**
    - Busque y seleccione el destino
+   - Si el destino es una Secretaría, puede indicar además el **Área** (elegir de la lista o escribirla)
    - Cantidad
 
-   > **Nota:** La "Asignación sin Reposición" solo permite como destino Vehículos y Eventos (no Empleados).
+   > **Nota:** Ambos tipos de asignación (con y sin reposición) admiten los cuatro tipos de destino.
 
 5. Confirme el movimiento.
 
@@ -603,7 +604,7 @@ Lista de movimientos con: **Fecha**, **Maquinaria** (nombre y categoría), **Can
 
 3. Complete los datos según el tipo (cantidad, destino, etc.).
 
-> **Nota:** Al igual que con insumos, la "Asignación sin Reposición" solo permite Vehículos y Eventos como destino.
+> **Nota:** Al igual que con insumos, las asignaciones de maquinaria (con y sin reposición) admiten como destino **Vehículo**, **Evento**, **Empleado** o **Secretaría** (con Área opcional).
 
 ### Panel de Asignaciones Pendientes (Maquinarias)
 
