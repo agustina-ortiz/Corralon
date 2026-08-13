@@ -523,6 +523,9 @@ Los movimientos individuales se usan para registrar entradas, salidas y asignaci
 
    > **Nota:** Ambos tipos de asignación (con y sin reposición) admiten los cuatro tipos de destino.
 
+   **Para todos los tipos:**
+   - **Observaciones** (opcional): Texto libre (hasta 500 caracteres) para aclarar el motivo o el detalle del movimiento. Se muestra en la columna **Detalles** del listado y se incluye en las exportaciones a Excel y PDF.
+
 5. Confirme el movimiento.
 
 **Atajo rápido:** También puede hacer clic en el **nombre de un insumo** en la lista de movimientos para abrir directamente el modal con ese insumo preseleccionado (salta al Paso 2).
