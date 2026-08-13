@@ -19,9 +19,10 @@
         .es-entrada { color: #166534; font-weight: bold; text-align: center; }
         .es-salida { color: #991b1b; font-weight: bold; text-align: center; }
         .footer { margin-top: 10px; font-size: 8px; color: #9ca3af; text-align: right; }
-        .c-fecha { width: 9%; } .c-tipo { width: 15%; } .c-es { width: 4%; }
-        .c-insumo { width: 17%; } .c-cant { width: 7%; } .c-un { width: 6%; }
-        .c-dep { width: 12%; } .c-dest { width: 14%; } .c-usr { width: 9%; } .c-oc { width: 7%; }
+        .c-fecha { width: 8%; } .c-tipo { width: 12%; } .c-es { width: 3%; }
+        .c-insumo { width: 14%; } .c-cant { width: 6%; } .c-un { width: 5%; }
+        .c-dep { width: 10%; } .c-dest { width: 12%; } .c-usr { width: 8%; } .c-oc { width: 6%; }
+        .c-obs { width: 16%; }
     </style>
 </head>
 <body>
@@ -47,6 +48,7 @@
                     <th class="c-dest">Destino</th>
                     <th class="c-usr">Usuario</th>
                     <th class="c-oc">N° OC</th>
+                    <th class="c-obs">Observaciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -67,6 +69,7 @@
                         <td>{{ $destinos[$m->id] ?? '' }}</td>
                         <td>{{ $m->usuario->name ?? '' }}</td>
                         <td>{{ $m->nro_orden_compra ?? '' }}</td>
+                        <td>{{ $m->observaciones ?? '' }}</td>
                     </tr>
                 @endforeach
             </tbody>
