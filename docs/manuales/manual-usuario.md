@@ -606,6 +606,7 @@ Lista de movimientos con: **Fecha**, **Maquinaria** (nombre y categoría), **Can
 | **Mantenimiento Maquinaria** | Resta | Envío a mantenimiento |
 
 3. Complete los datos según el tipo (cantidad, destino, etc.).
+4. **Observaciones** (opcional, disponible en todos los tipos): Texto libre (hasta 500 caracteres) para aclarar el motivo o el detalle del movimiento. Se muestra en el listado junto al nombre de la maquinaria y se incluye en las exportaciones a Excel y PDF.
 
 > **Nota:** Al igual que con insumos, las asignaciones de maquinaria (con y sin reposición) admiten como destino **Vehículo**, **Evento**, **Empleado** o **Secretaría** (con Área opcional).
 
