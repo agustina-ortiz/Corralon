@@ -54,6 +54,10 @@ class Estadisticas extends Component
     public int $pagina_ins_stock = 1;
     public const INS_STOCK_POR_PAGINA = 10;
 
+    /** Página actual del widget paginado "Insumos más movidos" */
+    public int $pagina_mov_insumos = 1;
+    public const MOV_INSUMOS_POR_PAGINA = 10;
+
     // Modal "Personalizar"
     public bool $modalPersonalizar = false;
     public array $seleccionWidgets = [];
@@ -76,7 +80,7 @@ class Estadisticas extends Component
     {
         $this->filtro_destino_id = (string) $id;
         $this->filtro_area = '';
-        $this->pagina_ins_stock = 1;
+        $this->resetPaginasWidgets();
     }
 
     /** Vuelve el destino a "todos" dentro del tipo elegido. */
@@ -85,14 +89,21 @@ class Estadisticas extends Component
         $this->filtro_destino_id = '';
         $this->filtro_destino_busqueda = '';
         $this->filtro_area = '';
+        $this->resetPaginasWidgets();
+    }
+
+    /** Vuelve todos los widgets paginados a la primera página. */
+    private function resetPaginasWidgets(): void
+    {
         $this->pagina_ins_stock = 1;
+        $this->pagina_mov_insumos = 1;
     }
 
     /** Cualquier cambio de filtro vuelve los widgets paginados a la primera página. */
     public function updated($name): void
     {
         if (str_starts_with($name, 'filtro_') || str_starts_with($name, 'fecha_')) {
-            $this->pagina_ins_stock = 1;
+            $this->resetPaginasWidgets();
         }
     }
 
@@ -106,13 +117,19 @@ class Estadisticas extends Component
     public function limpiarTiposMovimiento(): void
     {
         $this->filtro_tipo_movimiento = [];
-        $this->pagina_ins_stock = 1;
+        $this->resetPaginasWidgets();
     }
 
     /** Navegación del widget paginado "Insumos por stock". */
     public function irAPaginaInsStock(int $pagina): void
     {
         $this->pagina_ins_stock = max(1, $pagina);
+    }
+
+    /** Navegación del widget paginado "Insumos más movidos". */
+    public function irAPaginaMovInsumos(int $pagina): void
+    {
+        $this->pagina_mov_insumos = max(1, $pagina);
     }
 
     public function limpiarFiltros(): void
@@ -128,7 +145,7 @@ class Estadisticas extends Component
         $this->filtro_destino_id = '';
         $this->filtro_destino_busqueda = '';
         $this->filtro_area = '';
-        $this->pagina_ins_stock = 1;
+        $this->resetPaginasWidgets();
     }
 
     public function abrirModalPersonalizar(): void
@@ -385,11 +402,31 @@ class Estadisticas extends Component
                 break;
 
             case 'mov_top_insumos':
+                // Muestra TODOS los insumos movidos ordenados por cantidad, paginados de a 10.
+                $payload['decimales'] = 2;
                 $movs = $this->movimientos($movsCache);
-                $payload['data'] = $movs
+                $ranking = $movs
                     ->groupBy(fn($m) => $m->insumo->insumo ?? 'Sin insumo')
                     ->map(fn($g, $l) => ['label' => $l, 'value' => (float) $g->sum('cantidad')])
-                    ->sortByDesc('value')->take(10)->values()->all();
+                    ->sortByDesc('value')->values();
+
+                $porPagina    = self::MOV_INSUMOS_POR_PAGINA;
+                $total        = $ranking->count();
+                $totalPaginas = max(1, (int) ceil($total / $porPagina));
+                $pagina       = min(max(1, $this->pagina_mov_insumos), $totalPaginas);
+                $this->pagina_mov_insumos = $pagina;
+
+                $payload['data'] = $ranking->slice(($pagina - 1) * $porPagina, $porPagina)->values()->all();
+                // Escala global: las barras son comparables entre páginas
+                $payload['max'] = (float) ($ranking->max('value') ?: 1);
+                $payload['paginacion'] = [
+                    'pagina'        => $pagina,
+                    'total_paginas' => $totalPaginas,
+                    'total'         => $total,
+                    'desde'         => $total ? (($pagina - 1) * $porPagina) + 1 : 0,
+                    'hasta'         => min($pagina * $porPagina, $total),
+                    'metodo'        => 'irAPaginaMovInsumos',
+                ];
                 break;
 
             case 'mov_destino':

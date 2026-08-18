@@ -123,7 +123,7 @@ return [
             'usa_fecha' => true,
         ],
         'mov_top_insumos' => [
-            'label'     => 'Top insumos más movidos',
+            'label'     => 'Insumos más movidos',
             'grupo'     => 'movimientos',
             'permiso'   => 'movimientos_insumos',
             'chart'     => 'barras',
