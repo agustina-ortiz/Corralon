@@ -268,8 +268,7 @@
                                         <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
                                     @endif
                                     <p class="text-xs text-gray-500">
-                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} •
-                                        {{ $vehiculo->deposito->corralon->descripcion ?? 'Sin corralón' }}
+                                        {{ $vehiculo->secretaria->secretaria ?? 'Sin secretaría' }}
                                     </p>
                                 </div>
                                 <div class="text-right ml-4">

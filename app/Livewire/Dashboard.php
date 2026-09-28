@@ -41,6 +41,8 @@ class Dashboard extends Component
     private function filtrarPorDepositos($query, $user, string $modulo)
     {
         if ($user->esAdministrador()) return $query;
+        // Vehículos: acceso global o por depósito/secretaría (no solo id_deposito)
+        if ($modulo === 'vehiculos') return $query->porCorralonesPermitidos();
         $depositos = $user->getDepositosPermitidosParaModulo($modulo);
         return $query->whereIn('id_deposito', $depositos);
     }
@@ -99,8 +101,8 @@ class Dashboard extends Component
         $vehiculosEnUso    = collect();
         $countVehiculosEnUso = 0;
         if (in_array('vehiculos_en_uso', $widgetsActivos)) {
-            $query = Vehiculo::with(['deposito.corralon'])
-                ->where('estado', 'en_uso');
+            $query = Vehiculo::with(['secretaria'])
+                ->where('estado', 'EN USO');
             $vehiculosEnUso = $this->filtrarPorDepositos($query, $user, 'vehiculos')
                 ->orderBy('nro_patrimonio', 'asc')
                 ->get();
