@@ -54,6 +54,13 @@ class User extends Authenticatable
         $config    = config("dashboard.{$seccion}", []);
         $guardados = $this->dashboard_widgets[$seccion] ?? array_keys($config);
 
+        // Widgets agregados después de que el usuario guardó sus preferencias: activos por defecto
+        if (isset($this->dashboard_widgets[$seccion])) {
+            $conocidos = $this->dashboard_widgets['conocidos'][$seccion]
+                ?? config("dashboard.conocidos_legado.{$seccion}", []);
+            $guardados = array_merge($guardados, array_diff(array_keys($config), $conocidos));
+        }
+
         return array_values(array_filter(
             $guardados,
             fn($key) => isset($config[$key]) && $this->tieneAccesoAModulo($config[$key]['permiso_modulo'] ?? $key)

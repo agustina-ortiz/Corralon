@@ -125,6 +125,27 @@
         </div>
     </div>
 
+    <!-- Alerta del dashboard aplicada como filtro -->
+    @if($alertaActiva)
+        <div class="mb-6 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <span class="text-sm">
+                    Mostrando vehículos con alerta: <span class="font-semibold">{{ $alertaActiva['label'] }}</span>
+                    <span class="text-amber-600">(no dados de baja)</span>
+                </span>
+            </div>
+            <button wire:click="quitarAlerta" class="text-sm font-medium text-amber-700 hover:text-amber-900 flex items-center gap-1 whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Quitar
+            </button>
+        </div>
+    @endif
+
     <!-- Mensaje de éxito -->
     @if (session()->has('message'))
         <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">

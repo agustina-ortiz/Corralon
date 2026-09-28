@@ -10,6 +10,7 @@ use App\Models\Deposito;
 use App\Models\DocumentoVehiculo;
 use App\Models\Secretaria;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Attributes\Url;
 
 class AbmVehiculos extends Component
 {
@@ -25,6 +26,10 @@ class AbmVehiculos extends Component
     public $filtro_marca_modelo = '';
     public $filtro_estado = '';
     public $filtro_secretaria = '';
+
+    // Alerta del dashboard (clave de Vehiculo::ALERTAS), llega como /vehiculos?alerta=...
+    #[Url(as: 'alerta', except: '')]
+    public $filtro_alerta = '';
 
     // Campos del formulario
     public $nro_patrimonio;
@@ -122,6 +127,12 @@ class AbmVehiculos extends Component
     public function updatingFiltroEstado() { $this->resetPage(); }
     public function updatingFiltroSecretaria() { $this->resetPage(); }
 
+    public function quitarAlerta()
+    {
+        $this->filtro_alerta = '';
+        $this->resetPage();
+    }
+
     public function limpiarFiltros()
     {
         $this->filtro_marca_modelo = '';
@@ -146,6 +157,7 @@ class AbmVehiculos extends Component
             ->when($this->filtro_marca_modelo, fn($q) => $q->where('marca_modelo', $this->filtro_marca_modelo))
             ->when($this->filtro_estado, fn($q) => $q->where('estado', $this->filtro_estado))
             ->when($this->filtro_secretaria, fn($q) => $q->where('id_secretaria', $this->filtro_secretaria))
+            ->when(isset(Vehiculo::ALERTAS[$this->filtro_alerta]), fn($q) => $q->conAlerta($this->filtro_alerta))
             ->orderBy('vehiculo')
             ->paginate(10);
 
@@ -164,6 +176,7 @@ class AbmVehiculos extends Component
             'depositos' => $depositos,
             'marcasModelos' => $marcasModelos,
             'secretarias' => $secretarias,
+            'alertaActiva' => Vehiculo::ALERTAS[$this->filtro_alerta] ?? null,
             'puedeCrear' => $user->puedeCrearVehiculos(),
             'puedeEditar' => $user->puedeEditarVehiculos(),
             'puedeEliminar' => $user->puedeEliminarVehiculos(),

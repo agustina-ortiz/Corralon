@@ -390,10 +390,15 @@ Solapa dedicada de estadísticas con **gráficos customizables por usuario** (mi
 
 El dashboard muestra:
 - **Stock bajo mínimo** — insumos donde `stock_actual < stock_minimo`
-- **VTV próximas a vencer** — vehículos con `vencimiento_vtv` en los próximos 30 días
+- **Vencimientos de vehículos** — 3 widgets (`vtv_vencer`, `poliza_vencer`, `oblea_vencer`) con un partial común `partials/dashboard-vencimiento.blade.php`: vencidos + por vencer en `Vehiculo::DIAS_ALERTA_VENCIMIENTO` (30) días, cabecera "X vencidas · Y por vencer" y aviso de cuántos vehículos no tienen la fecha cargada (para que "sin vencimientos" no engañe). La oblea aplica solo a `tipo_combustible = 'gas'`.
+- **Vehículos con datos incompletos** (`vehiculos_datos`) y **Vehículos a revisar** (`vehiculos_revisar`: en mantenimiento, en uso sin chofer, patente repetida) — partial `partials/dashboard-contadores-vehiculos.blade.php`, una fila por alerta con contador (las que dan 0 se ocultan).
 - **Licencias de choferes próximas a vencer** — via `licenciaProximaAVencer()`
 - **Eventos próximos** — eventos con fecha cercana
 - **Vehículos en uso** — vehículos con estado activo/en circulación
+
+**Alertas de vehículos — fuente única:** `Vehiculo::ALERTAS` (clave → grupo `vencimientos`/`datos`/`operativos` + label + campo) y el scope `Vehiculo::conAlerta($clave)`. Todas excluyen BAJA (`scopeNoDadosDeBaja`). "Sin dato" = NULL o texto vacío (`scopeSinDato`; en fechas e `id_*` solo NULL — `nro_patrimonio` está guardado como `''`). `PATENTES_NO_POSEE` (`'no posee'`) no cuenta como patente repetida. Cada fila/contador linkea a `/vehiculos?alerta=<clave>`: `AbmVehiculos::$filtro_alerta` (`#[Url(as: 'alerta')]`) aplica `conAlerta()` y muestra un banner ámbar con botón "Quitar". Agregar una alerta = entrada en `ALERTAS` (+ caso en `conAlerta()` si es operativa).
+
+**Widgets nuevos y preferencias guardadas:** `guardarPreferencias()` guarda también `dashboard_widgets.conocidos` (claves existentes al guardar). `User::dashboardActivosPara()` activa automáticamente las claves del config que el usuario no conocía; para preferencias guardadas antes de este mecanismo usa `config('dashboard.conocidos_legado')` — **no tocar esa lista**.
 
 ---
 

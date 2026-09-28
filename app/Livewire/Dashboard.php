@@ -32,6 +32,11 @@ class Dashboard extends Component
         $user->dashboard_widgets = [
             'cards'   => $this->seleccionCards,
             'widgets' => $this->seleccionWidgets,
+            // Claves existentes al guardar: las que se agreguen después se activan solas
+            'conocidos' => [
+                'cards'   => array_keys(config('dashboard.cards')),
+                'widgets' => array_keys(config('dashboard.widgets')),
+            ],
         ];
         $user->save();
 
@@ -85,18 +90,45 @@ class Dashboard extends Component
             $countInsumosBajoMinimo = $insumosBajoMinimo->count();
         }
 
-        $vtvProximasVencer    = collect();
-        $countVtvProximasVencer = 0;
-        if (in_array('vtv_vencer', $widgetsActivos)) {
-            $fechaLimite = Carbon::now()->addDays(30)->endOfDay();
-            $query = Vehiculo::with(['deposito.corralon'])
-                ->whereNotNull('vencimiento_vtv')
-                ->where('vencimiento_vtv', '<=', $fechaLimite);
-            $vtvProximasVencer = $this->filtrarPorDepositos($query, $user, 'vehiculos')
-                ->orderBy('vencimiento_vtv', 'asc')
+        // Vencimientos de vehículos (VTV / póliza / oblea): widget => [alerta de vencimiento, alerta de fecha faltante]
+        $widgetsVencimiento = [
+            'vtv_vencer'    => ['alerta' => 'vtv_vencer',    'sin_fecha' => 'sin_venc_vtv',    'titulo' => 'VTVs Próximas a Vencer',       'documento' => 'VTV'],
+            'poliza_vencer' => ['alerta' => 'poliza_vencer', 'sin_fecha' => 'sin_venc_poliza', 'titulo' => 'Pólizas Próximas a Vencer',    'documento' => 'póliza'],
+            'oblea_vencer'  => ['alerta' => 'oblea_vencer',  'sin_fecha' => 'sin_venc_oblea',  'titulo' => 'Obleas GNC Próximas a Vencer', 'documento' => 'oblea GNC'],
+        ];
+        $vencimientos = [];
+        foreach ($widgetsVencimiento as $key => $def) {
+            if (!in_array($key, $widgetsActivos)) continue;
+
+            $campo = Vehiculo::ALERTAS[$def['alerta']]['campo'];
+            $vehiculos = $this->filtrarPorDepositos(Vehiculo::with('secretaria')->conAlerta($def['alerta']), $user, 'vehiculos')
+                ->orderBy($campo, 'asc')
                 ->get();
-            $countVtvProximasVencer = $vtvProximasVencer->count();
+
+            $vencimientos[$key] = $def + [
+                'campo'     => $campo,
+                'vehiculos' => $vehiculos,
+                'vencidos'  => $vehiculos->filter(fn($v) => $v->$campo->lt(Carbon::today()))->count(),
+                'cantSinFecha' => $this->filtrarPorDepositos(Vehiculo::conAlerta($def['sin_fecha']), $user, 'vehiculos')->count(),
+            ];
         }
+
+        // Contadores por alerta (datos incompletos / a revisar); se ocultan los que dan 0
+        $contarAlertas = function (string $grupo) use ($user) {
+            return collect(Vehiculo::ALERTAS)
+                ->filter(fn($a) => $a['grupo'] === $grupo)
+                ->map(fn($a, $clave) => $a + [
+                    'clave'    => $clave,
+                    'cantidad' => $this->filtrarPorDepositos(Vehiculo::conAlerta($clave), $user, 'vehiculos')->count(),
+                ])
+                ->filter(fn($a) => $a['cantidad'] > 0)
+                ->values();
+        };
+        $vehiculosDatos   = in_array('vehiculos_datos', $widgetsActivos)   ? $contarAlertas('datos')      : collect();
+        $vehiculosRevisar = in_array('vehiculos_revisar', $widgetsActivos) ? $contarAlertas('operativos') : collect();
+        $totalVehiculosActivos = in_array('vehiculos_datos', $widgetsActivos)
+            ? $this->filtrarPorDepositos(Vehiculo::noDadosDeBaja(), $user, 'vehiculos')->count()
+            : 0;
 
         $vehiculosEnUso    = collect();
         $countVehiculosEnUso = 0;
@@ -136,11 +168,13 @@ class Dashboard extends Component
             'totalVehiculos'  => $totalVehiculos,
             'countProximosEventos' => $countProximosEventos,
             'insumosBajoMinimo'    => $insumosBajoMinimo,
-            'vtvProximasVencer'    => $vtvProximasVencer,
+            'vencimientos'         => $vencimientos,
+            'vehiculosDatos'       => $vehiculosDatos,
+            'vehiculosRevisar'     => $vehiculosRevisar,
+            'totalVehiculosActivos' => $totalVehiculosActivos,
             'vehiculosEnUso'       => $vehiculosEnUso,
             'proximosEventos'      => $proximosEventos,
             'countInsumosBajoMinimo'    => $countInsumosBajoMinimo,
-            'countVtvProximasVencer'    => $countVtvProximasVencer,
             'countVehiculosEnUso'       => $countVehiculosEnUso,
             'countProximosEventosWidget' => $countProximosEventosWidget,
             'opcionesCards'   => $opcionesCards,

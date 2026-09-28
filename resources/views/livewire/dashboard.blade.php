@@ -139,100 +139,28 @@
         </div>
         @endif
 
-        @if(in_array('vtv_vencer', $widgetsActivos))
-        <!-- VTVs Próximas a Vencer -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-            <div class="bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 flex items-center justify-between border-b border-amber-200">
-                <div class="flex items-center">
-                    <svg class="w-6 h-6 text-amber-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
-                    <h3 class="text-lg font-semibold text-gray-800">VTVs Próximas a Vencer</h3>
-                </div>
-                <span class="bg-amber-200 text-amber-800 font-bold px-3 py-1 rounded-full text-sm">
-                    {{ $countVtvProximasVencer }}
-                </span>
-            </div>
-            <div class="p-6">
-                @if($vtvProximasVencer->count() > 0)
-                    <div class="space-y-3 max-h-96 overflow-y-auto">
-                        @foreach($vtvProximasVencer as $vehiculo)
-                            @php
-                                $vencimiento = \Carbon\Carbon::parse($vehiculo->vencimiento_vtv);
-                                $hoy = \Carbon\Carbon::today();
-                                $diasRestantes = (int) $hoy->diffInDays($vencimiento, false);
-                                $estaVencida = $diasRestantes < 0;
-                                $vencePronto = $diasRestantes >= 0 && $diasRestantes <= 7;
-                            @endphp
-                            <div class="flex items-center justify-between p-3
-                                @if($estaVencida) bg-red-50 border border-red-200 hover:border-red-300 hover:bg-red-100
-                                @elseif($vencePronto) bg-orange-50 border border-orange-200 hover:border-orange-300 hover:bg-orange-100
-                                @else bg-amber-50 border border-amber-100 hover:border-amber-200 hover:bg-amber-100
-                                @endif
-                                rounded-lg transition-colors">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-2">
-                                        @if($vehiculo->nro_patrimonio)
-                                            <span class="
-                                                @if($estaVencida) bg-red-600 text-white
-                                                @elseif($vencePronto) bg-orange-600 text-white
-                                                @else bg-amber-600 text-white
-                                                @endif
-                                                px-2 py-1 rounded text-xs font-bold">
-                                                {{ $vehiculo->nro_patrimonio }}
-                                            </span>
-                                        @endif
-                                        <p class="font-semibold text-gray-800">{{ $vehiculo->vehiculo }}</p>
-                                    </div>
-                                    @if($vehiculo->marca_modelo)
-                                        <p class="text-sm text-gray-600 mt-1">{{ $vehiculo->marca_modelo }}</p>
-                                    @endif
-                                    @if($vehiculo->patente)
-                                        <p class="text-xs text-gray-500 mt-1">Patente: {{ $vehiculo->patente }}</p>
-                                    @endif
-                                    <p class="text-xs text-gray-500">
-                                        {{ $vehiculo->deposito->deposito ?? 'Sin depósito' }} •
-                                        {{ $vehiculo->deposito->corralon->descripcion ?? 'Sin corralón' }}
-                                    </p>
-                                </div>
-                                <div class="text-right ml-4">
-                                    <div class="text-sm font-semibold
-                                        @if($estaVencida) text-red-700
-                                        @elseif($vencePronto) text-orange-700
-                                        @else text-amber-700
-                                        @endif">
-                                        {{ $vencimiento->format('d/m/Y') }}
-                                    </div>
-                                    <p class="text-xs font-medium mt-1
-                                        @if($estaVencida) text-red-600
-                                        @elseif($vencePronto) text-orange-600
-                                        @else text-amber-600
-                                        @endif">
-                                        @if($estaVencida)
-                                            Vencida hace {{ abs($diasRestantes) }} día{{ abs($diasRestantes) != 1 ? 's' : '' }}
-                                        @elseif($diasRestantes == 0)
-                                            Vence hoy
-                                        @elseif($diasRestantes == 1)
-                                            Vence mañana
-                                        @else
-                                            Vence en {{ $diasRestantes }} días
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="font-medium">Todas las VTVs están al día</p>
-                        <p class="text-xs text-gray-400 mt-1">No hay vehículos con VTV próxima a vencer (30 días)</p>
-                    </div>
-                @endif
-            </div>
-        </div>
+        @foreach($vencimientos as $v)
+            @include('livewire.partials.dashboard-vencimiento', ['v' => $v])
+        @endforeach
+
+        @if(in_array('vehiculos_datos', $widgetsActivos))
+            @include('livewire.partials.dashboard-contadores-vehiculos', [
+                'titulo'       => 'Vehículos con Datos Incompletos',
+                'subtitulo'    => 'Sobre ' . number_format($totalVehiculosActivos) . ' vehículos no dados de baja',
+                'alertas'      => $vehiculosDatos,
+                'total'        => $totalVehiculosActivos,
+                'mensajeVacio' => 'Todos los vehículos tienen los datos completos',
+                'icono'        => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+            ])
+        @endif
+
+        @if(in_array('vehiculos_revisar', $widgetsActivos))
+            @include('livewire.partials.dashboard-contadores-vehiculos', [
+                'titulo'       => 'Vehículos a Revisar',
+                'alertas'      => $vehiculosRevisar,
+                'mensajeVacio' => 'No hay vehículos para revisar',
+                'icono'        => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
+            ])
         @endif
 
         @if(in_array('vehiculos_en_uso', $widgetsActivos))

@@ -63,7 +63,100 @@ class Vehiculo extends Model
         });
     }
 
-     protected $table = 'vehiculos';
+    /** Días de anticipación para alertar un vencimiento (VTV, póliza, oblea). */
+    const DIAS_ALERTA_VENCIMIENTO = 30;
+
+    /**
+     * Alertas de vehículos (dashboard + filtro `?alerta=` de /vehiculos).
+     * Todas excluyen los vehículos en BAJA. Grupos:
+     *  - vencimientos: fecha vencida o dentro de DIAS_ALERTA_VENCIMIENTO
+     *  - datos: campos sin cargar (NULL o vacío)
+     *  - operativos: situaciones de la flota a revisar
+     */
+    const ALERTAS = [
+        'vtv_vencer'          => ['grupo' => 'vencimientos', 'label' => 'VTV vencida o por vencer',        'campo' => 'vencimiento_vtv'],
+        'poliza_vencer'       => ['grupo' => 'vencimientos', 'label' => 'Póliza vencida o por vencer',     'campo' => 'vencimiento_poliza'],
+        'oblea_vencer'        => ['grupo' => 'vencimientos', 'label' => 'Oblea GNC vencida o por vencer',  'campo' => 'vencimiento_oblea'],
+
+        'sin_poliza'          => ['grupo' => 'datos', 'label' => 'Sin N° de póliza',              'campo' => 'nro_poliza'],
+        'sin_venc_poliza'     => ['grupo' => 'datos', 'label' => 'Sin vencimiento de póliza',     'campo' => 'vencimiento_poliza'],
+        'sin_venc_vtv'        => ['grupo' => 'datos', 'label' => 'Sin vencimiento de VTV',        'campo' => 'vencimiento_vtv'],
+        'sin_venc_oblea'      => ['grupo' => 'datos', 'label' => 'A gas sin vencimiento de oblea', 'campo' => 'vencimiento_oblea'],
+        'sin_patente'         => ['grupo' => 'datos', 'label' => 'Sin patente',                   'campo' => 'patente'],
+        'sin_patrimonio'      => ['grupo' => 'datos', 'label' => 'Sin N° de patrimonio',          'campo' => 'nro_patrimonio'],
+        'sin_secretaria'      => ['grupo' => 'datos', 'label' => 'Sin secretaría',                'campo' => 'id_secretaria'],
+        'sin_combustible'     => ['grupo' => 'datos', 'label' => 'Sin tipo de combustible',       'campo' => 'tipo_combustible'],
+        'sin_anio'            => ['grupo' => 'datos', 'label' => 'Sin año',                       'campo' => 'anio'],
+        'sin_chasis'          => ['grupo' => 'datos', 'label' => 'Sin N° de chasis',              'campo' => 'nro_chasis'],
+        'sin_motor'           => ['grupo' => 'datos', 'label' => 'Sin N° de motor',               'campo' => 'nro_motor'],
+
+        'en_mantenimiento'    => ['grupo' => 'operativos', 'label' => 'En mantenimiento'],
+        'sin_chofer'          => ['grupo' => 'operativos', 'label' => 'En uso sin chofer asignado'],
+        'patente_duplicada'   => ['grupo' => 'operativos', 'label' => 'Patente repetida en otro vehículo'],
+    ];
+
+    /** Valores de `patente` que indican que el vehículo no lleva patente (no cuentan como duplicado). */
+    const PATENTES_NO_POSEE = ['no posee'];
+
+    /** Columnas de fecha: "sin dato" es solo NULL (comparar una fecha con '' falla en modo estricto). */
+    const CAMPOS_FECHA = ['vencimiento_vtv', 'vencimiento_poliza', 'vencimiento_oblea'];
+
+    /** Excluye los vehículos dados de baja. */
+    public function scopeNoDadosDeBaja(Builder $query)
+    {
+        return $query->where(fn($q) => $q->whereNull('estado')->orWhere('estado', '<>', 'BAJA'));
+    }
+
+    /** Vehículos (no dados de baja) que disparan la alerta `$clave` de ALERTAS. */
+    public function scopeConAlerta(Builder $query, string $clave)
+    {
+        $alerta = self::ALERTAS[$clave] ?? null;
+        if (!$alerta) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $query->noDadosDeBaja();
+
+        switch ($alerta['grupo']) {
+            case 'vencimientos':
+                if ($clave === 'oblea_vencer') {
+                    $query->where('tipo_combustible', 'gas');
+                }
+                return $query->whereNotNull($alerta['campo'])
+                    ->where($alerta['campo'], '<=', now()->addDays(self::DIAS_ALERTA_VENCIMIENTO)->toDateString());
+
+            case 'datos':
+                if ($clave === 'sin_venc_oblea') {
+                    $query->where('tipo_combustible', 'gas');
+                }
+                return $query->sinDato($alerta['campo']);
+        }
+
+        return match ($clave) {
+            'en_mantenimiento'  => $query->where('estado', 'MANTENIMIENTO'),
+            'sin_chofer'        => $query->where('estado', 'EN USO')->doesntHave('choferes'),
+            'patente_duplicada' => $query->whereIn('patente', function ($sub) {
+                $sub->select('patente')->from('vehiculos')
+                    ->where('patente', '<>', '')
+                    ->whereNotIn('patente', self::PATENTES_NO_POSEE)
+                    ->where(fn($q) => $q->whereNull('estado')->orWhere('estado', '<>', 'BAJA'))
+                    ->groupBy('patente')
+                    ->havingRaw('COUNT(*) > 1');
+            }),
+        };
+    }
+
+    /** Campo sin cargar: NULL, o vacío/espacios en columnas de texto. */
+    public function scopeSinDato(Builder $query, string $campo)
+    {
+        if (in_array($campo, self::CAMPOS_FECHA) || str_starts_with($campo, 'id_')) {
+            return $query->whereNull($campo);
+        }
+
+        return $query->where(fn($q) => $q->whereNull($campo)->orWhereRaw("TRIM(`{$campo}`) = ''"));
+    }
+
+    protected $table = 'vehiculos';
     
     protected $fillable = [
         'id_tipo_vehiculo',
