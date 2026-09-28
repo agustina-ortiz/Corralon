@@ -127,8 +127,12 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 ### Módulos globales (sin `id_corralon`)
 `empleados`, `choferes`, `eventos`, `categorias_insumos`, `categorias_maquinarias`, `usuarios`, `secretarias`
 
+### Módulos mixtos (`UsuarioPermiso::MODULOS_MIXTOS`)
+`vehiculos` — es por ubicación pero **también** admite un permiso global (`id_corralon = NULL`) que da acceso a **todos** los registros. En AbmUsuarios aparece en ambas secciones: "Vehículos (todos)" en Módulos Globales, y por corralón (si tiene el global, el corralón muestra "Todos (global)" y `guardar()` no graba filas por corralón de ese módulo). `UsuarioPermiso::esPermisoGlobal($modulo, $idCorralon)` decide en qué sección cargar/resumir cada fila.
+
 ### Métodos de autorización en `User`
 - `esAdministrador()` — rol Administrador, acceso total
+- `tieneAccesoGlobalAModulo($modulo)` — admin o permiso sin corralón; en módulos mixtos hace que `getCorralonesParaModulo()` / `getDepositosPermitidosParaModulo()` devuelvan todos
 - `tieneAccesoAModulo($modulo)` — puede ver el módulo (sidebar)
 - `puedeEditarEnModulo($modulo, $corralonId?, $depositoId?)` — puede ABM
 - `getCorralonesParaModulo($modulo)` — IDs de corralones para un módulo
@@ -345,15 +349,14 @@ Orden de ejecución: Corralones → Depositos → Categorías → Insumos → In
 
 ---
 
-## Acceso a Vehículos — POR SECRETARÍA (no por depósito)
+## Acceso a Vehículos — GLOBAL o POR DEPÓSITO/SECRETARÍA
 
-A diferencia de Insumos/Maquinaria (que filtran por `id_deposito` vía trait `FiltraPorPermisos`), el acceso a vehículos se rige por **`vehiculo.id_secretaria`** a través del pivote `depositos_secretarias`:
+`vehiculos` es un **módulo mixto** (ver Autorización). Dos formas de dar acceso:
 
-- Un no-admin ve un vehículo si su `id_secretaria` está vinculada (pivote) a **alguno de los depósitos a los que tiene acceso** en el módulo `vehiculos`. El **administrador ve todos**.
-- Implementado sobrescribiendo `scopePorCorralonesPermitidos()` **solo en el modelo `Vehiculo`** (no toca el trait; Insumo/Maquinaria intactos). `AbmVehiculos::render()` sigue llamando `->porCorralonesPermitidos()` sin cambios.
-- Motivo: **ningún vehículo tiene `id_deposito` cargado** (todos null); el dato real es `id_secretaria`. El filtro viejo por depósito mostraba 0 vehículos a los no-admin.
-- **Requisito operativo:** hasta que se cargue el pivote `depositos_secretarias`, los no-admin ven **0 vehículos** (el admin ve todo igual). Los vehículos sin `id_secretaria` solo los ve el admin.
-- En **Estadísticas** (`Estadisticas::vehiculosFiltrados()`) se aplica la misma lógica por secretaría (admin sin filtros de ubicación → todos).
+- **Global** (fila en `usuario_permisos` con `id_corralon = NULL`, "Vehículos (todos)" en la UI) → ve **todos** los vehículos, incluidos los sin secretaría. Igual que el admin.
+- **Por corralón/depósito** → ve un vehículo si su `id_deposito` está entre sus depósitos permitidos **o** si su `id_secretaria` está vinculada (pivote `depositos_secretarias`) a alguno de esos depósitos. Hoy **ningún vehículo tiene `id_deposito`**, así que en la práctica decide el pivote: las secretarías que no están en el pivote no se ven, y los vehículos sin secretaría tampoco.
+- Implementado en `Vehiculo::scopePorCorralonesPermitidos()` (sobrescribe el del trait solo en este modelo) + `Vehiculo::scopeEnDepositos(array $depositos)`. Es **la única fuente del criterio**: la usan `AbmVehiculos` (listado y `verificarAccesoVehiculo()` para editar/eliminar/documentos), `Dashboard::filtrarPorDepositos()` / `DashboardController` y `Estadisticas::vehiculosFiltrados()` (con acceso global y sin filtros de ubicación → todos; con filtros → `enDepositos(depositosConstraint())`).
+- En `AbmVehiculos::guardar()` el depósito es opcional y solo se valida contra los permitidos si se elige uno.
 
 ## Solapa Estadísticas (`/estadisticas`)
 
