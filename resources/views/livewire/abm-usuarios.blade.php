@@ -352,11 +352,11 @@
                                 <!-- PERMISOS GLOBALES -->
                                 <div class="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
                                     <h5 class="text-sm font-semibold text-gray-700 mb-3">Modulos Globales</h5>
-                                    <p class="text-xs text-gray-500 mb-3">Estos modulos no dependen de un corralon especifico.</p>
+                                    <p class="text-xs text-gray-500 mb-3">Estos modulos no dependen de un corralon especifico. "Vehículos (todos)" da acceso a todos los vehículos; para restringirlo a ciertos corralones/depósitos usá los permisos por corralón.</p>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                         @foreach($modulosGlobales as $modulo)
                                         <div class="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100">
-                                            <span class="text-sm text-gray-700">{{ $todosLosModulos[$modulo] }}</span>
+                                            <span class="text-sm text-gray-700">{{ $todosLosModulos[$modulo] }}@if(in_array($modulo, $modulosMixtos)) (todos)@endif</span>
                                             <div class="flex gap-1">
                                                 <button type="button"
                                                     wire:click="toggleModuloGlobal('{{ $modulo }}', 'ver')"
@@ -400,6 +400,9 @@
                                                 @foreach($modulosPorUbicacion as $modulo)
                                                 <div class="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
                                                     <span class="text-sm text-gray-700">{{ $todosLosModulos[$modulo] }}</span>
+                                                    @if(in_array($modulo, $modulosMixtos) && isset($permisos_globales[$modulo]))
+                                                    <span class="text-xs text-gray-400 italic">Todos (global)</span>
+                                                    @else
                                                     <div class="flex gap-1">
                                                         <button type="button"
                                                             wire:click="toggleModuloCorralon('{{ $corralonId }}', '{{ $modulo }}', 'ver')"
@@ -412,6 +415,7 @@
                                                             Editar
                                                         </button>
                                                     </div>
+                                                    @endif
                                                 </div>
                                                 @endforeach
                                             </div>

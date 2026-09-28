@@ -220,7 +220,7 @@ class AbmUsuarios extends Component
         $this->depositos_especificos = [];
 
         foreach ($usuario->permisos as $permiso) {
-            if (UsuarioPermiso::esModuloGlobal($permiso->modulo)) {
+            if (UsuarioPermiso::esPermisoGlobal($permiso->modulo, $permiso->id_corralon)) {
                 $this->permisos_globales[$permiso->modulo] = $permiso->nivel_acceso;
             } elseif ($permiso->id_corralon) {
                 $corralonId = (string) $permiso->id_corralon;
@@ -308,6 +308,11 @@ class AbmUsuarios extends Component
                 // Permisos por corralon
                 foreach ($this->permisos_por_corralon as $corralonId => $modulos) {
                     foreach ($modulos as $modulo => $nivel) {
+                        // Módulo mixto con permiso global: ya ve todo, el permiso por corralón sobra
+                        if (UsuarioPermiso::esModuloMixto($modulo) && isset($this->permisos_globales[$modulo])) {
+                            continue;
+                        }
+
                         // Verificar si hay depositos especificos
                         $depositosEsp = $this->depositos_especificos[$corralonId][$modulo] ?? [];
 
@@ -413,7 +418,7 @@ class AbmUsuarios extends Component
 
         $resumen = [];
         foreach ($usuario->permisos as $p) {
-            if (UsuarioPermiso::esModuloGlobal($p->modulo)) {
+            if (UsuarioPermiso::esPermisoGlobal($p->modulo, $p->id_corralon)) {
                 $resumen['globales'][$p->modulo] = $p->nivel_acceso;
             } else {
                 $resumen['corralones'][$p->id_corralon][$p->modulo] = $p->nivel_acceso;
@@ -432,7 +437,8 @@ class AbmUsuarios extends Component
             'corralones' => $this->corralones,
             'roles' => $this->roles,
             'modulosPorUbicacion' => UsuarioPermiso::MODULOS_POR_UBICACION,
-            'modulosGlobales' => UsuarioPermiso::MODULOS_GLOBALES,
+            'modulosGlobales' => array_merge(UsuarioPermiso::MODULOS_MIXTOS, UsuarioPermiso::MODULOS_GLOBALES),
+            'modulosMixtos' => UsuarioPermiso::MODULOS_MIXTOS,
             'todosLosModulos' => UsuarioPermiso::MODULOS,
             'puedeCrear' => $user->puedeCrearUsuarios(),
             'puedeEditar' => $user->puedeEditarUsuarios(),

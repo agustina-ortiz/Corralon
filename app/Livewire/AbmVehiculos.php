@@ -174,10 +174,8 @@ class AbmVehiculos extends Component
 
     private function verificarAccesoVehiculo($vehiculo): bool
     {
-        $user = auth()->user();
-        if ($user->esAdministrador()) return true;
-        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
-        return in_array($vehiculo->id_deposito, $depositosPermitidos);
+        // Mismo criterio que el listado (global, depósito o secretaría vía pivote)
+        return Vehiculo::whereKey($vehiculo->id)->porCorralonesPermitidos()->exists();
     }
 
     public function abrirModalDocumentos($vehiculoId)
@@ -270,7 +268,8 @@ class AbmVehiculos extends Component
         $user = auth()->user();
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
 
-        if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
+        // El depósito es opcional: solo se valida si se eligió uno
+        if ($this->id_deposito && !$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
             session()->flash('error', 'No tienes permisos para usar ese deposito.');
             return;
         }

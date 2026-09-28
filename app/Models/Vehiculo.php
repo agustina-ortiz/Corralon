@@ -14,15 +14,14 @@ class Vehiculo extends Model
     const MODULO_PERMISO = 'vehiculos';
 
     /**
-     * Acceso a vehículos POR SECRETARÍA (no por depósito propio).
+     * Acceso a vehículos (módulo mixto `vehiculos`):
      *
-     * Los vehículos no usan `id_deposito` para el control de acceso: se rige por
-     * `id_secretaria` a través del pivote `depositos_secretarias`. Un usuario ve un
-     * vehículo si la secretaría del vehículo está vinculada a alguno de los depósitos
-     * a los que tiene acceso en el módulo `vehiculos`. El administrador ve todo.
+     * - Admin o permiso GLOBAL (usuario_permisos con id_corralon NULL) => todos los
+     *   vehículos, incluidos los que no tienen secretaría.
+     * - Permiso por corralón/depósito => ver scopeEnDepositos().
      *
-     * Sobrescribe el scope homónimo del trait FiltraPorPermisos (que filtra por
-     * `id_deposito`) únicamente para este modelo; Insumo/Maquinaria no se ven afectados.
+     * Sobrescribe el scope homónimo del trait FiltraPorPermisos únicamente para
+     * este modelo; Insumo/Maquinaria no se ven afectados.
      */
     public function scopePorCorralonesPermitidos(Builder $query)
     {
@@ -32,27 +31,36 @@ class Vehiculo extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->esAdministrador()) {
+        if ($user->tieneAccesoGlobalAModulo(self::MODULO_PERMISO)) {
             return $query;
         }
 
-        $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
+        return $query->enDepositos($user->getDepositosPermitidosParaModulo(self::MODULO_PERMISO));
+    }
 
-        if (empty($depositosPermitidos)) {
+    /**
+     * Vehículos que corresponden a un conjunto de depósitos: los que tienen
+     * `id_deposito` en ese conjunto, o cuya `id_secretaria` está vinculada a
+     * alguno de esos depósitos por el pivote `depositos_secretarias`.
+     */
+    public function scopeEnDepositos(Builder $query, array $depositos)
+    {
+        if (empty($depositos)) {
             return $query->whereRaw('1 = 0');
         }
 
-        $secretariasPermitidas = DB::table('depositos_secretarias')
-            ->whereIn('id_deposito', $depositosPermitidos)
+        $secretarias = DB::table('depositos_secretarias')
+            ->whereIn('id_deposito', $depositos)
             ->pluck('id_secretaria')
             ->unique()
             ->all();
 
-        if (empty($secretariasPermitidas)) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query->whereIn('id_secretaria', $secretariasPermitidas);
+        return $query->where(function ($q) use ($depositos, $secretarias) {
+            $q->whereIn('id_deposito', $depositos);
+            if (!empty($secretarias)) {
+                $q->orWhereIn('id_secretaria', $secretarias);
+            }
+        });
     }
 
      protected $table = 'vehiculos';

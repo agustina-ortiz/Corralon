@@ -115,6 +115,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Acceso a TODOS los registros de un módulo: admin, o permiso sin corralón
+     * (módulos globales y módulos mixtos cargados como globales, ej. vehiculos).
+     */
+    public function tieneAccesoGlobalAModulo(string $modulo): bool
+    {
+        if ($this->esAdministrador()) return true;
+
+        return $this->getPermisosCache()
+            ->where('modulo', $modulo)
+            ->whereNull('id_corralon')
+            ->isNotEmpty();
+    }
+
+    /**
      * Verifica si el usuario puede editar (ABM) en un módulo
      */
     public function puedeEditarEnModulo(string $modulo, ?int $corralonId = null, ?int $depositoId = null): bool
@@ -174,7 +188,8 @@ class User extends Authenticatable
      */
     public function getCorralonesParaModulo(string $modulo): array
     {
-        if ($this->esAdministrador()) {
+        if ($this->esAdministrador()
+            || (UsuarioPermiso::esModuloMixto($modulo) && $this->tieneAccesoGlobalAModulo($modulo))) {
             return Corralon::pluck('id')->toArray();
         }
 
@@ -192,7 +207,9 @@ class User extends Authenticatable
      */
     public function getDepositosPermitidosParaModulo(string $modulo, ?int $corralonId = null): array
     {
-        if ($this->esAdministrador()) {
+        // Admin, o permiso global en un módulo mixto => todos los depósitos
+        if ($this->esAdministrador()
+            || (UsuarioPermiso::esModuloMixto($modulo) && $this->tieneAccesoGlobalAModulo($modulo))) {
             $query = Deposito::query();
             if ($corralonId) $query->where('id_corralon', $corralonId);
             return $query->pluck('id')->toArray();

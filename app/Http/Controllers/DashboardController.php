@@ -21,11 +21,10 @@ class DashboardController extends Controller
         } else {
             $depositosInsumos = $user->getDepositosPermitidosParaModulo('insumos');
             $depositosMaquinarias = $user->getDepositosPermitidosParaModulo('maquinarias');
-            $depositosVehiculos = $user->getDepositosPermitidosParaModulo('vehiculos');
 
             $totalInsumos = !empty($depositosInsumos) ? Insumo::whereIn('id_deposito', $depositosInsumos)->count() : 0;
             $totalMaquinaria = !empty($depositosMaquinarias) ? Maquinaria::whereIn('id_deposito', $depositosMaquinarias)->count() : 0;
-            $totalVehiculos = !empty($depositosVehiculos) ? Vehiculo::whereIn('id_deposito', $depositosVehiculos)->count() : 0;
+            $totalVehiculos = Vehiculo::porCorralonesPermitidos()->count();
         }
 
         return view('dashboard', compact(

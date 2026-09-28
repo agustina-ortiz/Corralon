@@ -513,20 +513,18 @@ class Estadisticas extends Component
     }
 
     /**
-     * Vehículos filtrados por acceso POR SECRETARÍA (pivote depositos_secretarias)
-     * + filtros de corralón/depósito. El acceso de vehículos no usa id_deposito.
-     * Admin sin filtros de ubicación => todos los vehículos.
+     * Vehículos filtrados por acceso (id_deposito o secretaría vía pivote
+     * depositos_secretarias, ver Vehiculo::scopeEnDepositos) + filtros de
+     * corralón/depósito. Acceso global (admin o permiso sin corralón) sin
+     * filtros de ubicación => todos los vehículos.
      */
     private function vehiculosFiltrados()
     {
         $user = Auth::user();
         $query = Vehiculo::query();
 
-        if (!$user->esAdministrador() || $this->filtro_corralon || $this->filtro_deposito) {
-            $secretarias = DB::table('depositos_secretarias')
-                ->whereIn('id_deposito', $this->depositosConstraint('vehiculos'))
-                ->pluck('id_secretaria')->unique()->all();
-            $query->whereIn('id_secretaria', $secretarias);
+        if (!$user->tieneAccesoGlobalAModulo('vehiculos') || $this->filtro_corralon || $this->filtro_deposito) {
+            $query->enDepositos($this->depositosConstraint('vehiculos'));
         }
 
         return $query->get();

@@ -38,6 +38,12 @@ class UsuarioPermiso extends Model
         'secretarias',
     ];
 
+    // Módulos por ubicación que además admiten un permiso global (id_corralon = NULL)
+    // que da acceso a TODOS los registros. Se muestran en ambas secciones de la UI.
+    const MODULOS_MIXTOS = [
+        'vehiculos',
+    ];
+
     // Todos los módulos disponibles
     const MODULOS = [
         'insumos' => 'Insumos',
@@ -63,6 +69,21 @@ class UsuarioPermiso extends Model
     public static function esModuloGlobal(string $modulo): bool
     {
         return in_array($modulo, self::MODULOS_GLOBALES);
+    }
+
+    public static function esModuloMixto(string $modulo): bool
+    {
+        return in_array($modulo, self::MODULOS_MIXTOS);
+    }
+
+    /**
+     * Un permiso se trata como global si su módulo es global, o si es un
+     * módulo mixto cargado sin corralón (acceso a todos los registros).
+     */
+    public static function esPermisoGlobal(string $modulo, $idCorralon): bool
+    {
+        return self::esModuloGlobal($modulo)
+            || (self::esModuloMixto($modulo) && $idCorralon === null);
     }
 
     public static function esModuloPorUbicacion(string $modulo): bool
