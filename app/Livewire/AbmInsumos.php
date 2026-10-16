@@ -47,7 +47,7 @@ class AbmInsumos extends Component
         $rules = [
             'insumo' => 'required|string|max:100',
             'id_categoria' => 'required|exists:categorias_insumos,id',
-            'unidad' => 'required|in:UNIDAD,LITROS,TAMBOR,METRO,ROLLO X 100 MT,PAQUETE,BOLSA,BALDE',
+            'unidad' => 'required|in:UNIDAD,LITROS,TAMBOR,METRO,ROLLO X 100 MT,PAQUETE,BOLSA,BALDE,KILOS',
             'stock_minimo' => 'required|numeric|min:0',
             'id_deposito' => 'required|exists:depositos,id',
         ];

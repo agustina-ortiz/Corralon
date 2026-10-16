@@ -31,6 +31,9 @@ class TransferenciasInsumos extends Component
 {
     use WithPagination, WithFileUploads;
 
+    /** Valor especial del filtro "Tipo de Movimiento": movimientos cargados desde "Movimientos Múltiples". */
+    public const FILTRO_MULTIPLES = 'multiples';
+
     protected $listeners = ['refreshComponent' => '$refresh'];
     
     protected $updatesQueryString = [
@@ -321,8 +324,21 @@ class TransferenciasInsumos extends Component
                 });
             })
             ->when($this->filtro_tipo_movimiento, function($query) {
-                $query->where('id_tipo_movimiento', $this->filtro_tipo_movimiento);
+                $this->aplicarFiltroTipo($query);
             });
+    }
+
+    /**
+     * Filtro "Tipo de Movimiento" sobre movimientos sueltos: un id de tipo_movimientos
+     * o la opción especial FILTRO_MULTIPLES (cargados desde "Movimientos Múltiples").
+     */
+    private function aplicarFiltroTipo($query): void
+    {
+        if ($this->filtro_tipo_movimiento === self::FILTRO_MULTIPLES) {
+            $query->where('es_multiple', true);
+        } else {
+            $query->where('id_tipo_movimiento', $this->filtro_tipo_movimiento);
+        }
     }
 
     /**
@@ -338,7 +354,9 @@ class TransferenciasInsumos extends Component
         $salidas = $movimientos->filter(fn($m) => $m->tipoMovimiento?->esSalida());
 
         // Movimientos por tipo
-        $porTipo = $movimientos->groupBy(fn($m) => $m->tipoMovimiento->tipo_movimiento ?? 'Sin tipo')
+        $porTipo = $movimientos->groupBy(fn($m) => $m->es_multiple
+                ? 'Movimientos Múltiples'
+                : ($m->tipoMovimiento->tipo_movimiento ?? 'Sin tipo'))
             ->map(fn($g) => $g->count())
             ->sortDesc();
 
@@ -392,7 +410,11 @@ class TransferenciasInsumos extends Component
         if ($this->filtro_deposito_origen) $partes[] = 'Depósito: ' . (Deposito::find($this->filtro_deposito_origen)->deposito ?? '');
         if ($this->filtro_categoria) $partes[] = 'Categoría: ' . (CategoriaInsumo::find($this->filtro_categoria)->nombre ?? '');
         if ($this->filtro_insumo) $partes[] = "Insumo: {$this->filtro_insumo}";
-        if ($this->filtro_tipo_movimiento) $partes[] = 'Tipo: ' . (TipoMovimiento::find($this->filtro_tipo_movimiento)->tipo_movimiento ?? '');
+        if ($this->filtro_tipo_movimiento) {
+            $partes[] = 'Tipo: ' . ($this->filtro_tipo_movimiento === self::FILTRO_MULTIPLES
+                ? 'Movimientos Múltiples'
+                : (TipoMovimiento::find($this->filtro_tipo_movimiento)->tipo_movimiento ?? ''));
+        }
         if ($this->filtro_usuario) $partes[] = 'Usuario: ' . (User::find($this->filtro_usuario)->name ?? '');
         return implode(' · ', $partes);
     }
@@ -615,6 +637,11 @@ class TransferenciasInsumos extends Component
                 });
             })
             ->when($this->filtro_tipo_movimiento, function($query) {
+                if ($this->filtro_tipo_movimiento === self::FILTRO_MULTIPLES) {
+                    // Los movimientos múltiples son sueltos: no hay transferencias que mostrar
+                    $query->whereRaw('1 = 0');
+                    return;
+                }
                 $query->whereHas('movimientos', function($q) {
                     $q->where('id_tipo_movimiento', $this->filtro_tipo_movimiento);
                 });
@@ -669,7 +696,7 @@ class TransferenciasInsumos extends Component
                 });
             })
             ->when($this->filtro_tipo_movimiento, function($query) {
-                $query->where('id_tipo_movimiento', $this->filtro_tipo_movimiento);
+                $this->aplicarFiltroTipo($query);
             })
             ->get();
 
@@ -2292,6 +2319,7 @@ class TransferenciasInsumos extends Component
                     'id_secretaria' => $idSec,
                     'area' => $area,
                     'observaciones' => $this->multi_observaciones ?: null,
+                    'es_multiple' => true,
                 ]);
 
                 $insumosAfectados[$insumo->id] = $insumo;

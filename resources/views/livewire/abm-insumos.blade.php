@@ -381,6 +381,7 @@
                                         <option value="PAQUETE">PAQUETE</option>
                                         <option value="BOLSA">BOLSA</option>
                                         <option value="BALDE">BALDE</option>
+                                        <option value="KILOS">KILOS</option>
                                     </select>
                                     @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>

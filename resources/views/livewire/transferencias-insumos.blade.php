@@ -203,6 +203,7 @@
                         @foreach($tipos_movimiento as $tipo)
                             <option value="{{ $tipo->id }}">{{ $tipo->tipo_movimiento }}</option>
                         @endforeach
+                        <option value="{{ \App\Livewire\TransferenciasInsumos::FILTRO_MULTIPLES }}">Movimientos Múltiples</option>
                     </select>
                 </div>
 

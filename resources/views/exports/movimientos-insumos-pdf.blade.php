@@ -18,6 +18,7 @@
         .num { text-align: right; }
         .es-entrada { color: #166534; font-weight: bold; text-align: center; }
         .es-salida { color: #991b1b; font-weight: bold; text-align: center; }
+        .multiple { display: block; margin-top: 1px; font-size: 7px; color: #0f766e; font-weight: bold; }
         .footer { margin-top: 10px; font-size: 8px; color: #9ca3af; text-align: right; }
         .c-fecha { width: 8%; } .c-tipo { width: 12%; } .c-es { width: 3%; }
         .c-insumo { width: 14%; } .c-cant { width: 6%; } .c-un { width: 5%; }
@@ -60,7 +61,10 @@
                     @endphp
                     <tr>
                         <td>{{ optional($m->fecha)->format('d/m/Y') }}</td>
-                        <td>{{ $tipo->tipo_movimiento ?? '' }}</td>
+                        <td>
+                            {{ $tipo->tipo_movimiento ?? '' }}
+                            @if($m->es_multiple)<span class="multiple">Movimiento Múltiple</span>@endif
+                        </td>
                         <td class="{{ $esClase }}">{{ $esTxt }}</td>
                         <td>{{ $m->insumo->insumo ?? '' }}</td>
                         <td class="num">{{ number_format($m->cantidad, 2) }}</td>

@@ -25,11 +25,13 @@ class MovimientoInsumo extends Model
         'tipo_referencia',
         'id_secretaria',
         'area',
+        'es_multiple',
     ];
 
     protected $casts = [
         'fecha' => 'date',
         'fecha_devolucion' => 'date',
+        'es_multiple' => 'boolean',
     ];
 
     public function insumo(): BelongsTo
