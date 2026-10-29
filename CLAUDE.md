@@ -266,7 +266,7 @@ Todos los uploads del sistema (comprobantes de insumos/maquinarias y documentos 
 
 **Preview con miniatura + eliminar:**
 - **Partial `resources/views/livewire/partials/preview-archivos.blade.php`** — recibe `$files` (array de `TemporaryUploadedFile`) y `$removeMethod` (nombre del método Livewire). Renderiza miniatura (`temporaryUrl()`) para jpg/jpeg/png e ícono PDF para el resto, con botón rojo de eliminar (X) por archivo. Se incluye vía `@include` en los 4 bloques de comprobantes (insumos/maquinarias × crear/editar).
-- AbmVehiculos usa archivo único (`nuevo_documento`, no array): tiene su propio preview inline en el blade + método `quitarNuevoDocumento()`.
+- AbmVehiculos usa archivo único (`nuevo_documento`, no array): tiene su propio preview inline en el blade + método `quitarNuevoDocumento()`. Borrar un documento pide confirmación con `<x-ui.modal-confirmacion>` (ver **Capa de UI**).
 
 ### Destino de Ajuste Negativo y Asignaciones (insumos y maquinarias)
 
@@ -467,7 +467,10 @@ La interfaz se está adaptando al kit `C:\Users\Usuario\Desktop\especificaciones
 - **`App\Support\Tema`** — clases de color de las piezas, con los colores de siempre del Corralón (botones azules, header blanco). Clases literales (Tailwind escanea `app/**/*.php`).
 - Font Awesome viene de npm (`@fortawesome/fontawesome-free`, importado en `resources/js/app.js`): tras `git pull`, `npm install` + `npm run build`.
 
-**Migradas:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios. **Pendientes:** Insumos, Maquinarias, Vehículos, Transferencias de Insumos/Maquinarias, Dashboard, Estadísticas.
+**Migradas:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Insumos, Maquinarias, Vehículos. **Pendientes:** Transferencias de Insumos/Maquinarias, Dashboard, Estadísticas.
+
+- **Modal de Estadísticas** de los listados (Insumos/Maquinarias): `<x-ui.modal cerrar="toggleEstadisticas" ancho="3xl">`, sin footer.
+- **Vehículos — Documentos:** el modal de Documentos usa el mismo `ConfirmaDescarte` que el de alta/edición: `camposFormulario()` devuelve `nuevo_documento` + `nueva_descripcion` cuando `showModalDocumentos`, y `cerrarFormulario()` cierra el modal que esté abierto. Borrar un documento usa `confirmarEliminarDocumento($id)` / `eliminarDocumento()` / `cancelarEliminarDocumento()` (`$eliminarDocumentoId`, confirmación apilada `:z="60"`). El botón "Agregar" lleva `data-atajo-guardar` (F2 agrega el documento).
 
 ### Mensajes de feedback (éxito y error)
 
