@@ -1,5 +1,33 @@
-<div>
-    <!-- Header con búsqueda y botón crear -->
+<x-ui.pagina titulo="Insumos" icono="fa-boxes-stacked">
+    <x-slot:acciones>
+        <x-ui.boton variante="secundario" icono="fa-chart-column" wire:click="toggleEstadisticas">Estadísticas</x-ui.boton>
+
+        {{-- Exportar (dropdown Excel/PDF) --}}
+        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+            <x-ui.boton variante="secundario" icono="fa-download" x-on:click="open = !open">
+                Exportar <i class="fa-solid fa-chevron-down text-xs" aria-hidden="true"></i>
+            </x-ui.boton>
+            <div
+                x-show="open" x-transition x-cloak
+                class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20"
+            >
+                <button wire:click="exportarExcel" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Excel (.xlsx)
+                </button>
+                <button wire:click="exportarPdf" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    PDF
+                </button>
+            </div>
+        </div>
+
+        @if($puedeCrear)
+            <x-ui.boton icono="fa-plus" wire:click="crear">Nuevo Insumo</x-ui.boton>
+        @endif
+    </x-slot:acciones>
+
+    <!-- Búsqueda y filtros -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
@@ -15,71 +43,14 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <button 
-                wire:click="$toggle('showFilters')" 
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
+            <x-ui.boton variante="secundario" icono="fa-filter" wire:click="$toggle('showFilters')">
                 Filtros
                 @if($filtro_corralon || $filtro_categoria || $filtro_unidad || $filtro_deposito || $filtro_stock_bajo)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
                         {{ collect([$filtro_corralon, $filtro_categoria, $filtro_unidad, $filtro_deposito, $filtro_stock_bajo])->filter()->count() }}
                     </span>
                 @endif
-            </button>
-            
-            {{-- Botón Estadísticas --}}
-            <button
-                wire:click="toggleEstadisticas"
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                Estadísticas
-            </button>
-
-            {{-- Botón Exportar (dropdown Excel/PDF) --}}
-            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                <button
-                    @click="open = !open"
-                    class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Exportar
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
-                <div
-                    x-show="open" x-transition x-cloak
-                    class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20"
-                >
-                    <button wire:click="exportarExcel" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Excel (.xlsx)
-                    </button>
-                    <button wire:click="exportarPdf" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        PDF
-                    </button>
-                </div>
-            </div>
-
-            {{-- Botón Nuevo solo si tiene permisos --}}
-            @if($puedeCrear)
-            <button
-                wire:click="crear"
-                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nuevo Insumo
-            </button>
-            @endif
+            </x-ui.boton>
         </div>
     </div>
 
@@ -218,9 +189,7 @@
                                 <div class="text-sm font-medium text-gray-900">{{ $item->insumo }}</div>
                             </td>
                             <td class="px-6 py-4 w-1/4 text-center">
-                                <span class="px-6 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
-                                    {{ $item->categoriaInsumo->nombre }}
-                                </span>
+                                <x-ui.badge color="azul">{{ $item->categoriaInsumo->nombre }}</x-ui.badge>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="text-sm {{ $item->stock_actual < $item->stock_minimo ? 'text-red-600 font-semibold' : 'text-gray-600' }}">
@@ -237,35 +206,17 @@
                                 {{ $item->deposito->deposito }}
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
-                                <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                                    {{ $item->deposito?->corralon?->descripcion ?? 'Sin corralón' }}
-                                </span>
+                                <x-ui.badge color="azul">{{ $item->deposito?->corralon?->descripcion ?? 'Sin corralón' }}</x-ui.badge>
                             </td>
                             @if($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1">
                                     @if($puedeEditar)
-                                    <button 
-                                        wire:click="editar({{ $item->id }})"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Editar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $item->id }})" />
                                     @endif
                                     
                                     @if($puedeEliminar)
-                                    <button 
-                                        wire:click="confirmarEliminar({{ $item->id }})"
-                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                        title="Eliminar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $item->id }})" />
                                     @endif
                                 </div>
                             </td>
@@ -273,13 +224,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center text-gray-400">
-                                    <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                    </svg>
-                                    <p class="text-sm font-medium">No se encontraron insumos</p>
-                                </div>
+                            <td colspan="8" class="px-6 py-6">
+                                <x-ui.vacio icono="fa-boxes-stacked">{{ $search || $filtro_corralon || $filtro_categoria || $filtro_unidad || $filtro_deposito || $filtro_stock_bajo ? 'No hay insumos que coincidan con la búsqueda o los filtros' : 'Todavía no hay insumos cargados' }}</x-ui.vacio>
                             </td>
                         </tr>
                     @endforelse
@@ -298,140 +244,73 @@
         <x-ui.modal :titulo="$editMode ? 'Editar Insumo' : 'Nuevo Insumo'"
                     :icono="$editMode ? 'fa-pen' : 'fa-plus'"
                     cerrar="intentarCerrar" ancho="lg" submit="guardar">
-            <!-- Insumo -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Insumo *</label>
-                <input 
-                    type="text" 
-                    wire:model="insumo" @error('insumo') aria-invalid="true" @enderror
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                @error('insumo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-ui.campo class="sm:col-span-2" etiqueta="Insumo" nombre="insumo" obligatorio>
+                    <x-ui.input nombre="insumo" wire:model="insumo" maxlength="100" autocomplete="off" />
+                </x-ui.campo>
 
-            <!-- Categoría -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
-                <select 
-                    wire:model="id_categoria" @error('id_categoria') aria-invalid="true" @enderror
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                    <option value="">Seleccione una categoría</option>
-                    @foreach($categorias as $categoria)
-                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                    @endforeach
-                </select>
-                @error('id_categoria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <x-ui.campo etiqueta="Categoría" nombre="id_categoria" obligatorio>
+                    <x-ui.select-nativo nombre="id_categoria" wire:model="id_categoria">
+                        <option value="">Seleccione una categoría</option>
+                        @foreach($categorias as $categoria)
+                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                        @endforeach
+                    </x-ui.select-nativo>
+                </x-ui.campo>
 
-            <!-- Unidad -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Unidad *</label>
-                <select
-                    wire:model="unidad" @error('unidad') aria-invalid="true" @enderror
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                    <option value="">Seleccionar unidad...</option>
-                    <option value="UNIDAD">UNIDAD</option>
-                    <option value="LITROS">LITROS</option>
-                    <option value="TAMBOR">TAMBOR</option>
-                    <option value="METRO">METRO</option>
-                    <option value="ROLLO X 100 MT">ROLLO X 100 MT</option>
-                    <option value="PAQUETE">PAQUETE</option>
-                    <option value="BOLSA">BOLSA</option>
-                    <option value="BALDE">BALDE</option>
-                    <option value="KILOS">KILOS</option>
-                </select>
-                @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <x-ui.campo etiqueta="Unidad" nombre="unidad" obligatorio>
+                    <x-ui.select-nativo nombre="unidad" wire:model="unidad">
+                        <option value="">Seleccionar unidad...</option>
+                        <option value="UNIDAD">UNIDAD</option>
+                        <option value="LITROS">LITROS</option>
+                        <option value="TAMBOR">TAMBOR</option>
+                        <option value="METRO">METRO</option>
+                        <option value="ROLLO X 100 MT">ROLLO X 100 MT</option>
+                        <option value="PAQUETE">PAQUETE</option>
+                        <option value="BOLSA">BOLSA</option>
+                        <option value="BALDE">BALDE</option>
+                        <option value="KILOS">KILOS</option>
+                    </x-ui.select-nativo>
+                </x-ui.campo>
 
-            <!-- Stock Inicial (solo al crear) y Stock Mínimo -->
-            <div class="grid grid-cols-2 gap-4">
                 @if(!$editMode)
-                    <!-- Stock Inicial - Solo en modo creación -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Inicial</label>
-                        <input 
-                            type="number" 
-                            step="0.01"
-                            min="0"
-                            wire:model="stock_inicial" @error('stock_inicial') aria-invalid="true" @enderror
-                            placeholder="0.00"
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
-                        <p class="text-xs text-gray-500 mt-1">Cantidad inicial en inventario (opcional)</p>
-                        @error('stock_inicial') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Stock Inicial" nombre="stock_inicial" ayuda="Cantidad inicial en inventario (opcional).">
+                        <x-ui.input nombre="stock_inicial" type="number" step="0.01" min="0" wire:model="stock_inicial" placeholder="0.00" />
+                    </x-ui.campo>
                 @else
-                    <!-- Stock Actual - Solo en modo edición (solo lectura) -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual (Calculado)</label>
-                        <div class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
-                            {{ number_format($insumos->firstWhere('id', $insumo_id)?->stock_actual ?? 0, 2) }}
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">El stock se calcula desde los movimientos</p>
-                    </div>
+                    {{-- Solo lectura: el stock se calcula desde los movimientos. --}}
+                    <x-ui.campo etiqueta="Stock Actual (Calculado)" nombre="stock_actual" ayuda="El stock se calcula desde los movimientos.">
+                        <x-ui.input nombre="stock_actual" :value="number_format($insumos->firstWhere('id', $insumo_id)?->stock_actual ?? 0, 2)" disabled />
+                    </x-ui.campo>
                 @endif
 
-                <!-- Stock Mínimo - Siempre visible -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo *</label>
-                    <input 
-                        type="number" 
-                        step="0.01"
-                        min="0"
-                        wire:model="stock_minimo" @error('stock_minimo') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('stock_minimo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
+                <x-ui.campo etiqueta="Stock Mínimo" nombre="stock_minimo" obligatorio>
+                    <x-ui.input nombre="stock_minimo" type="number" step="0.01" min="0" wire:model="stock_minimo" />
+                </x-ui.campo>
 
-            <!-- Depósito -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
-                <select 
-                    wire:model="id_deposito" @error('id_deposito') aria-invalid="true" @enderror
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                    <option value="">Seleccione un depósito</option>
-                    @foreach($depositos as $deposito)
-                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion ?? 'Sin corralón' }}</option>
-                    @endforeach
-                </select>
-                @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <x-ui.campo class="sm:col-span-2" etiqueta="Depósito" nombre="id_deposito" obligatorio>
+                    <x-ui.select-nativo nombre="id_deposito" wire:model="id_deposito">
+                        <option value="">Seleccione un depósito</option>
+                        @foreach($depositos as $deposito)
+                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion ?? 'Sin corralón' }}</option>
+                        @endforeach
+                    </x-ui.select-nativo>
+                </x-ui.campo>
 
-            <!-- N° Orden de Compra (solo al crear, aplica al movimiento de inventario inicial) -->
-            @if(!$editMode)
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
-                    <input
-                        type="text"
-                        wire:model="nro_orden_compra" @error('nro_orden_compra') aria-invalid="true" @enderror
-                        placeholder="Opcional"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    <p class="text-xs text-gray-500 mt-1">Se registra en el movimiento de inventario inicial (solo si hay stock inicial &gt; 0)</p>
-                    @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            @endif
+                {{-- Solo al crear: va al movimiento de Inventario Inicial. --}}
+                @if(!$editMode)
+                    <x-ui.campo class="sm:col-span-2" etiqueta="N° Orden de Compra / Suministro" nombre="nro_orden_compra"
+                                ayuda="Se registra en el movimiento de inventario inicial (solo si hay stock inicial mayor a 0).">
+                        <x-ui.input nombre="nro_orden_compra" wire:model="nro_orden_compra" maxlength="100" autocomplete="off" placeholder="Opcional" />
+                    </x-ui.campo>
+                @endif
+            </div>
 
             <x-slot:footer>
-                <button 
-                    type="button"
-                    wire:click="intentarCerrar"
-                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                >
-                    Cancelar
-                </button>
-                <button 
-                    type="submit"
-                    wire:loading.attr="disabled" wire:target="guardar"
-                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                >
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton type="submit" wire:loading.attr="disabled" wire:target="guardar">
                     {{ $editMode ? 'Actualizar' : 'Crear' }}
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -542,4 +421,4 @@
             ¿Está seguro de eliminar este insumo?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>
