@@ -1,10 +1,4 @@
 <div>
-    @if (session()->has('error'))
-        <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
-            {{ session('error') }}
-        </div>
-    @endif
-
     <!-- Panel de filtros + acciones -->
     @php
         $filtrosActivos = collect([
@@ -408,19 +402,7 @@
 
     <!-- Modal Personalizar -->
     @if($modalPersonalizar)
-    <div class="fixed inset-0 z-50 flex items-center justify-center" x-data>
-        <div class="absolute inset-0 bg-black/40" wire:click="$set('modalPersonalizar', false)"></div>
-        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[85vh] overflow-y-auto"
-             @keydown.escape.window="$wire.set('modalPersonalizar', false)">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-bold text-gray-800">Personalizar estadísticas</h3>
-                <button wire:click="$set('modalPersonalizar', false)" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
+        <x-ui.modal titulo="Personalizar estadísticas" icono="fa-sliders" cerrar="intentarCerrar" ancho="lg">
             @foreach($grupos as $grupoKey => $grupoLabel)
                 @if(!empty($opcionesPorGrupo[$grupoKey]))
                 <div class="mb-5">
@@ -438,15 +420,23 @@
                 @endif
             @endforeach
 
-            <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
-                <button wire:click="$set('modalPersonalizar', false)" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+            <x-slot:footer>
+                <button type="button" wire:click="intentarCerrar" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
                     Cancelar
                 </button>
-                <button wire:click="guardarPreferencias" class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a]">
+                <button type="button" wire:click="guardarPreferencias" data-atajo-guardar
+                        wire:loading.attr="disabled" wire:target="guardarPreferencias"
+                        class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a]">
                     Guardar
                 </button>
-            </div>
-        </div>
-    </div>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

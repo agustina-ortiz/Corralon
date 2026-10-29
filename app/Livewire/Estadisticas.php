@@ -21,10 +21,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use Livewire\Component;
 
 class Estadisticas extends Component
 {
+    use EnviaToasts;
+    use ConfirmaDescarte;
+
     // Filtros globales de la solapa
     public $filtro_corralon = '';
     public $filtro_deposito = '';
@@ -152,6 +157,17 @@ class Estadisticas extends Component
     {
         $this->seleccionWidgets = Auth::user()->estadisticasActivas();
         $this->modalPersonalizar = true;
+        $this->marcarFormularioLimpio();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['seleccionWidgets'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->modalPersonalizar = false;
     }
 
     public function guardarPreferencias(): void
@@ -700,7 +716,7 @@ class Estadisticas extends Component
         }
 
         if (count($widgets) === 0) {
-            session()->flash('error', 'No hay gráficos con datos para exportar. Revisá los filtros o elegí otras estadísticas en "Personalizar".');
+            $this->toastError('No hay gráficos con datos para exportar. Revisá los filtros o elegí otras estadísticas en "Personalizar".');
             return;
         }
 
@@ -718,7 +734,7 @@ class Estadisticas extends Component
             return response()->download($path, 'estadisticas_' . now()->format('Ymd_His') . '.pdf')
                 ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
-            session()->flash('error', 'No se pudo generar el PDF: ' . $e->getMessage());
+            $this->toastError('No se pudo generar el PDF: ' . $e->getMessage());
             return;
         }
     }
