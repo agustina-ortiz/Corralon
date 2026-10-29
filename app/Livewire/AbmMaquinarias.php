@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\Maquinaria;
 use App\Models\CategoriaMaquinaria;
 use App\Models\Corralon;
@@ -20,9 +22,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class AbmMaquinarias extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
     public $showFilters = false;
     public $showEstadisticas = false;
@@ -275,7 +282,7 @@ class AbmMaquinarias extends Component
         // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
         $total = $this->baseQuery()->count();
         if ($total > 2000) {
-            session()->flash('error', "El listado tiene {$total} maquinarias, demasiadas para un PDF. Acotá los filtros o usá la exportación a Excel.");
+            $this->toastError("El listado tiene {$total} maquinarias, demasiadas para un PDF. Acotá los filtros o usá la exportación a Excel.");
             return;
         }
 
@@ -300,7 +307,7 @@ class AbmMaquinarias extends Component
     {
         // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear maquinarias.');
+            $this->toastError('No tienes permisos para crear maquinarias.');
             return;
         }
         
@@ -315,13 +322,14 @@ class AbmMaquinarias extends Component
         }
 
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar maquinarias.');
+            $this->toastError('No tienes permisos para editar maquinarias.');
             return;
         }
         
@@ -331,7 +339,7 @@ class AbmMaquinarias extends Component
         $user = auth()->user();
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
         if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para editar maquinarias de este depósito.');
+            $this->toastError('No tienes permisos para editar maquinarias de este depósito.');
             return;
         }
 
@@ -345,19 +353,20 @@ class AbmMaquinarias extends Component
 
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear maquinarias.');
+            $this->toastError('No tienes permisos para crear maquinarias.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar maquinarias.');
+            $this->toastError('No tienes permisos para editar maquinarias.');
             $this->showModal = false;
             return;
         }
@@ -369,7 +378,7 @@ class AbmMaquinarias extends Component
         // Verificar que el depósito seleccionado esté permitido
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
         if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para usar ese depósito.');
+            $this->toastError('No tienes permisos para usar ese depósito.');
             return;
         }
 
@@ -378,7 +387,7 @@ class AbmMaquinarias extends Component
 
             // Verificar acceso a la maquinaria original por depósito
             if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
-                session()->flash('error', 'No tienes permisos para editar maquinarias de este depósito.');
+                $this->toastError('No tienes permisos para editar maquinarias de este depósito.');
                 return;
             }
 
@@ -389,7 +398,7 @@ class AbmMaquinarias extends Component
                 'id_deposito' => $this->id_deposito,
             ]);
             
-            session()->flash('message', 'Maquinaria actualizada correctamente.');
+            $this->toastExito('Maquinaria actualizada correctamente.');
         } else {
             // ✅ Crear maquinaria con movimiento inicial
             try {
@@ -422,11 +431,11 @@ class AbmMaquinarias extends Component
 
                 DB::commit();
                 
-                session()->flash('message', 'Maquinaria creada correctamente con inventario inicial de ' . $this->cantidad . ' unidades.');
+                $this->toastExito('Maquinaria creada correctamente con inventario inicial de ' . $this->cantidad . ' unidades.');
                 
             } catch (\Exception $e) {
                 DB::rollBack();
-                session()->flash('error', 'Error al crear la maquinaria: ' . $e->getMessage());
+                $this->toastError('Error al crear la maquinaria: ' . $e->getMessage());
                 \Log::error('Error al crear maquinaria: ' . $e->getMessage());
             }
         }
@@ -435,11 +444,24 @@ class AbmMaquinarias extends Component
         $this->resetForm();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para eliminar maquinarias.');
+            $this->toastError('No tienes permisos para eliminar maquinarias.');
             return;
         }
         
@@ -449,15 +471,15 @@ class AbmMaquinarias extends Component
         $user = auth()->user();
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('maquinarias');
         if (!$user->esAdministrador() && !in_array($maquinaria->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para eliminar maquinarias de este depósito.');
+            $this->toastError('No tienes permisos para eliminar maquinarias de este depósito.');
             return;
         }
         
         try {
             $maquinaria->delete();
-            session()->flash('message', 'Maquinaria eliminada correctamente.');
+            $this->toastExito('Maquinaria eliminada correctamente.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar la maquinaria porque tiene movimientos asociados.');
+            $this->toastError('No se puede eliminar la maquinaria porque tiene movimientos asociados.');
         }
     }
 
@@ -465,6 +487,16 @@ class AbmMaquinarias extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['maquinaria', 'id_categoria_maquinaria', 'estado', 'id_corralon', 'id_deposito', 'cantidad'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()

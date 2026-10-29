@@ -174,25 +174,7 @@
         </div>
     </div>
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -276,8 +258,7 @@
 
                                     @if($puedeEliminar)
                                     <button 
-                                        wire:click="eliminar({{ $item->id }})"
-                                        wire:confirm="¿Está seguro de eliminar esta maquinaria?"
+                                        wire:click="confirmarEliminar({{ $item->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -314,230 +295,202 @@
 
     <!-- Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModal"></div>
+        <x-ui.modal :titulo="$editMode ? 'Editar Maquinaria' : 'Nueva Maquinaria'"
+                    :icono="$editMode ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="lg" submit="guardar">
+            <!-- Maquinaria -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Maquinaria *</label>
+                <input 
+                    type="text" 
+                    wire:model="maquinaria" @error('maquinaria') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
 
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Maquinaria' : 'Nueva Maquinaria' }}
-                                </h3>
-                                <button 
-                                    type="button" 
-                                    wire:click="cerrarModal"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
+            <!-- Categoría -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
+                <select 
+                    wire:model="id_categoria_maquinaria" @error('id_categoria_maquinaria') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccione una categoría</option>
+                    @foreach($categorias as $categoria)
+                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                    @endforeach
+                </select>
+                @error('id_categoria_maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cantidad -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Cantidad *
+                        @if($editMode)
+                            <span class="text-xs text-gray-500 font-normal">(Este campo se calcula automáticamente con los movimientos)</span>
+                        @endif
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="number" 
+                            wire:model="cantidad" @error('cantidad') aria-invalid="true" @enderror
+                            min="1"
+                            @if($editMode) disabled @endif
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if($editMode) bg-gray-100 text-gray-500 cursor-not-allowed @endif"
+                        >
+                        @if($editMode)
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
                             </div>
+                        @endif
+                    </div>
+                    @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
 
-                            <div class="space-y-5">
-                                <!-- Maquinaria -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Maquinaria *</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="maquinaria"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Categoría -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
-                                    <select 
-                                        wire:model="id_categoria_maquinaria"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccione una categoría</option>
-                                        @foreach($categorias as $categoria)
-                                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_categoria_maquinaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- Cantidad -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                                            Cantidad *
-                                            @if($editMode)
-                                                <span class="text-xs text-gray-500 font-normal">(Este campo se calcula automáticamente con los movimientos)</span>
-                                            @endif
-                                        </label>
-                                        <div class="relative">
-                                            <input 
-                                                type="number" 
-                                                wire:model="cantidad"
-                                                min="1"
-                                                @if($editMode) disabled @endif
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if($editMode) bg-gray-100 text-gray-500 cursor-not-allowed @endif"
-                                            >
-                                            @if($editMode)
-                                                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                                    </svg>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        @error('cantidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-    
-                                    <!-- Estado -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
-                                        <select 
-                                            wire:model="estado"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                            <option value="">Seleccione un estado</option>
-                                            <option value="disponible">Disponible</option>
-                                            <option value="no disponible">No Disponible</option>
-                                        </select>
-                                        @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Corralón -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Corralón *</label>
-                                    <select
-                                        wire:model.live="id_corralon"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccione un corralón</option>
-                                        @foreach($corralones as $corralon)
-                                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <!-- Depósito -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
-                                    <select
-                                        wire:model="id_deposito"
-                                        @if(!$id_corralon) disabled @endif
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if(!$id_corralon) bg-gray-100 text-gray-400 cursor-not-allowed @endif"
-                                    >
-                                        <option value="">{{ $id_corralon ? 'Seleccione un depósito' : 'Primero seleccione un corralón' }}</option>
-                                        @foreach($depositosModal as $deposito)
-                                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button 
-                                type="button"
-                                wire:click="cerrarModal"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
+                <!-- Estado -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+                    <select 
+                        wire:model="estado" @error('estado') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">Seleccione un estado</option>
+                        <option value="disponible">Disponible</option>
+                        <option value="no disponible">No Disponible</option>
+                    </select>
+                    @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
             </div>
-        </div>
+
+            <!-- Corralón -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Corralón *</label>
+                <select
+                    wire:model.live="id_corralon"
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccione un corralón</option>
+                    @foreach($corralones as $corralon)
+                        <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Depósito -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
+                <select
+                    wire:model="id_deposito" @error('id_deposito') aria-invalid="true" @enderror
+                    @if(!$id_corralon) disabled @endif
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @if(!$id_corralon) bg-gray-100 text-gray-400 cursor-not-allowed @endif"
+                >
+                    <option value="">{{ $id_corralon ? 'Seleccione un depósito' : 'Primero seleccione un corralón' }}</option>
+                    @foreach($depositosModal as $deposito)
+                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
+                    @endforeach
+                </select>
+                @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <x-slot:footer>
+                <button 
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardar"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editMode ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 
     {{-- Modal de Estadísticas --}}
     @if($showEstadisticas && $estadisticas)
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-data>
-            <div class="flex items-center justify-center min-h-screen px-4 py-8">
-                <div class="fixed inset-0 bg-black/50" wire:click="toggleEstadisticas"></div>
-                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                            <svg class="w-6 h-6 text-[#77BF43]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                            Estadísticas de Maquinarias
-                        </h3>
-                        <button wire:click="toggleEstadisticas" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
+        <x-ui.modal titulo="Estadísticas de Maquinarias" icono="fa-chart-column" cerrar="toggleEstadisticas" ancho="3xl">
+            <div class="space-y-6">
+                @if($estadisticas['total'] == 0)
+                    <p class="text-center text-gray-500 py-8">No hay maquinarias para los filtros seleccionados.</p>
+                @else
+                {{-- KPIs --}}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-gray-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-gray-800">{{ number_format($estadisticas['total']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Maquinarias</div>
                     </div>
-
-                    <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                        @if($estadisticas['total'] == 0)
-                            <p class="text-center text-gray-500 py-8">No hay maquinarias para los filtros seleccionados.</p>
-                        @else
-                        {{-- KPIs --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div class="bg-gray-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-gray-800">{{ number_format($estadisticas['total']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Maquinarias</div>
-                            </div>
-                            <div class="bg-blue-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-blue-700">{{ number_format($estadisticas['unidades_total']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Unidades totales</div>
-                            </div>
-                            <div class="bg-green-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-green-700">{{ number_format($estadisticas['disponibles']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Disponibles</div>
-                            </div>
-                            <div class="bg-red-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-red-600">{{ number_format($estadisticas['no_disponibles']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">No disponibles</div>
-                            </div>
-                        </div>
-
-                        {{-- Por categoría --}}
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Maquinarias por categoría</h4>
-                            <div class="space-y-2">
-                                @php $maxCat = $estadisticas['por_categoria']->max() ?: 1; @endphp
-                                @foreach($estadisticas['por_categoria']->take(8) as $cat => $cant)
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-32 text-xs text-gray-600 truncate" title="{{ $cat }}">{{ $cat }}</div>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                            <div class="bg-[#77BF43] h-4 rounded-full" style="width: {{ ($cant / $maxCat) * 100 }}%"></div>
-                                        </div>
-                                        <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        {{-- Unidades por depósito --}}
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Unidades totales por depósito</h4>
-                            <div class="space-y-2">
-                                @php $maxDep = $estadisticas['por_deposito']->max() ?: 1; @endphp
-                                @foreach($estadisticas['por_deposito']->take(8) as $dep => $u)
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-32 text-xs text-gray-600 truncate" title="{{ $dep }}">{{ $dep }}</div>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                            <div class="bg-blue-500 h-4 rounded-full" style="width: {{ ($u / $maxDep) * 100 }}%"></div>
-                                        </div>
-                                        <div class="w-12 text-right text-xs font-medium text-gray-700">{{ number_format($u) }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700">{{ number_format($estadisticas['unidades_total']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Unidades totales</div>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-green-700">{{ number_format($estadisticas['disponibles']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Disponibles</div>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600">{{ number_format($estadisticas['no_disponibles']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">No disponibles</div>
                     </div>
                 </div>
+
+                {{-- Por categoría --}}
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Maquinarias por categoría</h4>
+                    <div class="space-y-2">
+                        @php $maxCat = $estadisticas['por_categoria']->max() ?: 1; @endphp
+                        @foreach($estadisticas['por_categoria']->take(8) as $cat => $cant)
+                            <div class="flex items-center gap-3">
+                                <div class="w-32 text-xs text-gray-600 truncate" title="{{ $cat }}">{{ $cat }}</div>
+                                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                    <div class="bg-[#77BF43] h-4 rounded-full" style="width: {{ ($cant / $maxCat) * 100 }}%"></div>
+                                </div>
+                                <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Unidades por depósito --}}
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Unidades totales por depósito</h4>
+                    <div class="space-y-2">
+                        @php $maxDep = $estadisticas['por_deposito']->max() ?: 1; @endphp
+                        @foreach($estadisticas['por_deposito']->take(8) as $dep => $u)
+                            <div class="flex items-center gap-3">
+                                <div class="w-32 text-xs text-gray-600 truncate" title="{{ $dep }}">{{ $dep }}</div>
+                                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                    <div class="bg-blue-500 h-4 rounded-full" style="width: {{ ($u / $maxDep) * 100 }}%"></div>
+                                </div>
+                                <div class="w-12 text-right text-xs font-medium text-gray-700">{{ number_format($u) }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
-        </div>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarId)
+        <x-ui.modal-confirmacion confirmar="eliminar" cancelar="cancelarEliminar">
+            ¿Está seguro de eliminar esta maquinaria?
+        </x-ui.modal-confirmacion>
     @endif
 </div>
