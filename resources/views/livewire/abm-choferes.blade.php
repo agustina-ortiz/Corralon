@@ -70,7 +70,7 @@
                                     @if($dias < 0)
                                         <x-ui.badge color="rojo">Vencida {{ $venc->format('d/m/Y') }}</x-ui.badge>
                                     @elseif($dias <= 30)
-                                        <x-ui.badge color="ambar">{{ $venc->format('d/m/Y') }} ({{ $dias }}d)</x-ui.badge>
+                                        <x-ui.badge color="ambar">{{ $venc->format('d/m/Y') }} ({{ (int) ceil($dias) }}d)</x-ui.badge>
                                     @else
                                         <span class="text-sm text-gray-600">{{ $venc->format('d/m/Y') }}</span>
                                     @endif
