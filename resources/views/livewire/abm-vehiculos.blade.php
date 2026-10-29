@@ -1,52 +1,39 @@
-<div>
-   <!-- Header con búsqueda y botón crear -->
+<x-ui.pagina titulo="Vehículos" icono="fa-car">
+    <x-slot:acciones>
+        @if($puedeCrear)
+            <x-ui.boton icono="fa-plus" wire:click="crear">Nuevo Vehículo</x-ui.boton>
+        @endif
+    </x-slot:acciones>
+
+    <!-- Búsqueda y filtros -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                <input 
-                    type="text" 
-                    wire:model.live="search" 
+                <input
+                    type="text"
+                    wire:model.live="search"
                     placeholder="Buscar por nro. patrimonio, vehículo, marca/modelo, patente..."
                     class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                 >
             </div>
-        </div>  
+        </div>
         <div class="flex gap-3">
-            <button 
-                wire:click="$toggle('showFilters')" 
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
+            <x-ui.boton variante="secundario" icono="fa-filter" wire:click="$toggle('showFilters')">
                 Filtros
                 @if($filtro_marca_modelo || $filtro_estado || $filtro_secretaria)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
                         {{ collect([$filtro_marca_modelo, $filtro_estado, $filtro_secretaria])->filter()->count() }}
                     </span>
                 @endif
-            </button>
-            
-            {{-- Botón Nuevo solo si tiene permisos --}}
-            @if($puedeCrear)
-            <button 
-                wire:click="crear" 
-                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nuevo Vehículo
-            </button>
-            @endif
+            </x-ui.boton>
         </div>
     </div>
 
     <!-- Panel de Filtros con animación suave -->
-    <div 
+    <div
         x-data="{ show: @entangle('showFilters') }"
         x-show="show"
         x-transition:enter="transition ease-out duration-300"
@@ -97,7 +84,7 @@
                 <!-- Filtro Estado -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select 
+                    <select
                         wire:model.live="filtro_estado"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
@@ -146,8 +133,6 @@
         </div>
     @endif
 
-
-
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
@@ -180,10 +165,10 @@
                             </td>
                             <td class="px-6 py-4">
                                 @php
-                                    $estadoClasses = [
-                                        'EN USO' => 'from-blue-50 to-blue-100 text-blue-700 border-blue-200',
-                                        'BAJA' => 'from-red-50 to-red-100 text-red-700 border-red-200',
-                                        'MANTENIMIENTO' => 'from-yellow-50 to-yellow-100 text-yellow-700 border-yellow-200',
+                                    $estadoColores = [
+                                        'EN USO' => 'azul',
+                                        'BAJA' => 'rojo',
+                                        'MANTENIMIENTO' => 'ambar',
                                     ];
                                     $estadoNombres = [
                                         'EN USO' => 'En Uso',
@@ -191,14 +176,10 @@
                                         'MANTENIMIENTO' => 'Mantenimiento',
                                     ];
                                 @endphp
-                                <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r {{ $estadoClasses[$item->estado] ?? 'from-gray-50 to-gray-100 text-gray-700 border-gray-200' }} border">
-                                    {{ $estadoNombres[$item->estado] ?? $item->estado }}
-                                </span>
+                                <x-ui.badge :color="$estadoColores[$item->estado] ?? 'gris'">{{ $estadoNombres[$item->estado] ?? $item->estado }}</x-ui.badge>
                             </td>
                             <td class="whitespace-nowrap px-6 py-4">
-                                <span class="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">
-                                    {{ $item->secretaria?->secretaria ?? 'Sin secretaría' }}
-                                </span>
+                                <x-ui.badge color="azul">{{ $item->secretaria?->secretaria ?? 'Sin secretaría' }}</x-ui.badge>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 @if($item->vencimiento_vtv)
@@ -206,53 +187,25 @@
                                 @else
                                     -
                                 @endif
+                            </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-center">
-                                    <button 
-                                        wire:click="abrirModalDocumentos({{ $item->id }})"
-                                        class="relative inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Ver documentos"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                        </svg>
-                                        @if($item->documentos_count > 0)
-                                            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-blue-600 rounded-full">
-                                                {{ $item->documentos_count }}
-                                            </span>
-                                        @else
-                                            <span class="text-xs text-gray-400">0</span>
-                                        @endif
-                                    </button>
+                                    <x-ui.boton variante="secundario" tamano="chico" icono="fa-regular fa-file-lines"
+                                                wire:click="abrirModalDocumentos({{ $item->id }})"
+                                                title="Ver documentos" aria-label="Ver documentos ({{ $item->documentos_count }})">
+                                        <x-ui.badge :color="$item->documentos_count > 0 ? 'azul' : 'gris'">{{ $item->documentos_count }}</x-ui.badge>
+                                    </x-ui.boton>
                                 </div>
                             </td>
                             @if($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    {{-- Botón Editar solo si tiene permisos --}}
+                                <div class="flex items-center justify-end gap-1">
                                     @if($puedeEditar)
-                                    <button 
-                                        wire:click="editar({{ $item->id }})"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Editar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $item->id }})" />
                                     @endif
-                                    
-                                    {{-- Botón Eliminar solo si tiene permisos --}}
+
                                     @if($puedeEliminar)
-                                    <button 
-                                        wire:click="confirmarEliminar({{ $item->id }})"
-                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                        title="Eliminar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $item->id }})" />
                                     @endif
                                 </div>
                             </td>
@@ -260,20 +213,15 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center text-gray-400">
-                                    <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
-                                    </svg>
-                                    <p class="text-sm font-medium">No se encontraron vehículos</p>
-                                </div>
+                            <td colspan="8" class="px-6 py-6">
+                                <x-ui.vacio icono="fa-car">{{ $search || $filtro_marca_modelo || $filtro_estado || $filtro_secretaria || $alertaActiva ? 'No hay vehículos que coincidan con la búsqueda o los filtros' : 'Todavía no hay vehículos cargados' }}</x-ui.vacio>
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        
+
         <!-- Paginación -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
             {{ $vehiculos->links() }}
@@ -288,99 +236,44 @@
             <!-- Sección: Información Básica -->
             <div class="bg-gray-50 p-4 rounded-xl">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                     Información Básica
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Nro. Patrimonio -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Patrimonio</label>
-                        <input 
-                            type="text" 
-                            wire:model="nro_patrimonio" @error('nro_patrimonio') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: 12345"
-                        >
-                        @error('nro_patrimonio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.campo etiqueta="Nro. Patrimonio" nombre="nro_patrimonio" obligatorio>
+                        <x-ui.input nombre="nro_patrimonio" wire:model="nro_patrimonio" maxlength="50" autocomplete="off" placeholder="Ej: 12345" />
+                    </x-ui.campo>
 
-                    <!-- Vehículo -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Vehículo *</label>
-                        <input 
-                            type="text" 
-                            wire:model="vehiculo" @error('vehiculo') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: Camioneta"
-                        >
-                        @error('vehiculo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Vehículo" nombre="vehiculo" obligatorio>
+                        <x-ui.input nombre="vehiculo" wire:model="vehiculo" maxlength="255" autocomplete="off" placeholder="Ej: Camioneta" />
+                    </x-ui.campo>
 
-                    <!-- Marca/Modelo -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo *</label>
-                        <input
-                            type="text"
-                            wire:model="marca_modelo" @error('marca_modelo') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: Toyota Hilux"
-                        >
-                        @error('marca_modelo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Marca/Modelo" nombre="marca_modelo" obligatorio>
+                        <x-ui.input nombre="marca_modelo" wire:model="marca_modelo" maxlength="255" autocomplete="off" placeholder="Ej: Toyota Hilux" />
+                    </x-ui.campo>
 
-                    <!-- Año -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Año</label>
-                        <input
-                            type="text"
-                            wire:model="anio" @error('anio') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: 2017"
-                            maxlength="4"
-                        >
-                        @error('anio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Año" nombre="anio">
+                        <x-ui.input nombre="anio" wire:model="anio" maxlength="4" autocomplete="off" placeholder="Ej: 2017" />
+                    </x-ui.campo>
 
-                    <!-- Patente -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Patente</label>
-                        <input 
-                            type="text" 
-                            wire:model="patente" @error('patente') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: ABC123"
-                        >
-                        @error('patente') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Patente" nombre="patente" obligatorio>
+                        <x-ui.input nombre="patente" wire:model="patente" maxlength="20" autocomplete="off" placeholder="Ej: ABC123" />
+                    </x-ui.campo>
 
-                    <!-- Tipo de Combustible -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Combustible</label>
-                        <select 
-                            wire:model.live="tipo_combustible" @error('tipo_combustible') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
+                    <x-ui.campo etiqueta="Tipo de Combustible" nombre="tipo_combustible" obligatorio>
+                        <x-ui.select-nativo nombre="tipo_combustible" wire:model.live="tipo_combustible">
                             <option value="">Seleccione tipo</option>
                             <option value="nafta">Nafta</option>
                             <option value="diesel">Diesel</option>
                             <option value="gas">Gas</option>
-                        </select>
-                        @error('tipo_combustible') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        </x-ui.select-nativo>
+                    </x-ui.campo>
 
-                    <!-- Vencimiento Oblea - Solo si es GAS -->
+                    {{-- Vencimiento Oblea: solo si es GAS --}}
                     @if($tipo_combustible === 'gas')
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Oblea *</label>
-                            <input 
-                                type="date" 
-                                wire:model="vencimiento_oblea" @error('vencimiento_oblea') aria-invalid="true" @enderror
-                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            >
-                            @error('vencimiento_oblea') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                        <x-ui.campo etiqueta="Vencimiento Oblea" nombre="vencimiento_oblea" obligatorio>
+                            <x-ui.input nombre="vencimiento_oblea" type="date" wire:model="vencimiento_oblea" />
+                        </x-ui.campo>
                     @endif
                 </div>
             </div>
@@ -388,202 +281,103 @@
             <!-- Sección: Identificación Técnica -->
             <div class="bg-gray-50 p-4 rounded-xl">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
+                    <i class="fa-solid fa-gears" aria-hidden="true"></i>
                     Identificación Técnica
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Nro Motor -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Motor</label>
-                        <input 
-                            type="text" 
-                            wire:model="nro_motor" @error('nro_motor') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Número de motor"
-                        >
-                        @error('nro_motor') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.campo etiqueta="Nro. Motor" nombre="nro_motor" obligatorio>
+                        <x-ui.input nombre="nro_motor" wire:model="nro_motor" maxlength="255" autocomplete="off" placeholder="Número de motor" />
+                    </x-ui.campo>
 
-                    <!-- Nro Chasis -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Chasis</label>
-                        <input 
-                            type="text" 
-                            wire:model="nro_chasis" @error('nro_chasis') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Número de chasis"
-                        >
-                        @error('nro_chasis') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Nro. Chasis" nombre="nro_chasis" obligatorio>
+                        <x-ui.input nombre="nro_chasis" wire:model="nro_chasis" maxlength="255" autocomplete="off" placeholder="Número de chasis" />
+                    </x-ui.campo>
                 </div>
             </div>
 
-            <!-- Sección: Seguro y Documentación -->
+            <!-- Sección: Seguro y Vencimientos -->
             <div class="bg-gray-50 p-4 rounded-xl">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                    </svg>
+                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
                     Seguro y Vencimientos
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Nro. Póliza -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Póliza</label>
-                        <input 
-                            type="text" 
-                            wire:model="nro_poliza" @error('nro_poliza') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Número de póliza"
-                        >
-                        @error('nro_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.campo etiqueta="Nro. Póliza" nombre="nro_poliza" obligatorio>
+                        <x-ui.input nombre="nro_poliza" wire:model="nro_poliza" maxlength="255" autocomplete="off" placeholder="Número de póliza" />
+                    </x-ui.campo>
 
-                    <!-- Vencimiento Póliza -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Póliza</label>
-                        <input 
-                            type="date" 
-                            wire:model="vencimiento_poliza" @error('vencimiento_poliza') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
-                        @error('vencimiento_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Vencimiento Póliza" nombre="vencimiento_poliza">
+                        <x-ui.input nombre="vencimiento_poliza" type="date" wire:model="vencimiento_poliza" />
+                    </x-ui.campo>
 
-                    <!-- Vencimiento VTV -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento VTV</label>
-                        <input 
-                            type="date" 
-                            wire:model="vencimiento_vtv" @error('vencimiento_vtv') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
-                        @error('vencimiento_vtv') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Vencimiento VTV" nombre="vencimiento_vtv">
+                        <x-ui.input nombre="vencimiento_vtv" type="date" wire:model="vencimiento_vtv" />
+                    </x-ui.campo>
                 </div>
             </div>
 
             <!-- Sección: Origen y Telepase -->
             <div class="bg-gray-50 p-4 rounded-xl">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
+                    <i class="fa-solid fa-earth-americas" aria-hidden="true"></i>
                     Origen y Telepase
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Origen -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
-                        <input
-                            type="text"
-                            wire:model="origen" @error('origen') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: Nacional"
-                        >
-                        @error('origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <x-ui.campo etiqueta="Origen" nombre="origen">
+                        <x-ui.input nombre="origen" wire:model="origen" maxlength="255" placeholder="Ej: Nacional" />
+                    </x-ui.campo>
 
-                    <!-- Jurisdicción de Procedencia -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Jurisdicción de Procedencia</label>
-                        <input
-                            type="text"
-                            wire:model="jurisdiccion_procedencia" @error('jurisdiccion_procedencia') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: Buenos Aires"
-                        >
-                        @error('jurisdiccion_procedencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Jurisdicción de Procedencia" nombre="jurisdiccion_procedencia">
+                        <x-ui.input nombre="jurisdiccion_procedencia" wire:model="jurisdiccion_procedencia" maxlength="255" placeholder="Ej: Buenos Aires" />
+                    </x-ui.campo>
 
-                    <!-- Nro. Telepase -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Telepase</label>
-                        <input
-                            type="text"
-                            wire:model="nro_telepase" @error('nro_telepase') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Número de telepase"
-                        >
-                        @error('nro_telepase') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Nro. Telepase" nombre="nro_telepase">
+                        <x-ui.input nombre="nro_telepase" wire:model="nro_telepase" maxlength="255" autocomplete="off" placeholder="Número de telepase" />
+                    </x-ui.campo>
                 </div>
             </div>
 
             <!-- Sección: Estado y Ubicación -->
             <div class="bg-gray-50 p-4 rounded-xl">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                     Estado y Ubicación
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Estado -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
-                        <select 
-                            wire:model="estado" @error('estado') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.campo etiqueta="Estado" nombre="estado" obligatorio>
+                        <x-ui.select-nativo nombre="estado" wire:model="estado">
                             <option value="">Seleccione un estado</option>
                             <option value="EN USO">En Uso</option>
                             <option value="BAJA">Baja</option>
                             <option value="MANTENIMIENTO">Mantenimiento</option>
-                        </select>
-                        @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        </x-ui.select-nativo>
+                    </x-ui.campo>
 
-                    <!-- Secretaría -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                        <select
-                            wire:model="id_secretaria" @error('id_secretaria') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
+                    <x-ui.campo etiqueta="Secretaría" nombre="id_secretaria">
+                        <x-ui.select-nativo nombre="id_secretaria" wire:model="id_secretaria">
                             <option value="">Seleccione una secretaría</option>
                             @foreach($secretarias as $secretaria)
                                 <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
                             @endforeach
-                        </select>
-                        @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        </x-ui.select-nativo>
+                    </x-ui.campo>
 
-                    <!-- Depósito -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Depósito</label>
-                        <select
-                            wire:model="id_deposito" @error('id_deposito') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        >
+                    <x-ui.campo etiqueta="Depósito" nombre="id_deposito">
+                        <x-ui.select-nativo nombre="id_deposito" wire:model="id_deposito">
                             <option value="">Seleccione un depósito</option>
                             @foreach($depositos as $deposito)
                                 <option value="{{ $deposito->id }}">{{ $deposito->deposito }}@if($deposito->corralon) — {{ $deposito->corralon->descripcion }}@endif</option>
                             @endforeach
-                        </select>
-                        @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                        </x-ui.select-nativo>
+                    </x-ui.campo>
                 </div>
             </div>
 
             <x-slot:footer>
-                <button 
-                    type="button"
-                    wire:click="intentarCerrar"
-                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                >
-                    Cancelar
-                </button>
-                <button 
-                    type="submit"
-                    wire:loading.attr="disabled" wire:target="guardar"
-                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                >
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton type="submit" wire:loading.attr="disabled" wire:target="guardar">
                     {{ $editMode ? 'Actualizar' : 'Crear' }}
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -593,7 +387,7 @@
         <x-ui.modal titulo="Documentos del Vehículo" icono="fa-folder-open" cerrar="intentarCerrar" ancho="3xl">
             @if($vehiculoSeleccionado)
                 <x-slot:encabezado>
-                    <span class="text-sm text-gray-500 font-normal">{{ $vehiculoSeleccionado->vehiculo }} - {{ $vehiculoSeleccionado->marca }} {{ $vehiculoSeleccionado->modelo }}</span>
+                    <span class="text-sm text-gray-500 font-normal">{{ $vehiculoSeleccionado->vehiculo }} - {{ $vehiculoSeleccionado->marca_modelo }}@if($vehiculoSeleccionado->patente) ({{ $vehiculoSeleccionado->patente }})@endif</span>
                 </x-slot:encabezado>
             @endif
 
@@ -601,33 +395,18 @@
             @if($puedeEditar)
             <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                 <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
+                    <i class="fa-solid fa-plus text-blue-600" aria-hidden="true"></i>
                     Agregar Nuevo Documento
                 </h4>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción *</label>
-                        <input 
-                            type="text" 
-                            wire:model="nueva_descripcion" @error('nueva_descripcion') aria-invalid="true" @enderror
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Ej: Título del vehículo"
-                        >
-                        @error('nueva_descripcion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Archivo *</label>
-                        <input 
-                            type="file" 
-                            wire:model="nuevo_documento" @error('nuevo_documento') aria-invalid="true" @enderror
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        >
-                        @error('nuevo_documento') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <x-ui.campo etiqueta="Descripción" nombre="nueva_descripcion" obligatorio>
+                        <x-ui.input nombre="nueva_descripcion" wire:model="nueva_descripcion" maxlength="255" autocomplete="off" placeholder="Ej: Título del vehículo" />
+                    </x-ui.campo>
+
+                    <x-ui.campo etiqueta="Archivo" nombre="nuevo_documento" obligatorio ayuda="PDF, JPG, JPEG o PNG. Máximo 10MB.">
+                        <x-ui.input nombre="nuevo_documento" type="file" wire:model="nuevo_documento" accept=".pdf,.jpg,.jpeg,.png"
+                                    class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                         <div wire:loading wire:target="nuevo_documento" class="mt-2 text-sm text-blue-600">Cargando archivo...</div>
 
                         {{-- Preview del archivo seleccionado antes de subir --}}
@@ -638,43 +417,29 @@
                                 $esImagenPrev = in_array($extPrev, ['jpg', 'jpeg', 'png']);
                             @endphp
                             <div class="relative mt-3 inline-block border border-gray-200 rounded-xl overflow-hidden bg-gray-50 w-40">
-                                <button type="button" wire:click="quitarNuevoDocumento" title="Eliminar archivo"
+                                <button type="button" wire:click="quitarNuevoDocumento" title="Quitar archivo" aria-label="Quitar archivo"
                                         class="absolute top-1 right-1 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center shadow">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                                    <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
                                 </button>
                                 @if($esImagenPrev)
                                     <img src="{{ $nuevo_documento->temporaryUrl() }}" alt="{{ $nombrePrev }}" class="w-full h-24 object-cover">
                                 @else
                                     <div class="w-full h-24 flex items-center justify-center bg-red-50">
-                                        <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                        </svg>
+                                        <i class="fa-regular fa-file-pdf text-4xl text-red-500" aria-hidden="true"></i>
                                     </div>
                                 @endif
                                 <p class="px-2 py-1 text-[11px] text-gray-600 truncate" title="{{ $nombrePrev }}">{{ $nombrePrev }}</p>
                             </div>
                         @endif
-                    </div>
+                    </x-ui.campo>
                 </div>
 
-                <div class="mt-4 flex items-center justify-between">
-                    <p class="text-xs text-gray-500">PDF, JPG, JPEG o PNG. Máximo 10MB</p>
-                    <button 
-                        type="button"
-                        wire:click="agregarDocumento"
-                        data-atajo-guardar
-                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium text-sm flex items-center gap-2"
-                        wire:loading.attr="disabled"
-                        wire:target="nuevo_documento"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
+                <div class="mt-4 flex items-center justify-end">
+                    <x-ui.boton icono="fa-plus" wire:click="agregarDocumento" data-atajo-guardar
+                                wire:loading.attr="disabled" wire:target="nuevo_documento">
                         <span wire:loading.remove wire:target="nuevo_documento">Agregar</span>
                         <span wire:loading wire:target="nuevo_documento">Cargando...</span>
-                    </button>
+                    </x-ui.boton>
                 </div>
             </div>
             @endif
@@ -686,88 +451,52 @@
                     <div class="space-y-2">
                         @foreach($documentos_existentes as $doc)
                             <div class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 transition-colors">
-                                <!-- Icono según tipo de archivo -->
+                                {{-- Icono según tipo de archivo --}}
                                 @php
                                     $extension = strtolower(pathinfo($doc['archivo'], PATHINFO_EXTENSION));
                                     $isPdf = $extension === 'pdf';
                                 @endphp
-                                
+
                                 @if($isPdf)
                                     <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                        </svg>
+                                        <i class="fa-regular fa-file-pdf text-xl text-red-600" aria-hidden="true"></i>
                                     </div>
                                 @else
                                     <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                        </svg>
+                                        <i class="fa-regular fa-file-image text-xl text-blue-600" aria-hidden="true"></i>
                                     </div>
                                 @endif
-                                
+
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 truncate">{{ $doc['descripcion'] }}</p>
                                     <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($doc['created_at'])->format('d/m/Y H:i') }}</p>
                                 </div>
-                                
-                                <div class="flex items-center gap-2">
-                                    <a 
-                                        href="{{ route('documentos-vehiculo.ver', $doc['id']) }}" 
-                                        target="_blank"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                        title="Ver documento"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                    </a>
-                                    <a
-                                        href="{{ route('documentos-vehiculo.descargar', $doc['id']) }}"
-                                        class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                        title="Descargar documento"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                        </svg>
-                                    </a>
-                                    {{-- Botón Eliminar solo si tiene permisos --}}
+
+                                <div class="flex items-center gap-1">
+                                    <x-ui.accion icono="fa-regular fa-eye" etiqueta="Ver documento"
+                                                 :href="route('documentos-vehiculo.ver', $doc['id'])" target="_blank" />
+                                    <x-ui.accion icono="fa-download" etiqueta="Descargar documento"
+                                                 :href="route('documentos-vehiculo.descargar', $doc['id'])" :navegar="false" />
                                     @if($puedeEditar)
-                                    <button 
-                                        type="button"
-                                        wire:click="confirmarEliminarDocumento({{ $doc['id'] }})"
-                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                        title="Eliminar documento"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar documento"
+                                                 wire:click="confirmarEliminarDocumento({{ $doc['id'] }})" />
                                     @endif
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 @else
-                    <div class="text-center py-12">
-                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <p class="text-sm font-medium text-gray-500">No hay documentos cargados</p>
-                        <p class="text-xs text-gray-400 mt-1">Agregue documentos usando el formulario superior</p>
-                    </div>
+                    <x-ui.vacio icono="fa-regular fa-file-lines" class="py-10">
+                        No hay documentos cargados
+                        @if($puedeEditar)
+                            <span class="block mt-1 text-xs font-normal">Agregue documentos con el formulario de arriba.</span>
+                        @endif
+                    </x-ui.vacio>
                 @endif
             </div>
 
             <x-slot:footer>
-                <button 
-                    type="button"
-                    wire:click="intentarCerrar"
-                    class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200 font-medium"
-                >
-                    Cerrar
-                </button>
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cerrar</x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -790,4 +519,4 @@
             ¿Está seguro de eliminar este documento?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>
