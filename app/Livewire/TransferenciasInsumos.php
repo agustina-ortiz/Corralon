@@ -3,6 +3,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\Insumo;
 use App\Models\Deposito;
 use App\Models\MovimientoInsumo;
@@ -30,6 +32,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class TransferenciasInsumos extends Component
 {
     use WithPagination, WithFileUploads;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     /** Valor especial del filtro "Tipo de Movimiento": movimientos cargados desde "Movimientos Múltiples". */
     public const FILTRO_MULTIPLES = 'multiples';
@@ -120,6 +124,12 @@ class TransferenciasInsumos extends Component
     
     // Panel de asignaciones pendientes
     public $showAsignacionesPendientes = false;
+
+    // Asignación pendiente a dar de baja (abre el modal de confirmación)
+    public $bajaAsignacion = null;
+
+    // Comprobante existente a eliminar desde el modal de edición (abre la confirmación)
+    public $eliminarComprobanteId = null;
 
     // Datos auxiliares
     public $depositos_disponibles = [];
@@ -431,7 +441,7 @@ class TransferenciasInsumos extends Component
         // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
         $total = $this->baseMovimientosQuery($this->getDepositosAccesibles())->count();
         if ($total > 2000) {
-            session()->flash('error', "Hay {$total} movimientos, demasiados para un PDF. Acotá el período/filtros o usá la exportación a Excel.");
+            $this->toastError("Hay {$total} movimientos, demasiados para un PDF. Acotá el período/filtros o usá la exportación a Excel.");
             return;
         }
 
@@ -1130,18 +1140,19 @@ class TransferenciasInsumos extends Component
     {
         // Verificar permiso de creación
         if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             return;
         }
 
         $this->resetFormTransferencia();
         $this->showModalTransferencia = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function abrirModalTransferenciaDesdeMovimiento($depositoId, $insumoId)
     {
         if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             return;
         }
 
@@ -1166,12 +1177,13 @@ class TransferenciasInsumos extends Component
         }
 
         $this->showModalTransferencia = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function abrirModalTransferenciaDesdeTransferencia($encabezadoId)
     {
         if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             return;
         }
 
@@ -1202,6 +1214,7 @@ class TransferenciasInsumos extends Component
         }
 
         $this->showModalTransferencia = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function agregarInsumoTransferencia($insumoId)
@@ -1271,25 +1284,27 @@ class TransferenciasInsumos extends Component
     {
         // Verificar permiso de creación
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
         $this->resetForm();
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
         $this->paso_actual = 1;
     }
 
     public function abrirModalConInsumo($insumoId)
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
         $this->resetForm();
         $this->showModal = true;
         $this->seleccionarInsumo($insumoId);
+        $this->marcarFormularioLimpio();
     }
 
     public function seleccionarInsumo($insumoId)
@@ -1301,7 +1316,7 @@ class TransferenciasInsumos extends Component
             ->find($insumoId);
         
         if (!$this->insumo_seleccionado) {
-            session()->flash('error', 'No tiene acceso a este insumo.');
+            $this->toastError('No tiene acceso a este insumo.');
             return;
         }
         
@@ -1349,7 +1364,7 @@ class TransferenciasInsumos extends Component
     {
         // Verificar permiso antes de guardar
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             $this->cerrarModal();
             return;
         }
@@ -1370,13 +1385,13 @@ class TransferenciasInsumos extends Component
                 case 'entrada_reposicion':
                     return $this->guardarEntradaReposicion();
                 default:
-                    session()->flash('error', 'Tipo de movimiento no válido.');
+                    $this->toastError('Tipo de movimiento no válido.');
                     $this->cerrarModal();
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al procesar el movimiento: ' . $e->getMessage());
+            $this->toastError('Error al procesar el movimiento: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardar movimiento: ' . $e->getMessage());
         }
@@ -1386,7 +1401,7 @@ class TransferenciasInsumos extends Component
     {
         // Verificar permiso antes de guardar
         if (!auth()->user()->puedeCrearTransferenciasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             $this->cerrarModalTransferencia();
             return;
         }
@@ -1394,30 +1409,30 @@ class TransferenciasInsumos extends Component
         try {
             if (empty($this->id_deposito_origen)) {
                 $this->addError('id_deposito_origen', 'Debe seleccionar un depósito de origen');
-                session()->flash('error', 'Debe seleccionar un depósito de origen');
+                $this->toastError('Debe seleccionar un depósito de origen');
                 return;
             }
 
             if (empty($this->id_deposito_destino)) {
                 $this->addError('id_deposito_destino', 'Debe seleccionar un depósito de destino');
-                session()->flash('error', 'Debe seleccionar un depósito de destino');
+                $this->toastError('Debe seleccionar un depósito de destino');
                 return;
             }
 
             if ($this->id_deposito_origen == $this->id_deposito_destino) {
                 $this->addError('id_deposito_destino', 'El depósito destino debe ser diferente al de origen');
-                session()->flash('error', 'El depósito destino debe ser diferente al de origen');
+                $this->toastError('El depósito destino debe ser diferente al de origen');
                 return;
             }
 
             if (empty($this->insumos_transferencia) || count($this->insumos_transferencia) === 0) {
                 $this->addError('insumos_transferencia', 'Debe seleccionar al menos un insumo para transferir');
-                session()->flash('error', 'Debe seleccionar al menos un insumo para transferir');
+                $this->toastError('Debe seleccionar al menos un insumo para transferir');
                 return;
             }
 
             if ($this->getErrorBag()->isNotEmpty()) {
-                session()->flash('error', 'Por favor corrija los errores antes de continuar.');
+                $this->toastError('Por favor corrija los errores antes de continuar.');
                 return;
             }
 
@@ -1427,7 +1442,7 @@ class TransferenciasInsumos extends Component
                         "insumos_transferencia.{$index}.cantidad",
                         "Debe ingresar una cantidad válida"
                     );
-                    session()->flash('error', "Debe ingresar una cantidad válida para {$item['nombre']}");
+                    $this->toastError("Debe ingresar una cantidad válida para {$item['nombre']}");
                     return;
                 }
                 
@@ -1436,7 +1451,7 @@ class TransferenciasInsumos extends Component
                         "insumos_transferencia.{$index}.cantidad",
                         "No puede transferir más de " . number_format($item['stock_actual'], 2) . " {$item['unidad']} disponibles"
                     );
-                    session()->flash('error', "La cantidad de {$item['nombre']} excede el stock disponible");
+                    $this->toastError("La cantidad de {$item['nombre']} excede el stock disponible");
                     return;
                 }
             }
@@ -1528,7 +1543,7 @@ class TransferenciasInsumos extends Component
             $depositoDestino = Deposito::find($this->id_deposito_destino);
 
             $mensaje = "Transferencia realizada exitosamente: {$totalInsumos} insumo(s) desde {$depositoOrigen->deposito} hacia {$depositoDestino->deposito}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
             
             $this->cerrarModalTransferencia();
 
@@ -1537,7 +1552,7 @@ class TransferenciasInsumos extends Component
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la transferencia: ' . $e->getMessage());
+            $this->toastError('Error al realizar la transferencia: ' . $e->getMessage());
             \Log::error('Error en guardarTransferencia múltiple: ' . $e->getMessage());
         }
     }
@@ -1602,7 +1617,7 @@ class TransferenciasInsumos extends Component
             DB::commit();
 
             $mensaje = "Carga realizada exitosamente: {$this->cantidad} {$insumo->unidad} de {$insumo->insumo}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
 
             \Illuminate\Support\Facades\Cache::flush();
 
@@ -1610,7 +1625,7 @@ class TransferenciasInsumos extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la carga: ' . $e->getMessage());
+            $this->toastError('Error al realizar la carga: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarCarga: ' . $e->getMessage());
         }
@@ -1650,12 +1665,12 @@ class TransferenciasInsumos extends Component
             DB::commit();
 
             $mensaje = "Ajuste positivo realizado exitosamente: +{$this->cantidad} {$insumo->unidad} de {$insumo->insumo}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar el ajuste: ' . $e->getMessage());
+            $this->toastError('Error al realizar el ajuste: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAjustePositivo: ' . $e->getMessage());
         }
@@ -1671,7 +1686,7 @@ class TransferenciasInsumos extends Component
             }
 
             if ($this->cantidad > $insumo->stock_actual) {
-                session()->flash('error', 'La cantidad excede el stock disponible.');
+                $this->toastError('La cantidad excede el stock disponible.');
                 $this->cerrarModal();
                 return;
             }
@@ -1703,12 +1718,12 @@ class TransferenciasInsumos extends Component
 
             $destinoMsg = $this->tipo_destino ? ' → ' . $this->obtenerNombreDestino() : '';
             $mensaje = "Ajuste negativo realizado exitosamente: -{$this->cantidad} {$insumo->unidad} de {$insumo->insumo}{$destinoMsg}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar el ajuste: ' . $e->getMessage());
+            $this->toastError('Error al realizar el ajuste: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAjusteNegativo: ' . $e->getMessage());
         }
@@ -1781,7 +1796,7 @@ class TransferenciasInsumos extends Component
             }
 
             if ($this->cantidad > $insumo->stock_actual) {
-                session()->flash('error', 'La cantidad excede el stock disponible.');
+                $this->toastError('La cantidad excede el stock disponible.');
                 $this->cerrarModal();
                 return;
             }
@@ -1817,7 +1832,7 @@ class TransferenciasInsumos extends Component
 
             $destinoNombre = $this->obtenerNombreDestino();
             $mensaje = "{$nombreTipo} realizada: {$this->cantidad} {$insumo->unidad} de {$insumo->insumo} → {$destinoNombre}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
 
             \Illuminate\Support\Facades\Cache::flush();
 
@@ -1825,7 +1840,7 @@ class TransferenciasInsumos extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la asignación: ' . $e->getMessage());
+            $this->toastError('Error al realizar la asignación: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAsignacion: ' . $e->getMessage());
         }
@@ -1867,7 +1882,7 @@ class TransferenciasInsumos extends Component
 
             $destinoNombre = $this->obtenerNombreDestino();
             $mensaje = "Entrada Reposición realizada: +{$this->cantidad} {$insumo->unidad} de {$insumo->insumo} ← {$destinoNombre}";
-            session()->flash('message', $mensaje);
+            $this->toastExito($mensaje);
 
             \Illuminate\Support\Facades\Cache::flush();
 
@@ -1875,7 +1890,7 @@ class TransferenciasInsumos extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la entrada reposición: ' . $e->getMessage());
+            $this->toastError('Error al realizar la entrada reposición: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarEntradaReposicion: ' . $e->getMessage());
         }
@@ -1907,13 +1922,13 @@ class TransferenciasInsumos extends Component
     public function devolverAsignacion($insumoId, $tipoReferencia, $idReferencia, $cantidadDevolver)
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
         $cantidadDevolver = floatval($cantidadDevolver);
         if ($cantidadDevolver <= 0) {
-            session()->flash('error', 'La cantidad debe ser mayor a 0.');
+            $this->toastError('La cantidad debe ser mayor a 0.');
             return;
         }
 
@@ -1925,7 +1940,7 @@ class TransferenciasInsumos extends Component
 
             $pendiente = $this->calcularPendiente($insumoId, $tipoReferencia, $idReferencia);
             if ($cantidadDevolver > $pendiente) {
-                session()->flash('error', "No puede devolver más de " . number_format($pendiente, 2) . " {$insumo->unidad} pendientes.");
+                $this->toastError("No puede devolver más de " . number_format($pendiente, 2) . " {$insumo->unidad} pendientes.");
                 return;
             }
 
@@ -1958,21 +1973,41 @@ class TransferenciasInsumos extends Component
                 $referenciaNombre = $ev ? $ev->evento : "Evento #{$idReferencia}";
             }
 
-            session()->flash('message', "Devolución realizada: +{$cantidadDevolver} {$insumo->unidad} de {$insumo->insumo} desde {$referenciaNombre}");
+            $this->toastExito("Devolución realizada: +{$cantidadDevolver} {$insumo->unidad} de {$insumo->insumo} desde {$referenciaNombre}");
 
             \Illuminate\Support\Facades\Cache::flush();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
+            $this->toastError('Error al realizar la devolución: ' . $e->getMessage());
             \Log::error('Error en devolverAsignacion: ' . $e->getMessage());
+        }
+    }
+
+    public function confirmarBajaAsignacion($insumoId, $tipoReferencia, $idReferencia)
+    {
+        $this->bajaAsignacion = ['id' => $insumoId, 'tipo_referencia' => $tipoReferencia, 'id_referencia' => $idReferencia];
+    }
+
+    public function cancelarBajaAsignacion()
+    {
+        $this->bajaAsignacion = null;
+    }
+
+    public function bajaAsignacionConfirmada()
+    {
+        $baja = $this->bajaAsignacion;
+        $this->bajaAsignacion = null;
+
+        if ($baja) {
+            $this->darDeBajaAsignacion($baja['id'], $baja['tipo_referencia'], $baja['id_referencia']);
         }
     }
 
     public function darDeBajaAsignacion($insumoId, $tipoReferencia, $idReferencia)
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
@@ -1984,7 +2019,7 @@ class TransferenciasInsumos extends Component
 
             $pendiente = $this->calcularPendiente($insumoId, $tipoReferencia, $idReferencia);
             if ($pendiente <= 0) {
-                session()->flash('error', 'No hay cantidad pendiente para dar de baja.');
+                $this->toastError('No hay cantidad pendiente para dar de baja.');
                 return;
             }
 
@@ -2015,13 +2050,13 @@ class TransferenciasInsumos extends Component
                 $referenciaNombre = $ev ? $ev->evento : "Evento #{$idReferencia}";
             }
 
-            session()->flash('message', "Baja realizada: {$pendiente} {$insumo->unidad} de {$insumo->insumo} en {$referenciaNombre}");
+            $this->toastExito("Baja realizada: {$pendiente} {$insumo->unidad} de {$insumo->insumo} en {$referenciaNombre}");
 
             \Illuminate\Support\Facades\Cache::flush();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al dar de baja: ' . $e->getMessage());
+            $this->toastError('Error al dar de baja: ' . $e->getMessage());
             \Log::error('Error en darDeBajaAsignacion: ' . $e->getMessage());
         }
     }
@@ -2058,6 +2093,35 @@ class TransferenciasInsumos extends Component
         $this->dispatch('refreshComponent');
     }
 
+    // Hay un formulario por modal: los campos y el cierre dependen del que esté abierto.
+    protected function camposFormulario(): array
+    {
+        if ($this->showEditModal) {
+            return ['edit_nro_orden_compra', 'edit_observaciones', 'edit_comprobantes'];
+        }
+        if ($this->showModalMultiple) {
+            return ['multi_tipo_destino', 'multi_id_referencia', 'multi_id_secretaria', 'multi_area', 'multi_observaciones', 'multi_lineas'];
+        }
+        if ($this->showModalTransferencia) {
+            return ['id_corralon_origen', 'id_corralon_destino', 'id_deposito_origen', 'id_deposito_destino', 'insumos_transferencia', 'observaciones_transferencia'];
+        }
+
+        return ['insumo_id', 'tipo_movimiento', 'cantidad', 'nro_orden_compra', 'observaciones', 'comprobantes', 'tipo_destino', 'id_referencia', 'id_secretaria_ajuste', 'area_ajuste'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        if ($this->showEditModal) {
+            $this->cerrarEdicion();
+        } elseif ($this->showModalMultiple) {
+            $this->cerrarModalMultiple();
+        } elseif ($this->showModalTransferencia) {
+            $this->cerrarModalTransferencia();
+        } else {
+            $this->cerrarModal();
+        }
+    }
+
     public function cerrarModalTransferencia()
     {
         $this->showModalTransferencia = false;
@@ -2072,12 +2136,13 @@ class TransferenciasInsumos extends Component
     public function abrirModalMultiple()
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
         $this->resetFormMultiple();
         $this->showModalMultiple = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function cerrarModalMultiple()
@@ -2164,7 +2229,7 @@ class TransferenciasInsumos extends Component
     public function multiContinuar()
     {
         if (!$this->multiDestinoValido()) {
-            session()->flash('error', 'Debe seleccionar un destinatario.');
+            $this->toastError('Debe seleccionar un destinatario.');
             return;
         }
         $this->multi_paso = 2;
@@ -2188,12 +2253,12 @@ class TransferenciasInsumos extends Component
         $insumo = Insumo::whereIn('id_deposito', $depositosAccesibles)->find($insumoId);
 
         if (!$insumo) {
-            session()->flash('error', 'No tiene acceso a este insumo.');
+            $this->toastError('No tiene acceso a este insumo.');
             return;
         }
 
         if ($insumo->stock_actual <= 0) {
-            session()->flash('error', "El insumo \"{$insumo->insumo}\" no tiene stock disponible.");
+            $this->toastError("El insumo \"{$insumo->insumo}\" no tiene stock disponible.");
             return;
         }
 
@@ -2219,25 +2284,25 @@ class TransferenciasInsumos extends Component
     public function guardarMultiple()
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             $this->cerrarModalMultiple();
             return;
         }
 
         // --- Validaciones ---
         if (!$this->multiDestinoValido()) {
-            session()->flash('error', 'Debe seleccionar un destinatario.');
+            $this->toastError('Debe seleccionar un destinatario.');
             return;
         }
 
         if (empty($this->multi_lineas)) {
-            session()->flash('error', 'Debe agregar al menos un insumo.');
+            $this->toastError('Debe agregar al menos un insumo.');
             return;
         }
 
         if (mb_strlen((string) $this->multi_observaciones) > 1000) {
             $this->addError('multi_observaciones', 'Las observaciones no pueden superar los 1000 caracteres.');
-            session()->flash('error', 'Las observaciones son demasiado largas.');
+            $this->toastError('Las observaciones son demasiado largas.');
             return;
         }
 
@@ -2257,7 +2322,7 @@ class TransferenciasInsumos extends Component
         }
 
         if ($errores) {
-            session()->flash('error', 'Revise las cantidades y tipos de movimiento.');
+            $this->toastError('Revise las cantidades y tipos de movimiento.');
             return;
         }
 
@@ -2277,11 +2342,11 @@ class TransferenciasInsumos extends Component
         foreach ($totalesPorInsumo as $id => $total) {
             $insumo = $insumos->get($id);
             if (!$insumo) {
-                session()->flash('error', 'Uno de los insumos ya no está disponible.');
+                $this->toastError('Uno de los insumos ya no está disponible.');
                 return;
             }
             if ($total > $insumo->stock_actual) {
-                session()->flash('error', "La cantidad total de \"{$insumo->insumo}\" ({$total}) excede el stock disponible ({$insumo->stock_actual}).");
+                $this->toastError("La cantidad total de \"{$insumo->insumo}\" ({$total}) excede el stock disponible ({$insumo->stock_actual}).");
                 return;
             }
         }
@@ -2333,7 +2398,7 @@ class TransferenciasInsumos extends Component
 
             $cant = count($this->multi_lineas);
             $destinoNombre = $this->multiNombreDestino();
-            session()->flash('message', "{$cant} " . ($cant === 1 ? 'movimiento registrado' : 'movimientos registrados') . " para {$destinoNombre}.");
+            $this->toastExito("{$cant} " . ($cant === 1 ? 'movimiento registrado' : 'movimientos registrados') . " para {$destinoNombre}.");
 
             \Illuminate\Support\Facades\Cache::flush();
 
@@ -2341,7 +2406,7 @@ class TransferenciasInsumos extends Component
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al registrar los movimientos: ' . $e->getMessage());
+            $this->toastError('Error al registrar los movimientos: ' . $e->getMessage());
             $this->cerrarModalMultiple();
             \Log::error('Error en guardarMultiple: ' . $e->getMessage());
         }
@@ -2374,14 +2439,14 @@ class TransferenciasInsumos extends Component
     public function abrirEdicion($id)
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->toastError('No tienes permisos para editar movimientos.');
             return;
         }
 
         $movimiento = MovimientoInsumo::with('tipoMovimiento')->find($id);
 
         if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
-            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->toastError('Este movimiento no se puede editar.');
             return;
         }
 
@@ -2392,6 +2457,7 @@ class TransferenciasInsumos extends Component
         $this->edit_comprobantes = [];
         $this->resetErrorBag();
         $this->showEditModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function removeEditComprobante($index)
@@ -2401,8 +2467,21 @@ class TransferenciasInsumos extends Component
         $this->edit_comprobantes = array_values($comprobantes);
     }
 
-    public function eliminarComprobanteExistente($comprobanteId)
+    public function confirmarEliminarComprobante($comprobanteId)
     {
+        $this->eliminarComprobanteId = $comprobanteId;
+    }
+
+    public function cancelarEliminarComprobante()
+    {
+        $this->eliminarComprobanteId = null;
+    }
+
+    public function eliminarComprobanteExistente()
+    {
+        $comprobanteId = $this->eliminarComprobanteId;
+        $this->eliminarComprobanteId = null;
+
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
             return;
         }
@@ -2414,14 +2493,14 @@ class TransferenciasInsumos extends Component
         if ($comprobante) {
             \Illuminate\Support\Facades\Storage::disk('local')->delete('comprobantes/' . $comprobante->archivo);
             $comprobante->delete();
-            session()->flash('message', 'Comprobante eliminado.');
+            $this->toastExito('Comprobante eliminado.');
         }
     }
 
     public function guardarEdicion()
     {
         if (!auth()->user()->puedeCrearMovimientosInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->toastError('No tienes permisos para editar movimientos.');
             $this->cerrarEdicion();
             return;
         }
@@ -2440,7 +2519,7 @@ class TransferenciasInsumos extends Component
         $movimiento = MovimientoInsumo::with('tipoMovimiento')->find($this->edit_movimiento_id);
 
         if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
-            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->toastError('Este movimiento no se puede editar.');
             $this->cerrarEdicion();
             return;
         }
@@ -2466,7 +2545,7 @@ class TransferenciasInsumos extends Component
             ]);
         }
 
-        session()->flash('message', 'Movimiento actualizado correctamente.');
+        $this->toastExito('Movimiento actualizado correctamente.');
         $this->cerrarEdicion();
     }
 
