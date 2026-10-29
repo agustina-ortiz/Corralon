@@ -1,5 +1,15 @@
-<div>
-    <!-- Panel de filtros + acciones -->
+<x-ui.pagina titulo="Estadísticas" icono="fa-chart-pie">
+    <x-slot:acciones>
+        <x-ui.boton variante="secundario" icono="fa-regular fa-file-pdf" wire:click="exportarPdf"
+                    wire:loading.attr="disabled" wire:target="exportarPdf"
+                    title="Descargar los gráficos visibles en PDF">
+            <span wire:loading.remove wire:target="exportarPdf">Imprimir PDF</span>
+            <span wire:loading wire:target="exportarPdf">Generando…</span>
+        </x-ui.boton>
+        <x-ui.boton variante="secundario" icono="fa-sliders" wire:click="abrirModalPersonalizar">Personalizar</x-ui.boton>
+    </x-slot:acciones>
+
+    <!-- Panel de filtros -->
     @php
         $filtrosActivos = collect([
             $filtro_corralon, $filtro_deposito, $fecha_desde, $fecha_hasta,
@@ -37,28 +47,8 @@
                     Actualizando…
                 </span>
                 @if($filtrosActivos > 0)
-                    <button wire:click="limpiarFiltros" class="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Limpiar
-                    </button>
+                    <x-ui.boton variante="secundario" tamano="chico" icono="fa-xmark" wire:click="limpiarFiltros">Limpiar</x-ui.boton>
                 @endif
-                <button wire:click="exportarPdf" wire:loading.attr="disabled" wire:target="exportarPdf"
-                        class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-50 transition-colors whitespace-nowrap"
-                        title="Descargar los gráficos visibles en PDF">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
-                    </svg>
-                    <span wire:loading.remove wire:target="exportarPdf">Imprimir PDF</span>
-                    <span wire:loading wire:target="exportarPdf">Generando…</span>
-                </button>
-                <button wire:click="abrirModalPersonalizar" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#77BF43] rounded-xl shadow-sm hover:bg-[#69ab3a] transition-colors whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                    </svg>
-                    Personalizar
-                </button>
             </div>
         </div>
 
@@ -321,7 +311,7 @@
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col md:col-span-2">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-sm font-semibold text-gray-700">{{ $w['titulo'] }}</h3>
-                                <span class="bg-amber-100 text-amber-800 font-bold px-2.5 py-0.5 rounded-full text-xs">{{ $w['data']->count() }}</span>
+                                <x-ui.badge color="ambar">{{ $w['data']->count() }}</x-ui.badge>
                             </div>
                             @if($w['data']->count() > 0)
                                 <div class="space-y-2 max-h-72 overflow-y-auto">
@@ -360,7 +350,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <div class="flex-1 flex items-center justify-center text-sm text-gray-400 py-10">No hay licencias por vencer</div>
+                                <x-ui.vacio icono="fa-id-card" class="flex-1 py-10">No hay licencias por vencer</x-ui.vacio>
                             @endif
                         </div>
                         @break
@@ -368,36 +358,24 @@
             @endforeach
         </div>
     @elseif($todosVacios)
-        <div class="text-center py-16 text-gray-400">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-            </svg>
-            <p class="font-medium text-gray-500">Ningún gráfico tiene datos con estos filtros</p>
-            <p class="text-sm mt-1">Probá acotar menos la búsqueda o limpiar los filtros.</p>
+        <div class="py-16">
+            <x-ui.vacio icono="fa-filter">
+                Ningún gráfico tiene datos con estos filtros
+                <span class="block mt-1 font-normal">Probá acotar menos la búsqueda o limpiar los filtros.</span>
+            </x-ui.vacio>
             @if($filtrosActivos > 0)
-                <button wire:click="limpiarFiltros" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                    Limpiar filtros
-                </button>
+                <div class="mt-2 flex justify-center">
+                    <x-ui.boton variante="secundario" icono="fa-xmark" wire:click="limpiarFiltros">Limpiar filtros</x-ui.boton>
+                </div>
             @endif
         </div>
     @elseif($sinOpciones)
-        <div class="text-center py-16 text-gray-400">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-            </svg>
-            <p class="font-medium text-gray-500">No tenés módulos con estadísticas disponibles</p>
-        </div>
+        <x-ui.vacio icono="fa-chart-column" class="py-16">No tenés módulos con estadísticas disponibles</x-ui.vacio>
     @else
-        <div class="text-center py-16 text-gray-400">
-            <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-            </svg>
-            <p class="font-medium text-gray-500">No hay gráficos activos</p>
-            <p class="text-sm mt-1">Usá "Personalizar" para elegir qué estadísticas ver.</p>
-        </div>
+        <x-ui.vacio icono="fa-chart-column" class="py-16">
+            No hay gráficos activos
+            <span class="block mt-1 font-normal">Usá "Personalizar" para elegir qué estadísticas ver.</span>
+        </x-ui.vacio>
     @endif
 
     <!-- Modal Personalizar -->
@@ -405,8 +383,8 @@
         <x-ui.modal titulo="Personalizar estadísticas" icono="fa-sliders" cerrar="intentarCerrar" ancho="lg">
             @foreach($grupos as $grupoKey => $grupoLabel)
                 @if(!empty($opcionesPorGrupo[$grupoKey]))
-                <div class="mb-5">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ $grupoLabel }}</p>
+                <fieldset class="w-full min-w-0 mb-5">
+                    <legend class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{{ $grupoLabel }}</legend>
                     <div class="space-y-1.5">
                         @foreach($opcionesPorGrupo[$grupoKey] as $key => $cfg)
                         <label class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-[#77BF43]/40 hover:bg-[#77BF43]/5 cursor-pointer transition-colors">
@@ -416,19 +394,16 @@
                         </label>
                         @endforeach
                     </div>
-                </div>
+                </fieldset>
                 @endif
             @endforeach
 
             <x-slot:footer>
-                <button type="button" wire:click="intentarCerrar" class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Cancelar
-                </button>
-                <button type="button" wire:click="guardarPreferencias" data-atajo-guardar
-                        wire:loading.attr="disabled" wire:target="guardarPreferencias"
-                        class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a]">
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton wire:click="guardarPreferencias" data-atajo-guardar
+                            wire:loading.attr="disabled" wire:target="guardarPreferencias">
                     Guardar
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -439,4 +414,4 @@
             Hay cambios sin guardar. ¿Desea descartarlos?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>
