@@ -5,6 +5,7 @@
 
     Props:
       variante  primario | secundario (blanco con borde) | peligro (rojo) |
+                exito (esmeralda: altas secundarias, como "Nueva Área") |
                 enlace (solo texto). Por omisión primario.
       tamano    normal | chico (acción de dominio en una fila o una card).
                 Nunca se achica un botón a mano con clases px-/py- extra.
@@ -32,6 +33,7 @@
     $clases = match ($variante) {
         'secundario' => Tema::botonSecundario(),
         'peligro' => Tema::botonPeligro(),
+        'exito' => Tema::botonExito(),
         'enlace' => 'bg-transparent '.Tema::enlace().' hover:underline focus:ring-blue-500/40',
         default => Tema::botonPrimario(),
     };

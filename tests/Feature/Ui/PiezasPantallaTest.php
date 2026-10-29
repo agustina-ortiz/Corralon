@@ -56,6 +56,10 @@ class PiezasPantallaTest extends TestCase
         $this->assertStringContainsString('bg-white border border-gray-300 text-gray-700', $secundario);
         $this->assertStringContainsString('<button type="submit"', $peligro);
         $this->assertStringContainsString('from-red-600 to-red-700', $peligro);
+
+        $exito = Blade::render('<x-ui.boton variante="exito">Nueva Área</x-ui.boton>');
+        $this->assertStringContainsString('from-emerald-600 to-emerald-700', $exito);
+        $this->assertStringContainsString('text-emerald-600', Blade::render('<x-ui.accion icono="fa-plus" color="exito" etiqueta="Agregar área" />'));
     }
 
     public function test_boton_chico_achica_relleno_y_texto_sin_duplicar_medidas(): void

@@ -8,7 +8,8 @@
     Props:
       icono     Font Awesome ("fa-trash-can"); se antepone fa-solid.
       etiqueta  Qué hace la acción (obligatoria).
-      color     neutro (azul, como las de siempre) | peligro (rojo).
+      color     neutro (azul, como las de siempre) | peligro (rojo) |
+                exito (esmeralda: agregar un hijo, como "Agregar área").
       href      Renderiza un <a>; los internos llevan wire:navigate solos.
 --}}
 @props([
@@ -23,9 +24,11 @@
     use App\Support\Tema;
     use Illuminate\Support\Str;
 
-    $clases = $color === 'peligro'
-        ? 'text-red-600 hover:bg-red-50 focus:ring-red-500/40'
-        : Tema::accionNeutra();
+    $clases = match ($color) {
+        'peligro' => 'text-red-600 hover:bg-red-50 focus:ring-red-500/40',
+        'exito' => Tema::accionExito(),
+        default => Tema::accionNeutra(),
+    };
 
     $base = 'inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors duration-150 focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed';
 

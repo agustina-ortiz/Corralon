@@ -51,6 +51,18 @@ final class Tema
         return 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg shadow-red-500/30 focus:ring-red-500';
     }
 
+    /** Botón de éxito/alta secundaria (las altas de Áreas en Secretarías). Esmeralda como siempre. */
+    public static function botonExito(): string
+    {
+        return 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white shadow-lg shadow-emerald-500/30 focus:ring-emerald-500';
+    }
+
+    /** Acción de fila (icono) de alta: agregar un hijo (área). */
+    public static function accionExito(): string
+    {
+        return 'text-emerald-600 hover:bg-emerald-50 focus:ring-emerald-500/40';
+    }
+
     /** Texto de acento: icono del título de pantalla, casillas marcadas. */
     public static function acentoTexto(): string
     {
