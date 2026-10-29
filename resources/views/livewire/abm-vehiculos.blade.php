@@ -146,25 +146,7 @@
         </div>
     @endif
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -263,8 +245,7 @@
                                     {{-- Botón Eliminar solo si tiene permisos --}}
                                     @if($puedeEliminar)
                                     <button 
-                                        wire:click="eliminar({{ $item->id }})"
-                                        wire:confirm="¿Está seguro de eliminar este vehículo?"
+                                        wire:click="confirmarEliminar({{ $item->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -301,542 +282,512 @@
 
     <!-- Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModal"></div>
+        <x-ui.modal :titulo="$editMode ? 'Editar Vehículo' : 'Nuevo Vehículo'"
+                    :icono="$editMode ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="4xl" submit="guardar">
+            <!-- Sección: Información Básica -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Información Básica
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nro. Patrimonio -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Patrimonio</label>
+                        <input 
+                            type="text" 
+                            wire:model="nro_patrimonio" @error('nro_patrimonio') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: 12345"
+                        >
+                        @error('nro_patrimonio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                    <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5 max-h-[80vh] overflow-y-auto">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Vehículo' : 'Nuevo Vehículo' }}
-                                </h3>
-                                <button 
-                                    type="button" 
-                                    wire:click="cerrarModal"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
+                    <!-- Vehículo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vehículo *</label>
+                        <input 
+                            type="text" 
+                            wire:model="vehiculo" @error('vehiculo') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: Camioneta"
+                        >
+                        @error('vehiculo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                            <div class="space-y-6">
-                                <!-- Sección: Información Básica -->
-                                <div class="bg-gray-50 p-4 rounded-xl">
-                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Información Básica
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Nro. Patrimonio -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Patrimonio</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="nro_patrimonio"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: 12345"
-                                            >
-                                            @error('nro_patrimonio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
+                    <!-- Marca/Modelo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo *</label>
+                        <input
+                            type="text"
+                            wire:model="marca_modelo" @error('marca_modelo') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: Toyota Hilux"
+                        >
+                        @error('marca_modelo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                                        <!-- Vehículo -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Vehículo *</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="vehiculo"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Camioneta"
-                                            >
-                                            @error('vehiculo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
+                    <!-- Año -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Año</label>
+                        <input
+                            type="text"
+                            wire:model="anio" @error('anio') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: 2017"
+                            maxlength="4"
+                        >
+                        @error('anio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                                        <!-- Marca/Modelo -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo *</label>
-                                            <input
-                                                type="text"
-                                                wire:model="marca_modelo"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Toyota Hilux"
-                                            >
-                                            @error('marca_modelo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
+                    <!-- Patente -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Patente</label>
+                        <input 
+                            type="text" 
+                            wire:model="patente" @error('patente') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: ABC123"
+                        >
+                        @error('patente') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                                        <!-- Año -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Año</label>
-                                            <input
-                                                type="text"
-                                                wire:model="anio"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: 2017"
-                                                maxlength="4"
-                                            >
-                                            @error('anio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
+                    <!-- Tipo de Combustible -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Combustible</label>
+                        <select 
+                            wire:model.live="tipo_combustible" @error('tipo_combustible') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                            <option value="">Seleccione tipo</option>
+                            <option value="nafta">Nafta</option>
+                            <option value="diesel">Diesel</option>
+                            <option value="gas">Gas</option>
+                        </select>
+                        @error('tipo_combustible') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
 
-                                        <!-- Patente -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Patente</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="patente"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: ABC123"
-                                            >
-                                            @error('patente') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Tipo de Combustible -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Combustible</label>
-                                            <select 
-                                                wire:model.live="tipo_combustible"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                                <option value="">Seleccione tipo</option>
-                                                <option value="nafta">Nafta</option>
-                                                <option value="diesel">Diesel</option>
-                                                <option value="gas">Gas</option>
-                                            </select>
-                                            @error('tipo_combustible') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Vencimiento Oblea - Solo si es GAS -->
-                                        @if($tipo_combustible === 'gas')
-                                            <div>
-                                                <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Oblea *</label>
-                                                <input 
-                                                    type="date" 
-                                                    wire:model="vencimiento_oblea"
-                                                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                >
-                                                @error('vencimiento_oblea') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <!-- Sección: Identificación Técnica -->
-                                <div class="bg-gray-50 p-4 rounded-xl">
-                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        Identificación Técnica
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Nro Motor -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Motor</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="nro_motor"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Número de motor"
-                                            >
-                                            @error('nro_motor') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Nro Chasis -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Chasis</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="nro_chasis"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Número de chasis"
-                                            >
-                                            @error('nro_chasis') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Sección: Seguro y Documentación -->
-                                <div class="bg-gray-50 p-4 rounded-xl">
-                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                        </svg>
-                                        Seguro y Vencimientos
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Nro. Póliza -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Póliza</label>
-                                            <input 
-                                                type="text" 
-                                                wire:model="nro_poliza"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Número de póliza"
-                                            >
-                                            @error('nro_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Vencimiento Póliza -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Póliza</label>
-                                            <input 
-                                                type="date" 
-                                                wire:model="vencimiento_poliza"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                            @error('vencimiento_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Vencimiento VTV -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento VTV</label>
-                                            <input 
-                                                type="date" 
-                                                wire:model="vencimiento_vtv"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                            @error('vencimiento_vtv') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Sección: Origen y Telepase -->
-                                <div class="bg-gray-50 p-4 rounded-xl">
-                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        Origen y Telepase
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <!-- Origen -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
-                                            <input
-                                                type="text"
-                                                wire:model="origen"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Nacional"
-                                            >
-                                            @error('origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Jurisdicción de Procedencia -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Jurisdicción de Procedencia</label>
-                                            <input
-                                                type="text"
-                                                wire:model="jurisdiccion_procedencia"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Ej: Buenos Aires"
-                                            >
-                                            @error('jurisdiccion_procedencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Nro. Telepase -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Telepase</label>
-                                            <input
-                                                type="text"
-                                                wire:model="nro_telepase"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                                placeholder="Número de telepase"
-                                            >
-                                            @error('nro_telepase') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Sección: Estado y Ubicación -->
-                                <div class="bg-gray-50 p-4 rounded-xl">
-                                    <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        </svg>
-                                        Estado y Ubicación
-                                    </h4>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <!-- Estado -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
-                                            <select 
-                                                wire:model="estado"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                                <option value="">Seleccione un estado</option>
-                                                <option value="EN USO">En Uso</option>
-                                                <option value="BAJA">Baja</option>
-                                                <option value="MANTENIMIENTO">Mantenimiento</option>
-                                            </select>
-                                            @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Secretaría -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                                            <select
-                                                wire:model="id_secretaria"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                                <option value="">Seleccione una secretaría</option>
-                                                @foreach($secretarias as $secretaria)
-                                                    <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                                                @endforeach
-                                            </select>
-                                            @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-
-                                        <!-- Depósito -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Depósito</label>
-                                            <select
-                                                wire:model="id_deposito"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                                <option value="">Seleccione un depósito</option>
-                                                @foreach($depositos as $deposito)
-                                                    <option value="{{ $deposito->id }}">{{ $deposito->deposito }}@if($deposito->corralon) — {{ $deposito->corralon->descripcion }}@endif</option>
-                                                @endforeach
-                                            </select>
-                                            @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-gray-200">
-                            <button 
-                                type="button"
-                                wire:click="cerrarModal"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                    <!-- Vencimiento Oblea - Solo si es GAS -->
+                    @if($tipo_combustible === 'gas')
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Oblea *</label>
+                            <input 
+                                type="date" 
+                                wire:model="vencimiento_oblea" @error('vencimiento_oblea') aria-invalid="true" @enderror
+                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                             >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
+                            @error('vencimiento_oblea') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                    </form>
+                    @endif
                 </div>
             </div>
-        </div>
+
+            <!-- Sección: Identificación Técnica -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Identificación Técnica
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nro Motor -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Motor</label>
+                        <input 
+                            type="text" 
+                            wire:model="nro_motor" @error('nro_motor') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Número de motor"
+                        >
+                        @error('nro_motor') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Nro Chasis -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Chasis</label>
+                        <input 
+                            type="text" 
+                            wire:model="nro_chasis" @error('nro_chasis') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Número de chasis"
+                        >
+                        @error('nro_chasis') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Seguro y Documentación -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    Seguro y Vencimientos
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nro. Póliza -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Póliza</label>
+                        <input 
+                            type="text" 
+                            wire:model="nro_poliza" @error('nro_poliza') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Número de póliza"
+                        >
+                        @error('nro_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Vencimiento Póliza -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Póliza</label>
+                        <input 
+                            type="date" 
+                            wire:model="vencimiento_poliza" @error('vencimiento_poliza') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                        @error('vencimiento_poliza') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Vencimiento VTV -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento VTV</label>
+                        <input 
+                            type="date" 
+                            wire:model="vencimiento_vtv" @error('vencimiento_vtv') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                        @error('vencimiento_vtv') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Origen y Telepase -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Origen y Telepase
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Origen -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Origen</label>
+                        <input
+                            type="text"
+                            wire:model="origen" @error('origen') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: Nacional"
+                        >
+                        @error('origen') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Jurisdicción de Procedencia -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Jurisdicción de Procedencia</label>
+                        <input
+                            type="text"
+                            wire:model="jurisdiccion_procedencia" @error('jurisdiccion_procedencia') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: Buenos Aires"
+                        >
+                        @error('jurisdiccion_procedencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Nro. Telepase -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nro. Telepase</label>
+                        <input
+                            type="text"
+                            wire:model="nro_telepase" @error('nro_telepase') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Número de telepase"
+                        >
+                        @error('nro_telepase') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Estado y Ubicación -->
+            <div class="bg-gray-50 p-4 rounded-xl">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    Estado y Ubicación
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Estado -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+                        <select 
+                            wire:model="estado" @error('estado') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                            <option value="">Seleccione un estado</option>
+                            <option value="EN USO">En Uso</option>
+                            <option value="BAJA">Baja</option>
+                            <option value="MANTENIMIENTO">Mantenimiento</option>
+                        </select>
+                        @error('estado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Secretaría -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
+                        <select
+                            wire:model="id_secretaria" @error('id_secretaria') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                            <option value="">Seleccione una secretaría</option>
+                            @foreach($secretarias as $secretaria)
+                                <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
+                            @endforeach
+                        </select>
+                        @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Depósito -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Depósito</label>
+                        <select
+                            wire:model="id_deposito" @error('id_deposito') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                            <option value="">Seleccione un depósito</option>
+                            @foreach($depositos as $deposito)
+                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}@if($deposito->corralon) — {{ $deposito->corralon->descripcion }}@endif</option>
+                            @endforeach
+                        </select>
+                        @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <x-slot:footer>
+                <button 
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardar"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editMode ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 
     <!-- Modal de Documentos -->
     @if($showModalDocumentos)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalDocumentos"></div>
+        <x-ui.modal titulo="Documentos del Vehículo" icono="fa-folder-open" cerrar="intentarCerrar" ancho="3xl">
+            @if($vehiculoSeleccionado)
+                <x-slot:encabezado>
+                    <span class="text-sm text-gray-500 font-normal">{{ $vehiculoSeleccionado->vehiculo }} - {{ $vehiculoSeleccionado->marca }} {{ $vehiculoSeleccionado->modelo }}</span>
+                </x-slot:encabezado>
+            @endif
 
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
-                    <div class="bg-white px-6 pt-6 pb-5">
-                        <!-- Header -->
-                        <div class="flex items-center justify-between mb-6">
-                            <div>
-                                <h3 class="text-xl font-semibold text-gray-900">Documentos del Vehículo</h3>
-                                @if($vehiculoSeleccionado)
-                                    <p class="text-sm text-gray-500 mt-1">{{ $vehiculoSeleccionado->vehiculo }} - {{ $vehiculoSeleccionado->marca }} {{ $vehiculoSeleccionado->modelo }}</p>
+            <!-- Agregar nuevo documento -->
+            @if($puedeEditar)
+            <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Agregar Nuevo Documento
+                </h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descripción *</label>
+                        <input 
+                            type="text" 
+                            wire:model="nueva_descripcion" @error('nueva_descripcion') aria-invalid="true" @enderror
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                            placeholder="Ej: Título del vehículo"
+                        >
+                        @error('nueva_descripcion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Archivo *</label>
+                        <input 
+                            type="file" 
+                            wire:model="nuevo_documento" @error('nuevo_documento') aria-invalid="true" @enderror
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        >
+                        @error('nuevo_documento') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <div wire:loading wire:target="nuevo_documento" class="mt-2 text-sm text-blue-600">Cargando archivo...</div>
+
+                        {{-- Preview del archivo seleccionado antes de subir --}}
+                        @if($nuevo_documento)
+                            @php
+                                $nombrePrev = $nuevo_documento->getClientOriginalName();
+                                $extPrev = strtolower(pathinfo($nombrePrev, PATHINFO_EXTENSION));
+                                $esImagenPrev = in_array($extPrev, ['jpg', 'jpeg', 'png']);
+                            @endphp
+                            <div class="relative mt-3 inline-block border border-gray-200 rounded-xl overflow-hidden bg-gray-50 w-40">
+                                <button type="button" wire:click="quitarNuevoDocumento" title="Eliminar archivo"
+                                        class="absolute top-1 right-1 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center shadow">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                                @if($esImagenPrev)
+                                    <img src="{{ $nuevo_documento->temporaryUrl() }}" alt="{{ $nombrePrev }}" class="w-full h-24 object-cover">
+                                @else
+                                    <div class="w-full h-24 flex items-center justify-center bg-red-50">
+                                        <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
                                 @endif
+                                <p class="px-2 py-1 text-[11px] text-gray-600 truncate" title="{{ $nombrePrev }}">{{ $nombrePrev }}</p>
                             </div>
-                            <button 
-                                type="button" 
-                                wire:click="cerrarModalDocumentos"
-                                class="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
+                        @endif
+                    </div>
+                </div>
 
-                        <!-- Agregar nuevo documento -->
-                        @if($puedeEditar)
-                        <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Agregar Nuevo Documento
-                            </h4>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción *</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="nueva_descripcion"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        placeholder="Ej: Título del vehículo"
-                                    >
-                                    @error('nueva_descripcion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                <div class="mt-4 flex items-center justify-between">
+                    <p class="text-xs text-gray-500">PDF, JPG, JPEG o PNG. Máximo 10MB</p>
+                    <button 
+                        type="button"
+                        wire:click="agregarDocumento"
+                        data-atajo-guardar
+                        class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium text-sm flex items-center gap-2"
+                        wire:loading.attr="disabled"
+                        wire:target="nuevo_documento"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="nuevo_documento">Agregar</span>
+                        <span wire:loading wire:target="nuevo_documento">Cargando...</span>
+                    </button>
+                </div>
+            </div>
+            @endif
+
+            <!-- Lista de documentos existentes -->
+            <div>
+                @if(count($documentos_existentes) > 0)
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Documentos Actuales ({{ count($documentos_existentes) }})</h4>
+                    <div class="space-y-2">
+                        @foreach($documentos_existentes as $doc)
+                            <div class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 transition-colors">
+                                <!-- Icono según tipo de archivo -->
+                                @php
+                                    $extension = strtolower(pathinfo($doc['archivo'], PATHINFO_EXTENSION));
+                                    $isPdf = $extension === 'pdf';
+                                @endphp
+                                
+                                @if($isPdf)
+                                    <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                @else
+                                    <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                @endif
+                                
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">{{ $doc['descripcion'] }}</p>
+                                    <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($doc['created_at'])->format('d/m/Y H:i') }}</p>
                                 </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Archivo *</label>
-                                    <input 
-                                        type="file" 
-                                        wire:model="nuevo_documento"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                
+                                <div class="flex items-center gap-2">
+                                    <a 
+                                        href="{{ route('documentos-vehiculo.ver', $doc['id']) }}" 
+                                        target="_blank"
+                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Ver documento"
                                     >
-                                    @error('nuevo_documento') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    <div wire:loading wire:target="nuevo_documento" class="mt-2 text-sm text-blue-600">Cargando archivo...</div>
-
-                                    {{-- Preview del archivo seleccionado antes de subir --}}
-                                    @if($nuevo_documento)
-                                        @php
-                                            $nombrePrev = $nuevo_documento->getClientOriginalName();
-                                            $extPrev = strtolower(pathinfo($nombrePrev, PATHINFO_EXTENSION));
-                                            $esImagenPrev = in_array($extPrev, ['jpg', 'jpeg', 'png']);
-                                        @endphp
-                                        <div class="relative mt-3 inline-block border border-gray-200 rounded-xl overflow-hidden bg-gray-50 w-40">
-                                            <button type="button" wire:click="quitarNuevoDocumento" title="Eliminar archivo"
-                                                    class="absolute top-1 right-1 z-10 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center shadow">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
-                                                </svg>
-                                            </button>
-                                            @if($esImagenPrev)
-                                                <img src="{{ $nuevo_documento->temporaryUrl() }}" alt="{{ $nombrePrev }}" class="w-full h-24 object-cover">
-                                            @else
-                                                <div class="w-full h-24 flex items-center justify-center bg-red-50">
-                                                    <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                    </svg>
-                                                </div>
-                                            @endif
-                                            <p class="px-2 py-1 text-[11px] text-gray-600 truncate" title="{{ $nombrePrev }}">{{ $nombrePrev }}</p>
-                                        </div>
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                    </a>
+                                    <a
+                                        href="{{ route('documentos-vehiculo.descargar', $doc['id']) }}"
+                                        class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                        title="Descargar documento"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                        </svg>
+                                    </a>
+                                    {{-- Botón Eliminar solo si tiene permisos --}}
+                                    @if($puedeEditar)
+                                    <button 
+                                        type="button"
+                                        wire:click="confirmarEliminarDocumento({{ $doc['id'] }})"
+                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        title="Eliminar documento"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
                                     @endif
                                 </div>
                             </div>
-
-                            <div class="mt-4 flex items-center justify-between">
-                                <p class="text-xs text-gray-500">PDF, JPG, JPEG o PNG. Máximo 10MB</p>
-                                <button 
-                                    type="button"
-                                    wire:click="agregarDocumento"
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium text-sm flex items-center gap-2"
-                                    wire:loading.attr="disabled"
-                                    wire:target="nuevo_documento"
-                                >
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                    <span wire:loading.remove wire:target="nuevo_documento">Agregar</span>
-                                    <span wire:loading wire:target="nuevo_documento">Cargando...</span>
-                                </button>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Lista de documentos existentes -->
-                        <div class="max-h-96 overflow-y-auto">
-                            @if(count($documentos_existentes) > 0)
-                                <h4 class="text-sm font-semibold text-gray-700 mb-3">Documentos Actuales ({{ count($documentos_existentes) }})</h4>
-                                <div class="space-y-2">
-                                    @foreach($documentos_existentes as $doc)
-                                        <div class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 transition-colors">
-                                            <!-- Icono según tipo de archivo -->
-                                            @php
-                                                $extension = strtolower(pathinfo($doc['archivo'], PATHINFO_EXTENSION));
-                                                $isPdf = $extension === 'pdf';
-                                            @endphp
-                                            
-                                            @if($isPdf)
-                                                <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                    </svg>
-                                                </div>
-                                            @else
-                                                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                    </svg>
-                                                </div>
-                                            @endif
-                                            
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-sm font-medium text-gray-900 truncate">{{ $doc['descripcion'] }}</p>
-                                                <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($doc['created_at'])->format('d/m/Y H:i') }}</p>
-                                            </div>
-                                            
-                                            <div class="flex items-center gap-2">
-                                                <a 
-                                                    href="{{ route('documentos-vehiculo.ver', $doc['id']) }}" 
-                                                    target="_blank"
-                                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Ver documento"
-                                                >
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                    </svg>
-                                                </a>
-                                                <a
-                                                    href="{{ route('documentos-vehiculo.descargar', $doc['id']) }}"
-                                                    class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                                    title="Descargar documento"
-                                                >
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                                    </svg>
-                                                </a>
-                                                {{-- Botón Eliminar solo si tiene permisos --}}
-                                                @if($puedeEditar)
-                                                <button 
-                                                    type="button"
-                                                    wire:click="eliminarDocumento({{ $doc['id'] }})"
-                                                    class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    onclick="return confirm('¿Está seguro de eliminar este documento?')"
-                                                    title="Eliminar documento"
-                                                >
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                    </svg>
-                                                </button>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="text-center py-12">
-                                    <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <p class="text-sm font-medium text-gray-500">No hay documentos cargados</p>
-                                    <p class="text-xs text-gray-400 mt-1">Agregue documentos usando el formulario superior</p>
-                                </div>
-                            @endif
-                        </div>
+                        @endforeach
                     </div>
-
-                    <div class="bg-gray-50 px-6 py-4 flex items-center justify-end border-t border-gray-200">
-                        <button 
-                            type="button"
-                            wire:click="cerrarModalDocumentos"
-                            class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200 font-medium"
-                        >
-                            Cerrar
-                        </button>
+                @else
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p class="text-sm font-medium text-gray-500">No hay documentos cargados</p>
+                        <p class="text-xs text-gray-400 mt-1">Agregue documentos usando el formulario superior</p>
                     </div>
-                </div>
+                @endif
             </div>
-        </div>
+
+            <x-slot:footer>
+                <button 
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors duration-200 font-medium"
+                >
+                    Cerrar
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarId)
+        <x-ui.modal-confirmacion confirmar="eliminar" cancelar="cancelarEliminar">
+            ¿Está seguro de eliminar este vehículo?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarDocumentoId)
+        <x-ui.modal-confirmacion confirmar="eliminarDocumento" cancelar="cancelarEliminarDocumento" :z="60">
+            ¿Está seguro de eliminar este documento?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

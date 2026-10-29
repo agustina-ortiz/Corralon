@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -16,12 +18,20 @@ use Livewire\Attributes\Url;
 class AbmVehiculos extends Component
 {
     use WithPagination, WithFileUploads;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
     public $showFilters = false;
     public $showModalDocumentos = false;
+
+    // Documento a eliminar (abre el modal de confirmación)
+    public $eliminarDocumentoId = null;
 
     // Filtros
     public $filtro_marca_modelo = '';
@@ -197,7 +207,7 @@ class AbmVehiculos extends Component
         $vehiculo = Vehiculo::with('documentos')->findOrFail($vehiculoId);
 
         if (!$this->verificarAccesoVehiculo($vehiculo)) {
-            session()->flash('error', 'No tienes permisos para ver los documentos de este vehiculo.');
+            $this->toastError('No tienes permisos para ver los documentos de este vehiculo.');
             return;
         }
 
@@ -205,6 +215,7 @@ class AbmVehiculos extends Component
         $this->vehiculoSeleccionado = $vehiculo;
         $this->documentos_existentes = $vehiculo->documentos->toArray();
         $this->showModalDocumentos = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function cerrarModalDocumentos()
@@ -217,25 +228,26 @@ class AbmVehiculos extends Component
     public function crear()
     {
         if (!auth()->user()->puedeCrearVehiculos()) {
-            session()->flash('error', 'No tienes permisos para crear vehiculos.');
+            $this->toastError('No tienes permisos para crear vehiculos.');
             return;
         }
 
         $this->resetForm();
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         if (!auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para editar vehiculos.');
+            $this->toastError('No tienes permisos para editar vehiculos.');
             return;
         }
 
         $vehiculo = Vehiculo::findOrFail($id);
 
         if (!$this->verificarAccesoVehiculo($vehiculo)) {
-            session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+            $this->toastError('No tienes permisos para editar este vehiculo.');
             return;
         }
 
@@ -261,18 +273,19 @@ class AbmVehiculos extends Component
 
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         if (!$this->editMode && !auth()->user()->puedeCrearVehiculos()) {
-            session()->flash('error', 'No tienes permisos para crear vehiculos.');
+            $this->toastError('No tienes permisos para crear vehiculos.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para editar vehiculos.');
+            $this->toastError('No tienes permisos para editar vehiculos.');
             $this->showModal = false;
             return;
         }
@@ -284,7 +297,7 @@ class AbmVehiculos extends Component
 
         // El depósito es opcional: solo se valida si se eligió uno
         if ($this->id_deposito && !$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para usar ese deposito.');
+            $this->toastError('No tienes permisos para usar ese deposito.');
             return;
         }
 
@@ -313,15 +326,15 @@ class AbmVehiculos extends Component
             $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
 
             if (!$this->verificarAccesoVehiculo($vehiculo)) {
-                session()->flash('error', 'No tienes permisos para editar este vehiculo.');
+                $this->toastError('No tienes permisos para editar este vehiculo.');
                 return;
             }
 
             $vehiculo->update($data);
-            session()->flash('message', 'Vehiculo actualizado exitosamente.');
+            $this->toastExito('Vehiculo actualizado exitosamente.');
         } else {
             Vehiculo::create($data);
-            session()->flash('message', 'Vehiculo creado exitosamente.');
+            $this->toastExito('Vehiculo creado exitosamente.');
         }
 
         $this->cerrarModal();
@@ -330,7 +343,7 @@ class AbmVehiculos extends Component
     public function agregarDocumento()
     {
         if (!auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para agregar documentos.');
+            $this->toastError('No tienes permisos para agregar documentos.');
             return;
         }
 
@@ -340,14 +353,14 @@ class AbmVehiculos extends Component
         ]);
 
         if (!$this->vehiculoId) {
-            session()->flash('error', 'Error al identificar el vehiculo.');
+            $this->toastError('Error al identificar el vehiculo.');
             return;
         }
 
         $vehiculo = Vehiculo::findOrFail($this->vehiculoId);
 
         if (!$this->verificarAccesoVehiculo($vehiculo)) {
-            session()->flash('error', 'No tienes permisos para modificar este vehiculo.');
+            $this->toastError('No tienes permisos para modificar este vehiculo.');
             return;
         }
 
@@ -355,7 +368,7 @@ class AbmVehiculos extends Component
         $archivo = $this->nuevo_documento->storeAs(dirname($ruta), basename($ruta), DocumentoVehiculo::DISCO);
 
         if (!$archivo) {
-            session()->flash('error', 'No se pudo guardar el archivo del documento.');
+            $this->toastError('No se pudo guardar el archivo del documento.');
             return;
         }
 
@@ -368,8 +381,9 @@ class AbmVehiculos extends Component
         $this->nuevo_documento = null;
         $this->nueva_descripcion = '';
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
+        $this->marcarFormularioLimpio();
 
-        session()->flash('message', 'Documento agregado exitosamente.');
+        $this->toastExito('Documento agregado exitosamente.');
     }
 
     public function quitarNuevoDocumento()
@@ -377,10 +391,23 @@ class AbmVehiculos extends Component
         $this->nuevo_documento = null;
     }
 
-    public function eliminarDocumento($documentoId)
+    public function confirmarEliminarDocumento($documentoId)
     {
+        $this->eliminarDocumentoId = $documentoId;
+    }
+
+    public function cancelarEliminarDocumento()
+    {
+        $this->eliminarDocumentoId = null;
+    }
+
+    public function eliminarDocumento()
+    {
+        $documentoId = $this->eliminarDocumentoId;
+        $this->eliminarDocumentoId = null;
+
         if (!auth()->user()->puedeEditarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para eliminar documentos.');
+            $this->toastError('No tienes permisos para eliminar documentos.');
             return;
         }
 
@@ -388,7 +415,7 @@ class AbmVehiculos extends Component
         $vehiculo = Vehiculo::findOrFail($documento->id_vehiculo);
 
         if (!$this->verificarAccesoVehiculo($vehiculo)) {
-            session()->flash('error', 'No tienes permisos para modificar este vehiculo.');
+            $this->toastError('No tienes permisos para modificar este vehiculo.');
             return;
         }
 
@@ -397,20 +424,33 @@ class AbmVehiculos extends Component
 
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
 
-        session()->flash('message', 'Documento eliminado exitosamente.');
+        $this->toastExito('Documento eliminado exitosamente.');
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         if (!auth()->user()->puedeEliminarVehiculos()) {
-            session()->flash('error', 'No tienes permisos para eliminar vehiculos.');
+            $this->toastError('No tienes permisos para eliminar vehiculos.');
             return;
         }
 
         $vehiculo = Vehiculo::with('documentos')->findOrFail($id);
 
         if (!$this->verificarAccesoVehiculo($vehiculo)) {
-            session()->flash('error', 'No tienes permisos para eliminar este vehiculo.');
+            $this->toastError('No tienes permisos para eliminar este vehiculo.');
             return;
         }
 
@@ -427,11 +467,11 @@ class AbmVehiculos extends Component
             }
             Storage::disk(DocumentoVehiculo::DISCO)->deleteDirectory(DocumentoVehiculo::DIRECTORIO . '/' . $vehiculo->id);
 
-            session()->flash('message', 'Vehiculo eliminado correctamente.');
+            $this->toastExito('Vehiculo eliminado correctamente.');
         } catch (\Illuminate\Database\QueryException $e) {
-            session()->flash('error', 'No se puede eliminar el vehículo porque tiene choferes, movimientos o asignaciones asociadas.');
+            $this->toastError('No se puede eliminar el vehículo porque tiene choferes, movimientos o asignaciones asociadas.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar el vehículo.');
+            $this->toastError('No se pudo eliminar el vehículo.');
         }
     }
 
@@ -439,6 +479,27 @@ class AbmVehiculos extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        // El modal de Documentos tiene su propio formulario (documento a agregar)
+        if ($this->showModalDocumentos) {
+            return ['nuevo_documento', 'nueva_descripcion'];
+        }
+
+        return ['nro_patrimonio', 'vehiculo', 'marca_modelo', 'nro_motor', 'nro_chasis', 'anio', 'patente', 'tipo_combustible', 'vencimiento_oblea', 'nro_poliza', 'vencimiento_poliza', 'vencimiento_vtv', 'origen', 'jurisdiccion_procedencia', 'nro_telepase', 'estado', 'id_deposito', 'id_secretaria'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        if ($this->showModalDocumentos) {
+            $this->cerrarModalDocumentos();
+
+            return;
+        }
+
+        $this->cerrarModal();
     }
 
     private function resetForm()
