@@ -25,3 +25,23 @@
     scrollbar-width: thin;
     scrollbar-color: #c6d3ed #111827;
 }
+
+/* Scroll fino del body de los modales (<x-ui.modal>) */
+.scroll-fino {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.gray.300') transparent;
+}
+.scroll-fino::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.scroll-fino::-webkit-scrollbar-track {
+    background: transparent;
+}
+.scroll-fino::-webkit-scrollbar-thumb {
+    background-color: theme('colors.gray.300');
+    border-radius: 9999px;
+}
+.scroll-fino::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.gray.400');
+}

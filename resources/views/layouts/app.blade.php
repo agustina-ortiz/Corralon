@@ -333,6 +333,8 @@
         </main>
     </div>
 
+    <x-ui.toasts />
+
     @livewireScripts
 </body>
 </html>

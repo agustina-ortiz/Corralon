@@ -14,5 +14,7 @@
 
 <body class="font-sans antialiased min-h-screen" style="background-color: #f1f5ed;">
     {{ $slot }}
+
+    <x-ui.toasts />
 </body>
 </html>
