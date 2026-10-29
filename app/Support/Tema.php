@@ -45,6 +45,30 @@ final class Tema
         return 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 focus:ring-gray-400';
     }
 
+    /** Botón de peligro (eliminar, dar de baja). */
+    public static function botonPeligro(): string
+    {
+        return 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg shadow-red-500/30 focus:ring-red-500';
+    }
+
+    /** Texto de acento: icono del título de pantalla, casillas marcadas. */
+    public static function acentoTexto(): string
+    {
+        return 'text-blue-600';
+    }
+
+    /** Enlaces y botones de solo texto. */
+    public static function enlace(): string
+    {
+        return 'text-blue-600 hover:text-blue-800';
+    }
+
+    /** Acción de fila (icono) neutra: editar, ver. Azul como las de siempre. */
+    public static function accionNeutra(): string
+    {
+        return 'text-blue-600 hover:bg-blue-50 focus:ring-blue-500/40';
+    }
+
     /** Anillo de foco de inputs y desplegables. */
     public static function anilloFoco(): string
     {
