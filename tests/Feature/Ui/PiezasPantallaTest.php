@@ -158,7 +158,7 @@ class PiezasPantallaTest extends TestCase
 
         $html = Blade::render('<x-ui.campo etiqueta="Corralón" nombre="id_corralon" obligatorio><x-ui.select-nativo nombre="id_corralon" wire:model="id_corralon"><option value="">-</option></x-ui.select-nativo></x-ui.campo>');
 
-        $this->assertStringContainsString('<select id="campo-id_corralon"', $html);
+        $this->assertMatchesRegularExpression('/<select\s+id="campo-id_corralon"/', $html);
         $this->assertStringContainsString('aria-describedby="error-id_corralon ayuda-id_corralon"', $html);
         $this->assertStringContainsString('aria-invalid="true"', $html);
         $this->assertStringContainsString('border-red-500', $html);
