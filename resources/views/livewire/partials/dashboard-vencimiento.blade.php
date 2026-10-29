@@ -9,9 +9,7 @@
 <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
     <div class="bg-gradient-to-r from-amber-50 to-amber-100 px-6 py-4 flex items-center justify-between border-b border-amber-200">
         <div class="flex items-center min-w-0">
-            <svg class="w-6 h-6 text-amber-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
+            <i class="fa-solid fa-shield-halved text-xl text-amber-600 mr-3 flex-shrink-0" aria-hidden="true"></i>
             <div class="min-w-0">
                 <h3 class="text-lg font-semibold text-gray-800">{{ $v['titulo'] }}</h3>
                 @if($v['vehiculos']->count() > 0)
@@ -95,12 +93,7 @@
                 @endforeach
             </div>
         @else
-            <div class="text-center py-8 text-gray-500">
-                <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="font-medium">No hay vencimientos de {{ $v['documento'] }} en los próximos {{ \App\Models\Vehiculo::DIAS_ALERTA_VENCIMIENTO }} días</p>
-            </div>
+            <x-ui.vacio icono="fa-regular fa-circle-check">No hay vencimientos de {{ $v['documento'] }} en los próximos {{ \App\Models\Vehiculo::DIAS_ALERTA_VENCIMIENTO }} días</x-ui.vacio>
         @endif
 
         {{-- Aviso de fechas sin cargar: sin él, "no hay vencimientos" puede ser engañoso --}}

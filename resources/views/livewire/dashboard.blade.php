@@ -1,4 +1,8 @@
-<div>
+<x-ui.pagina titulo="Dashboard" icono="fa-house">
+    <x-slot:acciones>
+        <x-ui.boton variante="secundario" icono="fa-sliders" wire:click="abrirModalPersonalizar">Personalizar panel</x-ui.boton>
+    </x-slot:acciones>
+
     <!-- Cards con estadísticas generales -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
@@ -9,10 +13,8 @@
                     <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Total Insumos</p>
                     <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalInsumos) }}</p>
                 </div>
-                <div class="p-3 rounded-full bg-blue-50">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                    </svg>
+                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-blue-50">
+                    <i class="fa-solid fa-boxes-stacked text-xl text-blue-600" aria-hidden="true"></i>
                 </div>
             </div>
         </div>
@@ -25,10 +27,8 @@
                     <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Maquinaria</p>
                     <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalMaquinaria) }}</p>
                 </div>
-                <div class="p-3 rounded-full bg-green-50">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                    </svg>
+                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-green-50">
+                    <i class="fa-solid fa-screwdriver-wrench text-xl text-green-600" aria-hidden="true"></i>
                 </div>
             </div>
         </div>
@@ -41,10 +41,8 @@
                     <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Vehículos</p>
                     <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($totalVehiculos) }}</p>
                 </div>
-                <div class="p-3 rounded-full bg-orange-50">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
+                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-purple-50">
+                    <i class="fa-solid fa-car text-xl text-purple-600" aria-hidden="true"></i>
                 </div>
             </div>
         </div>
@@ -57,10 +55,8 @@
                     <p class="text-gray-500 text-xs font-medium uppercase tracking-wide">Próximos Eventos</p>
                     <p class="text-2xl font-bold mt-1 text-gray-800">{{ number_format($countProximosEventos) }}</p>
                 </div>
-                <div class="p-3 rounded-full bg-indigo-50">
-                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                <div class="w-12 h-12 flex items-center justify-center rounded-full bg-indigo-50">
+                    <i class="fa-regular fa-calendar-days text-xl text-indigo-600" aria-hidden="true"></i>
                 </div>
             </div>
         </div>
@@ -69,18 +65,7 @@
     </div>
 
     <!-- Sección de Estadísticas de Alerta -->
-    <div class="mb-6 flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-800">Estadísticas y Alertas</h2>
-        <button
-            wire:click="abrirModalPersonalizar"
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-150"
-        >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-            </svg>
-            Personalizar panel
-        </button>
-    </div>
+    <h2 class="mb-6 text-2xl font-bold text-gray-800">Estadísticas y Alertas</h2>
 
     @if($widgetsActivos)
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,9 +75,7 @@
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-orange-50 to-orange-100 px-6 py-4 flex items-center justify-between border-b border-orange-200">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 text-orange-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                    </svg>
+                    <i class="fa-solid fa-triangle-exclamation text-xl text-orange-600 mr-3" aria-hidden="true"></i>
                     <h3 class="text-lg font-semibold text-gray-800">Insumos con Stock Bajo</h3>
                 </div>
                 <span class="bg-orange-200 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">
@@ -128,12 +111,7 @@
                         @endforeach
                     </div>
                 @else
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="font-medium">No hay insumos con stock bajo el mínimo</p>
-                    </div>
+                    <x-ui.vacio icono="fa-regular fa-circle-check">No hay insumos con stock bajo el mínimo</x-ui.vacio>
                 @endif
             </div>
         </div>
@@ -150,7 +128,7 @@
                 'alertas'      => $vehiculosDatos,
                 'total'        => $totalVehiculosActivos,
                 'mensajeVacio' => 'Todos los vehículos tienen los datos completos',
-                'icono'        => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
+                'icono'        => 'fa-clipboard-list',
             ])
         @endif
 
@@ -159,7 +137,7 @@
                 'titulo'       => 'Vehículos a Revisar',
                 'alertas'      => $vehiculosRevisar,
                 'mensajeVacio' => 'No hay vehículos para revisar',
-                'icono'        => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
+                'icono'        => 'fa-bullhorn',
             ])
         @endif
 
@@ -168,9 +146,7 @@
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-4 flex items-center justify-between border-b border-purple-200">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
+                    <i class="fa-solid fa-bolt text-xl text-purple-600 mr-3" aria-hidden="true"></i>
                     <h3 class="text-lg font-semibold text-gray-800">Vehículos en Uso</h3>
                 </div>
                 <span class="bg-purple-200 text-purple-800 font-bold px-3 py-1 rounded-full text-sm">
@@ -200,20 +176,13 @@
                                     </p>
                                 </div>
                                 <div class="text-right ml-4">
-                                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-                                        En Uso
-                                    </span>
+                                    <x-ui.badge color="violeta">En Uso</x-ui.badge>
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 @else
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="font-medium">No hay vehículos en uso actualmente</p>
-                    </div>
+                    <x-ui.vacio icono="fa-car">No hay vehículos en uso actualmente</x-ui.vacio>
                 @endif
             </div>
         </div>
@@ -224,9 +193,7 @@
         <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
             <div class="bg-gradient-to-r from-indigo-50 to-indigo-100 px-6 py-4 flex items-center justify-between border-b border-indigo-200">
                 <div class="flex items-center">
-                    <svg class="w-6 h-6 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
+                    <i class="fa-regular fa-calendar-days text-xl text-indigo-600 mr-3" aria-hidden="true"></i>
                     <h3 class="text-lg font-semibold text-gray-800">Próximos Eventos</h3>
                 </div>
                 <span class="bg-indigo-200 text-indigo-800 font-bold px-3 py-1 rounded-full text-sm">
@@ -264,12 +231,7 @@
                         @endforeach
                     </div>
                 @else
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <p class="font-medium">No hay eventos programados</p>
-                    </div>
+                    <x-ui.vacio icono="fa-regular fa-calendar">No hay eventos programados</x-ui.vacio>
                 @endif
             </div>
         </div>
@@ -277,21 +239,18 @@
 
     </div>
     @else
-    <div class="text-center py-16 text-gray-400">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>
-        </svg>
-        <p class="font-medium text-gray-500">No hay widgets activos</p>
-        <p class="text-sm mt-1">Usá "Personalizar panel" para activar estadísticas.</p>
-    </div>
+    <x-ui.vacio icono="fa-table-cells-large" class="py-16">
+        No hay widgets activos
+        <span class="block mt-1 font-normal">Usá "Personalizar panel" para activar estadísticas.</span>
+    </x-ui.vacio>
     @endif
 
     <!-- Modal Personalizar Panel -->
     @if($modalPersonalizar)
         <x-ui.modal titulo="Personalizar panel" icono="fa-sliders" cerrar="intentarCerrar" ancho="md">
             @if($opcionesCards)
-            <div class="mb-5">
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tarjetas de resumen</p>
+            <fieldset class="w-full min-w-0 mb-5">
+                <legend class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tarjetas de resumen</legend>
                 <div class="space-y-2">
                     @foreach($opcionesCards as $key => $card)
                     <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#77BF43]/40 hover:bg-[#77BF43]/5 cursor-pointer transition-colors">
@@ -305,12 +264,12 @@
                     </label>
                     @endforeach
                 </div>
-            </div>
+            </fieldset>
             @endif
 
             @if($opcionesWidgets)
-            <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estadísticas y Alertas</p>
+            <fieldset class="w-full min-w-0">
+                <legend class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estadísticas y Alertas</legend>
                 <div class="space-y-2">
                     @foreach($opcionesWidgets as $key => $widget)
                     <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-[#77BF43]/40 hover:bg-[#77BF43]/5 cursor-pointer transition-colors">
@@ -324,26 +283,15 @@
                     </label>
                     @endforeach
                 </div>
-            </div>
+            </fieldset>
             @endif
 
             <x-slot:footer>
-                <button
-                    type="button"
-                    wire:click="intentarCerrar"
-                    class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="button"
-                    wire:click="guardarPreferencias"
-                    data-atajo-guardar
-                    wire:loading.attr="disabled" wire:target="guardarPreferencias"
-                    class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a] transition-colors"
-                >
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton wire:click="guardarPreferencias" data-atajo-guardar
+                            wire:loading.attr="disabled" wire:target="guardarPreferencias">
                     Guardar
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -354,4 +302,4 @@
             Hay cambios sin guardar. ¿Desea descartarlos?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>

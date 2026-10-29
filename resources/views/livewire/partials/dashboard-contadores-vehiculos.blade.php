@@ -1,14 +1,12 @@
 {{--
     Widget de contadores de alertas de vehículos (una fila por alerta, link a /vehiculos filtrado).
     Recibe: $titulo, $subtitulo (opcional), $alertas (colección de Vehiculo::ALERTAS con 'clave' y 'cantidad'),
-            $total (opcional, para la barra de proporción), $mensajeVacio, $icono (path SVG)
+            $total (opcional, para la barra de proporción), $mensajeVacio, $icono (Font Awesome, "fa-bullhorn")
 --}}
 <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
     <div class="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-4 flex items-center justify-between border-b border-slate-200">
         <div class="flex items-center min-w-0">
-            <svg class="w-6 h-6 text-slate-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $icono }}"></path>
-            </svg>
+            <i class="fa-solid {{ $icono }} text-xl text-slate-600 mr-3 flex-shrink-0" aria-hidden="true"></i>
             <div class="min-w-0">
                 <h3 class="text-lg font-semibold text-gray-800">{{ $titulo }}</h3>
                 @if(!empty($subtitulo))
@@ -30,9 +28,7 @@
                             <span class="text-sm font-medium text-gray-700">{{ $alerta['label'] }}</span>
                             <span class="flex items-center gap-2 flex-shrink-0">
                                 <span class="text-lg font-bold text-slate-800">{{ number_format($alerta['cantidad']) }}</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
+                                <i class="fa-solid fa-chevron-right text-xs text-gray-400" aria-hidden="true"></i>
                             </span>
                         </div>
                         @if(!empty($total))
@@ -44,12 +40,7 @@
                 @endforeach
             </div>
         @else
-            <div class="text-center py-8 text-gray-500">
-                <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="font-medium">{{ $mensajeVacio }}</p>
-            </div>
+            <x-ui.vacio icono="fa-regular fa-circle-check">{{ $mensajeVacio }}</x-ui.vacio>
         @endif
     </div>
 </div>
