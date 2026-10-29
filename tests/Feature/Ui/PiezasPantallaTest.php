@@ -107,7 +107,7 @@ class PiezasPantallaTest extends TestCase
 
     public function test_badge_solo_colores_semanticos(): void
     {
-        $this->assertStringContainsString('bg-emerald-100 text-emerald-800', Blade::render('<x-ui.badge color="verde">EN USO</x-ui.badge>'));
+        $this->assertStringContainsString('bg-green-100 text-green-800', Blade::render('<x-ui.badge color="verde">EN USO</x-ui.badge>'));
         $this->assertStringContainsString('bg-red-100 text-red-800', Blade::render('<x-ui.badge color="red">BAJA</x-ui.badge>'));
         $this->assertStringContainsString('bg-gray-100 text-gray-700', Blade::render('<x-ui.badge color="fucsia">X</x-ui.badge>'));
     }

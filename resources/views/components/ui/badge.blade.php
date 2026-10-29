@@ -14,7 +14,7 @@
 @php
     // Clases literales.
     $clases = match ($color) {
-        'verde', 'emerald', 'green' => 'bg-emerald-100 text-emerald-800',
+        'verde', 'emerald', 'green' => 'bg-green-100 text-green-800',
         'rojo', 'red' => 'bg-red-100 text-red-800',
         'ambar', 'amber', 'yellow' => 'bg-amber-100 text-amber-800',
         'azul', 'blue' => 'bg-blue-100 text-blue-800',
