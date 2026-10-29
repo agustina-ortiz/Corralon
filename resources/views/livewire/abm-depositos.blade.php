@@ -107,22 +107,15 @@
                     <x-ui.input nombre="deposito" wire:model="deposito" maxlength="100" autocomplete="off" />
                 </x-ui.campo>
 
-                {{-- <select> nativo hasta la fase de combobox. --}}
                 <x-ui.campo etiqueta="Corralón" nombre="id_corralon" obligatorio>
-                    <select
-                        id="campo-id_corralon"
-                        wire:model="id_corralon"
-                        aria-describedby="@error('id_corralon') error-id_corralon @enderror ayuda-id_corralon"
-                        @error('id_corralon') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @error('id_corralon') border-red-500 @else border-gray-200 @enderror"
-                    >
+                    <x-ui.select-nativo nombre="id_corralon" wire:model="id_corralon">
                         <option value="">Seleccione un corralón</option>
                         @foreach($corralones as $corralon)
                             <option value="{{ $corralon->id }}">
                                 {{ $corralon->descripcion }} - {{ $corralon->ubicacion }}
                             </option>
                         @endforeach
-                    </select>
+                    </x-ui.select-nativo>
                 </x-ui.campo>
             </div>
 

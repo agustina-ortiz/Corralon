@@ -75,6 +75,16 @@ final class Tema
         return 'focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500';
     }
 
+    /**
+     * <select> nativo dentro de un <x-ui.campo>, con el mismo aspecto que
+     * <x-ui.input>. Provisorio: los select pasan a combobox en su fase.
+     */
+    public static function selectNativo(bool $conError = false): string
+    {
+        return 'block w-full px-4 py-2.5 border rounded-xl text-gray-800 focus:outline-none transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400 '
+            .self::anilloFoco().' '.($conError ? 'border-red-500' : 'border-gray-200');
+    }
+
     /** Fondo suave de acento (opción resaltada de un desplegable, chips). */
     public static function acentoFondoSuave(): string
     {

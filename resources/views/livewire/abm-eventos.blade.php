@@ -129,20 +129,13 @@
                     <x-ui.input nombre="ubicacion" wire:model="ubicacion" maxlength="200" autocomplete="off" placeholder="Lugar del evento" />
                 </x-ui.campo>
 
-                {{-- <select> nativo hasta la fase de combobox. --}}
                 <x-ui.campo class="sm:col-span-2" etiqueta="Secretaría" nombre="secretaria_id">
-                    <select
-                        id="campo-secretaria_id"
-                        wire:model="secretaria_id"
-                        aria-describedby="@error('secretaria_id') error-secretaria_id @enderror ayuda-secretaria_id"
-                        @error('secretaria_id') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 @error('secretaria_id') border-red-500 @else border-gray-200 @enderror"
-                    >
+                    <x-ui.select-nativo nombre="secretaria_id" wire:model="secretaria_id">
                         <option value="">Seleccione una secretaría</option>
                         @foreach($secretarias as $sec)
                             <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
                         @endforeach
-                    </select>
+                    </x-ui.select-nativo>
                 </x-ui.campo>
 
                 <div class="sm:col-span-2">

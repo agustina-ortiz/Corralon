@@ -1,6 +1,12 @@
-<div>
-    <!-- Header con búsqueda y botón crear -->
-    <div class="mb-8 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+<x-ui.pagina titulo="Choferes" icono="fa-id-card">
+    @if($puedeCrear)
+        <x-slot:acciones>
+            <x-ui.boton icono="fa-plus" wire:click="crear">Nuevo Chofer</x-ui.boton>
+        </x-slot:acciones>
+    @endif
+
+    <!-- Búsqueda y filtros -->
+    <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,20 +21,7 @@
             </div>
         </div>
 
-        @if($puedeCrear)
-        <button
-            wire:click="crear"
-            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-        >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-            Nuevo Chofer
-        </button>
-        @endif
     </div>
-
-
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -52,9 +45,7 @@
                     @forelse ($choferes as $chofer)
                         <tr class="hover:bg-gray-50/50 transition-colors duration-150">
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200">
-                                    {{ $chofer->numero_empleado }}
-                                </span>
+                                <x-ui.badge color="azul">{{ $chofer->numero_empleado }}</x-ui.badge>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $chofer->nombre }}</div>
@@ -64,7 +55,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if($chofer->licencia)
-                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">{{ $chofer->licencia }}</span>
+                                    <x-ui.badge>{{ $chofer->licencia }}</x-ui.badge>
                                 @else
                                     <span class="text-gray-400 text-xs">—</span>
                                 @endif
@@ -77,13 +68,9 @@
                                         $dias = $hoy->diffInDays($venc, false);
                                     @endphp
                                     @if($dias < 0)
-                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700">
-                                            Vencida {{ $venc->format('d/m/Y') }}
-                                        </span>
+                                        <x-ui.badge color="rojo">Vencida {{ $venc->format('d/m/Y') }}</x-ui.badge>
                                     @elseif($dias <= 30)
-                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
-                                            {{ $venc->format('d/m/Y') }} ({{ $dias }}d)
-                                        </span>
+                                        <x-ui.badge color="ambar">{{ $venc->format('d/m/Y') }} ({{ $dias }}d)</x-ui.badge>
                                     @else
                                         <span class="text-sm text-gray-600">{{ $venc->format('d/m/Y') }}</span>
                                     @endif
@@ -98,9 +85,7 @@
                                 @if($chofer->vehiculos->count() > 0)
                                     <div class="flex flex-wrap gap-1">
                                         @foreach($chofer->vehiculos as $v)
-                                            <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-700">
-                                                {{ $v->patente ?? 'Patrimonio ' . $v->nro_patrimonio }}
-                                            </span>
+                                            <x-ui.badge color="verde">{{ $v->patente ?? 'Patrimonio ' . $v->nro_patrimonio }}</x-ui.badge>
                                         @endforeach
                                     </div>
                                 @else
@@ -109,29 +94,13 @@
                             </td>
                             @if($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1">
                                     @if($puedeEditar)
-                                    <button
-                                        wire:click="editar({{ $chofer->id }})"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Editar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $chofer->id }})" />
                                     @endif
 
                                     @if($puedeEliminar)
-                                    <button
-                                        wire:click="confirmarEliminar({{ $chofer->id }})"
-                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                        title="Eliminar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $chofer->id }})" />
                                     @endif
                                 </div>
                             </td>
@@ -139,13 +108,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center justify-center text-gray-400">
-                                    <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    <p class="text-sm font-medium">No se encontraron choferes</p>
-                                </div>
+                            <td colspan="8" class="px-6 py-6">
+                                <x-ui.vacio icono="fa-id-card">{{ $search ? 'No hay choferes que coincidan con la búsqueda' : 'Todavía no hay choferes cargados' }}</x-ui.vacio>
                             </td>
                         </tr>
                     @endforelse
@@ -164,78 +128,40 @@
         <x-ui.modal :titulo="$editMode ? 'Editar Chofer' : 'Nuevo Chofer'"
                     :icono="$editMode ? 'fa-pen' : 'fa-plus'"
                     cerrar="intentarCerrar" ancho="2xl" submit="guardar">
-            <!-- Fila: Nombre -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre y Apellido *</label>
-                <input
-                    type="text"
-                    wire:model="nombre"
-                    @error('nombre') aria-invalid="true" @enderror
-                    placeholder="Ej: García, Juan"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-ui.campo class="sm:col-span-2" etiqueta="Nombre y Apellido" nombre="nombre" obligatorio>
+                    <x-ui.input nombre="nombre" wire:model="nombre" maxlength="255" autocomplete="off" placeholder="Ej: García, Juan" />
+                </x-ui.campo>
 
-            <!-- Fila: DNI + Legajo -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
-                    <input
-                        type="text"
-                        wire:model="dni"
-                        @error('dni') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('dni') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">N° Empleado *</label>
-                    <input
-                        type="text"
-                        wire:model="numero_empleado"
-                        @error('numero_empleado') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('numero_empleado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
+                <x-ui.campo etiqueta="DNI" nombre="dni" obligatorio>
+                    <x-ui.input nombre="dni" wire:model="dni" maxlength="50" autocomplete="off" />
+                </x-ui.campo>
 
-            <!-- Fila: Licencia + Vencimiento -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Licencia</label>
-                    <select
-                        wire:model="licencia"
-                        @error('licencia') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
+                <x-ui.campo etiqueta="N° Empleado" nombre="numero_empleado" obligatorio>
+                    <x-ui.input nombre="numero_empleado" wire:model="numero_empleado" maxlength="50" autocomplete="off" />
+                </x-ui.campo>
+
+                <x-ui.campo etiqueta="Tipo de Licencia" nombre="licencia">
+                    <x-ui.select-nativo nombre="licencia" wire:model="licencia">
                         <option value="">— Sin especificar —</option>
                         <option value="PROFESIONAL">PROFESIONAL</option>
                         <option value="COMUN">COMÚN</option>
-                    </select>
-                    @error('licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Licencia</label>
-                    <input
-                        type="date"
-                        wire:model="vencimiento_licencia"
-                        @error('vencimiento_licencia') aria-invalid="true" @enderror
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('vencimiento_licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
+                    </x-ui.select-nativo>
+                </x-ui.campo>
+
+                <x-ui.campo etiqueta="Vencimiento Licencia" nombre="vencimiento_licencia">
+                    <x-ui.input nombre="vencimiento_licencia" type="date" wire:model="vencimiento_licencia" />
+                </x-ui.campo>
             </div>
 
-            <!-- Categorías de licencia -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
+            {{-- Categorías de licencia: grupo de casillas, va en fieldset + legend (no en x-ui.campo) --}}
+            <fieldset class="w-full min-w-0">
+                <legend class="block text-sm font-medium text-gray-700 mb-2">
                     Categorías
                     @if(count($categoriasSeleccionadas))
                         <span class="text-xs font-normal text-gray-500">({{ count($categoriasSeleccionadas) }} seleccionadas)</span>
                     @endif
-                </label>
+                </legend>
                 <div class="border border-gray-200 rounded-xl p-3 max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
                     @forelse($categoriasLicencia as $categoria)
                         <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -255,57 +181,34 @@
                         <p class="text-sm text-gray-400">No hay categorías cargadas.</p>
                     @endforelse
                 </div>
-                @error('categoriasSeleccionadas') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                @error('categoriasSeleccionadas.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                @error('categoriasSeleccionadas') <p id="error-categoriasSeleccionadas" class="mt-1 text-xs text-red-600" data-error="categoriasSeleccionadas">{{ $message }}</p> @enderror
+                @error('categoriasSeleccionadas.*') <p class="mt-1 text-xs text-red-600" data-error="categoriasSeleccionadas.*">{{ $message }}</p> @enderror
+            </fieldset>
 
-            <!-- Fila: Área + Domicilio -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
-                    <input
-                        type="text"
-                        wire:model="area"
-                        @error('area') aria-invalid="true" @enderror
-                        placeholder="Ej: Tránsito"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('area') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Domicilio</label>
-                    <input
-                        type="text"
-                        wire:model="domicilio"
-                        @error('domicilio') aria-invalid="true" @enderror
-                        placeholder="Ej: 39 N°3285"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                    @error('domicilio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                </div>
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <x-ui.campo etiqueta="Área" nombre="area">
+                    <x-ui.input nombre="area" wire:model="area" maxlength="100" autocomplete="off" placeholder="Ej: Tránsito" />
+                </x-ui.campo>
 
-            <!-- Secretaría -->
-            @if($secretarias->count() > 0)
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                <select
-                    wire:model="secretaria_id"
-                    @error('secretaria_id') aria-invalid="true" @enderror
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-                    <option value="">— Sin asignar —</option>
-                    @foreach($secretarias as $secretaria)
-                        <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                    @endforeach
-                </select>
-                @error('secretaria_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                <x-ui.campo etiqueta="Domicilio" nombre="domicilio">
+                    <x-ui.input nombre="domicilio" wire:model="domicilio" maxlength="255" autocomplete="off" placeholder="Ej: 39 N°3285" />
+                </x-ui.campo>
+
+                @if($secretarias->count() > 0)
+                    <x-ui.campo class="sm:col-span-2" etiqueta="Secretaría" nombre="secretaria_id">
+                        <x-ui.select-nativo nombre="secretaria_id" wire:model="secretaria_id">
+                            <option value="">— Sin asignar —</option>
+                            @foreach($secretarias as $secretaria)
+                                <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
+                            @endforeach
+                        </x-ui.select-nativo>
+                    </x-ui.campo>
+                @endif
             </div>
-            @endif
 
             <!-- Vehículos asignados -->
-            <div x-data="{ busquedaVehiculo: '' }">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Vehículos asignados</label>
+            <fieldset class="w-full min-w-0" x-data="{ busquedaVehiculo: '' }">
+                <legend class="block text-sm font-medium text-gray-700 mb-2">Vehículos asignados</legend>
                 <div class="relative mb-2">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -314,6 +217,7 @@
                         type="text"
                         x-model="busquedaVehiculo"
                         placeholder="Buscar por patente o patrimonio..."
+                        aria-label="Buscar vehículo por patente o patrimonio"
                         class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
                     >
                 </div>
@@ -340,24 +244,14 @@
                         <p class="text-sm text-gray-400">No hay vehículos registrados.</p>
                     @endforelse
                 </div>
-                @error('vehiculosSeleccionados') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                @error('vehiculosSeleccionados') <p id="error-vehiculosSeleccionados" class="mt-1 text-xs text-red-600" data-error="vehiculosSeleccionados">{{ $message }}</p> @enderror
+            </fieldset>
 
             <x-slot:footer>
-                <button
-                    type="button"
-                    wire:click="intentarCerrar"
-                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                >
-                    Cancelar
-                </button>
-                <button
-                    type="submit"
-                    wire:loading.attr="disabled" wire:target="guardar"
-                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                >
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton type="submit" wire:loading.attr="disabled" wire:target="guardar">
                     {{ $editMode ? 'Actualizar' : 'Crear' }}
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
@@ -374,4 +268,4 @@
             Hay cambios sin guardar. ¿Desea descartarlos?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>
