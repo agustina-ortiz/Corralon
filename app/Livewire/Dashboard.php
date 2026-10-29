@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
 use Livewire\Component;
 use App\Models\Insumo;
 use App\Models\Maquinaria;
@@ -12,6 +13,8 @@ use Carbon\Carbon;
 
 class Dashboard extends Component
 {
+    use ConfirmaDescarte;
+
     public bool $modalPersonalizar = false;
     public array $seleccionCards   = [];
     public array $seleccionWidgets = [];
@@ -24,6 +27,17 @@ class Dashboard extends Component
         $this->seleccionWidgets = $user->dashboardActivosPara('widgets');
 
         $this->modalPersonalizar = true;
+        $this->marcarFormularioLimpio();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['seleccionCards', 'seleccionWidgets'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->modalPersonalizar = false;
     }
 
     public function guardarPreferencias(): void

@@ -288,27 +288,7 @@
 
     <!-- Modal Personalizar Panel -->
     @if($modalPersonalizar)
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center"
-        x-data
-        x-init="$el.querySelector('[data-modal]').focus()"
-    >
-        <div class="absolute inset-0 bg-black/40" wire:click="$set('modalPersonalizar', false)"></div>
-        <div
-            data-modal
-            tabindex="-1"
-            class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 outline-none"
-            @keydown.escape.window="$wire.set('modalPersonalizar', false)"
-        >
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-lg font-bold text-gray-800">Personalizar panel</h3>
-                <button wire:click="$set('modalPersonalizar', false)" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
+        <x-ui.modal titulo="Personalizar panel" icono="fa-sliders" cerrar="intentarCerrar" ancho="md">
             @if($opcionesCards)
             <div class="mb-5">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Tarjetas de resumen</p>
@@ -329,7 +309,7 @@
             @endif
 
             @if($opcionesWidgets)
-            <div class="mb-6">
+            <div>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Estadísticas y Alertas</p>
                 <div class="space-y-2">
                     @foreach($opcionesWidgets as $key => $widget)
@@ -347,21 +327,31 @@
             </div>
             @endif
 
-            <div class="flex justify-end gap-3">
+            <x-slot:footer>
                 <button
-                    wire:click="$set('modalPersonalizar', false)"
+                    type="button"
+                    wire:click="intentarCerrar"
                     class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                     Cancelar
                 </button>
                 <button
+                    type="button"
                     wire:click="guardarPreferencias"
+                    data-atajo-guardar
+                    wire:loading.attr="disabled" wire:target="guardarPreferencias"
                     class="px-4 py-2 text-sm font-medium text-white bg-[#77BF43] rounded-lg hover:bg-[#69ab3a] transition-colors"
                 >
                     Guardar
                 </button>
-            </div>
-        </div>
-    </div>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
     @endif
 </div>
