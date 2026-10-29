@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentoVehiculoController;
 use App\Livewire\AbmInsumos;
 use App\Livewire\AbmCategoriasInsumos;
 use App\Livewire\AbmMaquinarias;
@@ -107,6 +108,12 @@ Route::get('/comprobantes-maquinaria/{comprobante}/descargar', function (App\Mod
         $comprobante->nombre_original
     );
 })->middleware(['auth'])->name('comprobantes-maquinaria.descargar');
+
+// Documentos de vehículos (disco privado)
+Route::get('/documentos-vehiculo/{documento}/ver', [DocumentoVehiculoController::class, 'ver'])
+    ->middleware(['auth'])->name('documentos-vehiculo.ver');
+Route::get('/documentos-vehiculo/{documento}/descargar', [DocumentoVehiculoController::class, 'descargar'])
+    ->middleware(['auth'])->name('documentos-vehiculo.descargar');
 
 Route::post('/logout', function (Request $request) {
     Auth::logout();

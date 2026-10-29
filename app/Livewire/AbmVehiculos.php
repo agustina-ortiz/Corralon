@@ -9,6 +9,7 @@ use App\Models\Vehiculo;
 use App\Models\Deposito;
 use App\Models\DocumentoVehiculo;
 use App\Models\Secretaria;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Url;
 
@@ -350,7 +351,13 @@ class AbmVehiculos extends Component
             return;
         }
 
-        $archivo = $this->nuevo_documento->store('vehiculos/documentos', 'public');
+        $ruta = DocumentoVehiculo::rutaParaArchivo($vehiculo, $this->nueva_descripcion, $this->nuevo_documento->extension());
+        $archivo = $this->nuevo_documento->storeAs(dirname($ruta), basename($ruta), DocumentoVehiculo::DISCO);
+
+        if (!$archivo) {
+            session()->flash('error', 'No se pudo guardar el archivo del documento.');
+            return;
+        }
 
         DocumentoVehiculo::create([
             'id_vehiculo' => $this->vehiculoId,
@@ -385,7 +392,7 @@ class AbmVehiculos extends Component
             return;
         }
 
-        Storage::disk('public')->delete($documento->archivo);
+        Storage::disk(DocumentoVehiculo::DISCO)->delete($documento->archivo);
         $documento->delete();
 
         $this->documentos_existentes = DocumentoVehiculo::where('id_vehiculo', $this->vehiculoId)->get()->toArray();
@@ -408,12 +415,18 @@ class AbmVehiculos extends Component
         }
 
         try {
-            foreach ($vehiculo->documentos as $documento) {
-                Storage::disk('public')->delete($documento->archivo);
-                $documento->delete();
-            }
+            // Filas en transacción: si el vehículo no se puede borrar (FK), los documentos quedan intactos
+            DB::transaction(function () use ($vehiculo) {
+                DocumentoVehiculo::where('id_vehiculo', $vehiculo->id)->delete();
+                $vehiculo->delete();
+            });
 
-            $vehiculo->delete();
+            // Los archivos se borran recién cuando el vehículo ya no existe
+            foreach ($vehiculo->documentos as $documento) {
+                Storage::disk(DocumentoVehiculo::DISCO)->delete($documento->archivo);
+            }
+            Storage::disk(DocumentoVehiculo::DISCO)->deleteDirectory(DocumentoVehiculo::DIRECTORIO . '/' . $vehiculo->id);
+
             session()->flash('message', 'Vehiculo eliminado correctamente.');
         } catch (\Illuminate\Database\QueryException $e) {
             session()->flash('error', 'No se puede eliminar el vehículo porque tiene choferes, movimientos o asignaciones asociadas.');

@@ -67,7 +67,7 @@ routes/
 | `TipoMovimiento` | `tipo_movimientos` | Tipos de movimiento (columna `tipo`: I=Insumos, M=Maquinaria, IM=ambos) |
 | `CategoriaInsumo` | `categorias_insumos` | Categorías de insumos |
 | `CategoriaMaquinaria` | `categoria_maquinarias` | Categorías de maquinaria |
-| `DocumentoVehiculo` | `documentos_vehiculos` | Documentos de vehículos |
+| `DocumentoVehiculo` | `documentos_vehiculos` | Documentos de vehículos. Disco **privado** `local` (`DocumentoVehiculo::DISCO`), carpeta `vehiculos/documentos/{id_vehiculo}/`, nombre legible `{patente}_{descripcion}_{Y-m-d_His}.{ext}` vía `DocumentoVehiculo::rutaParaArchivo()` (sin patente → `patrimonio-N` o `vehiculo-ID`). Se sirven solo por `documentos-vehiculo.ver` / `.descargar` (`DocumentoVehiculoController`, mismo criterio de acceso que `/vehiculos`). Los existentes en el disco `public` los movió la migración `2026_10_29_130000` |
 | `MovimientoEncabezado` | `movimiento_encabezados` | Cabecera para agrupar movimientos |
 | `TipoVehiculo` | `tipos_vehiculos` | Tipos de vehículo |
 | `Cuadrilla` | `cuadrillas` | Cuadrillas de trabajo (ligadas a corralon y deposito) |
@@ -102,6 +102,8 @@ routes/
 | `/comprobantes/{id}/descargar` | Closure (ruta) | autenticado |
 | `/comprobantes-maquinaria/{id}/ver` | Closure (ruta) | autenticado |
 | `/comprobantes-maquinaria/{id}/descargar` | Closure (ruta) | autenticado |
+| `/documentos-vehiculo/{id}/ver` | DocumentoVehiculoController@ver | autenticado + acceso al vehículo (`porCorralonesPermitidos`) |
+| `/documentos-vehiculo/{id}/descargar` | DocumentoVehiculoController@descargar | autenticado + acceso al vehículo |
 
 ---
 
@@ -260,7 +262,7 @@ Todos los uploads del sistema (comprobantes de insumos/maquinarias y documentos 
 - **Regla `app/Rules/ArchivoSeguro.php`** (`ValidationRule` reutilizable): (1) lista negra de extensiones ejecutables/peligrosas (`php`, `phtml`, `phar`, `exe`, `sh`, `js`, `svg`, `html`, etc.), (2) lista blanca de extensiones (`pdf`, `jpg`, `jpeg`, `png` por defecto), (3) verifica el **MIME real por contenido** (`getMimeType()`/finfo) contra `application/pdf`, `image/jpeg`, `image/png`. El constructor admite listas custom.
 - Se aplica como array de reglas: `['file', 'max:5120', new ArchivoSeguro()]` en `comprobantes.*` / `edit_comprobantes.*` (ambos componentes de Transferencias) y en `nuevo_documento` (AbmVehiculos). **Reemplazó** al viejo `mimes:pdf,jpg,jpeg,png`.
 - **`config/livewire.php`** (publicado): `temporary_file_upload.rules` valida ya en la subida temporal: `['required','file','mimetypes:application/pdf,image/jpeg,image/png','max:10240']`. Se removió `svg` de `preview_mimes` (riesgo XSS). Es global, pero solo esos 3 componentes suben archivos.
-- **`storage/app/public/.htaccess`**: impide ejecución/acceso a scripts en la carpeta pública (documentos de vehículos van al disco `public`). Los comprobantes ya están en disco privado `local`.
+- **`storage/app/public/.htaccess`**: impide ejecución/acceso a scripts en la carpeta pública (defensa en profundidad). Hoy **ningún upload va al disco `public`**: comprobantes y documentos de vehículos están en el disco privado `local`.
 
 **Preview con miniatura + eliminar:**
 - **Partial `resources/views/livewire/partials/preview-archivos.blade.php`** — recibe `$files` (array de `TemporaryUploadedFile`) y `$removeMethod` (nombre del método Livewire). Renderiza miniatura (`temporaryUrl()`) para jpg/jpeg/png e ícono PDF para el resto, con botón rojo de eliminar (X) por archivo. Se incluye vía `@include` en los 4 bloques de comprobantes (insumos/maquinarias × crear/editar).
