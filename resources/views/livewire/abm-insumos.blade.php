@@ -191,25 +191,7 @@
         </div>
     </div>
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -276,8 +258,7 @@
                                     
                                     @if($puedeEliminar)
                                     <button 
-                                        wire:click="eliminar({{ $item->id }})"
-                                        wire:confirm="¿Está seguro de eliminar este insumo?"
+                                        wire:click="confirmarEliminar({{ $item->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -314,279 +295,251 @@
 
     <!-- Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModal"></div>
+        <x-ui.modal :titulo="$editMode ? 'Editar Insumo' : 'Nuevo Insumo'"
+                    :icono="$editMode ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="lg" submit="guardar">
+            <!-- Insumo -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Insumo *</label>
+                <input 
+                    type="text" 
+                    wire:model="insumo" @error('insumo') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('insumo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
 
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Insumo' : 'Nuevo Insumo' }}
-                                </h3>
-                                <button 
-                                    type="button" 
-                                    wire:click="cerrarModal"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
+            <!-- Categoría -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
+                <select 
+                    wire:model="id_categoria" @error('id_categoria') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccione una categoría</option>
+                    @foreach($categorias as $categoria)
+                        <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
+                    @endforeach
+                </select>
+                @error('id_categoria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
 
-                            <div class="space-y-5">
-                                <!-- Insumo -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Insumo *</label>
-                                    <input 
-                                        type="text" 
-                                        wire:model="insumo"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('insumo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
+            <!-- Unidad -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Unidad *</label>
+                <select
+                    wire:model="unidad" @error('unidad') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccionar unidad...</option>
+                    <option value="UNIDAD">UNIDAD</option>
+                    <option value="LITROS">LITROS</option>
+                    <option value="TAMBOR">TAMBOR</option>
+                    <option value="METRO">METRO</option>
+                    <option value="ROLLO X 100 MT">ROLLO X 100 MT</option>
+                    <option value="PAQUETE">PAQUETE</option>
+                    <option value="BOLSA">BOLSA</option>
+                    <option value="BALDE">BALDE</option>
+                    <option value="KILOS">KILOS</option>
+                </select>
+                @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
 
-                                <!-- Categoría -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría *</label>
-                                    <select 
-                                        wire:model="id_categoria"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccione una categoría</option>
-                                        @foreach($categorias as $categoria)
-                                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_categoria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Unidad -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Unidad *</label>
-                                    <select
-                                        wire:model="unidad"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccionar unidad...</option>
-                                        <option value="UNIDAD">UNIDAD</option>
-                                        <option value="LITROS">LITROS</option>
-                                        <option value="TAMBOR">TAMBOR</option>
-                                        <option value="METRO">METRO</option>
-                                        <option value="ROLLO X 100 MT">ROLLO X 100 MT</option>
-                                        <option value="PAQUETE">PAQUETE</option>
-                                        <option value="BOLSA">BOLSA</option>
-                                        <option value="BALDE">BALDE</option>
-                                        <option value="KILOS">KILOS</option>
-                                    </select>
-                                    @error('unidad') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Stock Inicial (solo al crear) y Stock Mínimo -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    @if(!$editMode)
-                                        <!-- Stock Inicial - Solo en modo creación -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Inicial</label>
-                                            <input 
-                                                type="number" 
-                                                step="0.01"
-                                                min="0"
-                                                wire:model="stock_inicial"
-                                                placeholder="0.00"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
-                                            <p class="text-xs text-gray-500 mt-1">Cantidad inicial en inventario (opcional)</p>
-                                            @error('stock_inicial') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                        </div>
-                                    @else
-                                        <!-- Stock Actual - Solo en modo edición (solo lectura) -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual (Calculado)</label>
-                                            <div class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
-                                                {{ number_format($insumos->firstWhere('id', $insumo_id)?->stock_actual ?? 0, 2) }}
-                                            </div>
-                                            <p class="text-xs text-gray-500 mt-1">El stock se calcula desde los movimientos</p>
-                                        </div>
-                                    @endif
-
-                                    <!-- Stock Mínimo - Siempre visible -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo *</label>
-                                        <input 
-                                            type="number" 
-                                            step="0.01"
-                                            min="0"
-                                            wire:model="stock_minimo"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('stock_minimo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Depósito -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
-                                    <select 
-                                        wire:model="id_deposito"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccione un depósito</option>
-                                        @foreach($depositos as $deposito)
-                                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion ?? 'Sin corralón' }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- N° Orden de Compra (solo al crear, aplica al movimiento de inventario inicial) -->
-                                @if(!$editMode)
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
-                                        <input
-                                            type="text"
-                                            wire:model="nro_orden_compra"
-                                            placeholder="Opcional"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        <p class="text-xs text-gray-500 mt-1">Se registra en el movimiento de inventario inicial (solo si hay stock inicial &gt; 0)</p>
-                                        @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                @endif
-                            </div>
+            <!-- Stock Inicial (solo al crear) y Stock Mínimo -->
+            <div class="grid grid-cols-2 gap-4">
+                @if(!$editMode)
+                    <!-- Stock Inicial - Solo en modo creación -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Inicial</label>
+                        <input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            wire:model="stock_inicial" @error('stock_inicial') aria-invalid="true" @enderror
+                            placeholder="0.00"
+                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Cantidad inicial en inventario (opcional)</p>
+                        @error('stock_inicial') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                    </div>
+                @else
+                    <!-- Stock Actual - Solo en modo edición (solo lectura) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock Actual (Calculado)</label>
+                        <div class="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-600">
+                            {{ number_format($insumos->firstWhere('id', $insumo_id)?->stock_actual ?? 0, 2) }}
                         </div>
+                        <p class="text-xs text-gray-500 mt-1">El stock se calcula desde los movimientos</p>
+                    </div>
+                @endif
 
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button 
-                                type="button"
-                                wire:click="cerrarModal"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
+                <!-- Stock Mínimo - Siempre visible -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo *</label>
+                    <input 
+                        type="number" 
+                        step="0.01"
+                        min="0"
+                        wire:model="stock_minimo" @error('stock_minimo') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('stock_minimo') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
             </div>
-        </div>
+
+            <!-- Depósito -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Depósito *</label>
+                <select 
+                    wire:model="id_deposito" @error('id_deposito') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccione un depósito</option>
+                    @foreach($depositos as $deposito)
+                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion ?? 'Sin corralón' }}</option>
+                    @endforeach
+                </select>
+                @error('id_deposito') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- N° Orden de Compra (solo al crear, aplica al movimiento de inventario inicial) -->
+            @if(!$editMode)
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
+                    <input
+                        type="text"
+                        wire:model="nro_orden_compra" @error('nro_orden_compra') aria-invalid="true" @enderror
+                        placeholder="Opcional"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Se registra en el movimiento de inventario inicial (solo si hay stock inicial &gt; 0)</p>
+                    @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+            @endif
+
+            <x-slot:footer>
+                <button 
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardar"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editMode ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 
     {{-- Modal de Estadísticas --}}
     @if($showEstadisticas && $estadisticas)
-        <div class="fixed inset-0 z-50 overflow-y-auto" x-data>
-            <div class="flex items-center justify-center min-h-screen px-4 py-8">
-                <div class="fixed inset-0 bg-black/50" wire:click="toggleEstadisticas"></div>
-                <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl">
-                    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                            <svg class="w-6 h-6 text-[#77BF43]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                            Estadísticas de Insumos
-                        </h3>
-                        <button wire:click="toggleEstadisticas" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        </button>
+        <x-ui.modal titulo="Estadísticas de Insumos" icono="fa-chart-column" cerrar="toggleEstadisticas" ancho="3xl">
+            <div class="space-y-6">
+                @if($estadisticas['total'] == 0)
+                    <p class="text-center text-gray-500 py-8">No hay insumos para los filtros seleccionados.</p>
+                @else
+                {{-- KPIs --}}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-gray-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-gray-800">{{ number_format($estadisticas['total']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Insumos</div>
                     </div>
-
-                    <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                        @if($estadisticas['total'] == 0)
-                            <p class="text-center text-gray-500 py-8">No hay insumos para los filtros seleccionados.</p>
-                        @else
-                        {{-- KPIs --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <div class="bg-gray-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-gray-800">{{ number_format($estadisticas['total']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Insumos</div>
-                            </div>
-                            <div class="bg-green-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-green-700">{{ number_format($estadisticas['ok']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Con stock OK</div>
-                            </div>
-                            <div class="bg-amber-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-amber-600">{{ number_format($estadisticas['bajo_minimo']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Bajo mínimo</div>
-                            </div>
-                            <div class="bg-red-50 rounded-xl p-4 text-center">
-                                <div class="text-2xl font-bold text-red-600">{{ number_format($estadisticas['sin_stock']) }}</div>
-                                <div class="text-xs text-gray-500 mt-1">Sin stock</div>
-                            </div>
-                        </div>
-
-                        {{-- Distribución por categoría --}}
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Insumos por categoría</h4>
-                            <div class="space-y-2">
-                                @php $maxCat = $estadisticas['por_categoria']->max() ?: 1; @endphp
-                                @foreach($estadisticas['por_categoria']->take(8) as $cat => $cant)
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-32 text-xs text-gray-600 truncate" title="{{ $cat }}">{{ $cat }}</div>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                            <div class="bg-[#77BF43] h-4 rounded-full" style="width: {{ ($cant / $maxCat) * 100 }}%"></div>
-                                        </div>
-                                        <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        {{-- Stock por depósito --}}
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Stock total por depósito</h4>
-                            <div class="space-y-2">
-                                @php $maxDep = $estadisticas['por_deposito']->max() ?: 1; @endphp
-                                @foreach($estadisticas['por_deposito']->take(8) as $dep => $stock)
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-32 text-xs text-gray-600 truncate" title="{{ $dep }}">{{ $dep }}</div>
-                                        <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
-                                            <div class="bg-blue-500 h-4 rounded-full" style="width: {{ ($stock / $maxDep) * 100 }}%"></div>
-                                        </div>
-                                        <div class="w-16 text-right text-xs font-medium text-gray-700">{{ number_format($stock, 0) }}</div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        {{-- Top bajo mínimo --}}
-                        @if($estadisticas['top_bajo_minimo']->count() > 0)
-                        <div>
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Insumos a reponer (bajo mínimo)</h4>
-                            <div class="border border-gray-100 rounded-xl overflow-hidden">
-                                <table class="w-full text-sm">
-                                    <thead class="bg-gray-50 text-xs text-gray-500">
-                                        <tr>
-                                            <th class="text-left px-3 py-2">Insumo</th>
-                                            <th class="text-left px-3 py-2">Depósito</th>
-                                            <th class="text-right px-3 py-2">Stock</th>
-                                            <th class="text-right px-3 py-2">Mínimo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($estadisticas['top_bajo_minimo'] as $i)
-                                            <tr class="border-t border-gray-50">
-                                                <td class="px-3 py-2 text-gray-700">{{ $i->insumo }}</td>
-                                                <td class="px-3 py-2 text-gray-500">{{ $i->deposito->deposito ?? '' }}</td>
-                                                <td class="px-3 py-2 text-right font-medium text-amber-600">{{ number_format($i->stock_actual, 2) }}</td>
-                                                <td class="px-3 py-2 text-right text-gray-500">{{ number_format($i->stock_minimo, 2) }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        @endif
-                        @endif
+                    <div class="bg-green-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-green-700">{{ number_format($estadisticas['ok']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Con stock OK</div>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-600">{{ number_format($estadisticas['bajo_minimo']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Bajo mínimo</div>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600">{{ number_format($estadisticas['sin_stock']) }}</div>
+                        <div class="text-xs text-gray-500 mt-1">Sin stock</div>
                     </div>
                 </div>
+
+                {{-- Distribución por categoría --}}
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Insumos por categoría</h4>
+                    <div class="space-y-2">
+                        @php $maxCat = $estadisticas['por_categoria']->max() ?: 1; @endphp
+                        @foreach($estadisticas['por_categoria']->take(8) as $cat => $cant)
+                            <div class="flex items-center gap-3">
+                                <div class="w-32 text-xs text-gray-600 truncate" title="{{ $cat }}">{{ $cat }}</div>
+                                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                    <div class="bg-[#77BF43] h-4 rounded-full" style="width: {{ ($cant / $maxCat) * 100 }}%"></div>
+                                </div>
+                                <div class="w-10 text-right text-xs font-medium text-gray-700">{{ $cant }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Stock por depósito --}}
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Stock total por depósito</h4>
+                    <div class="space-y-2">
+                        @php $maxDep = $estadisticas['por_deposito']->max() ?: 1; @endphp
+                        @foreach($estadisticas['por_deposito']->take(8) as $dep => $stock)
+                            <div class="flex items-center gap-3">
+                                <div class="w-32 text-xs text-gray-600 truncate" title="{{ $dep }}">{{ $dep }}</div>
+                                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                                    <div class="bg-blue-500 h-4 rounded-full" style="width: {{ ($stock / $maxDep) * 100 }}%"></div>
+                                </div>
+                                <div class="w-16 text-right text-xs font-medium text-gray-700">{{ number_format($stock, 0) }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Top bajo mínimo --}}
+                @if($estadisticas['top_bajo_minimo']->count() > 0)
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-700 mb-3">Insumos a reponer (bajo mínimo)</h4>
+                    <div class="border border-gray-100 rounded-xl overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-xs text-gray-500">
+                                <tr>
+                                    <th class="text-left px-3 py-2">Insumo</th>
+                                    <th class="text-left px-3 py-2">Depósito</th>
+                                    <th class="text-right px-3 py-2">Stock</th>
+                                    <th class="text-right px-3 py-2">Mínimo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($estadisticas['top_bajo_minimo'] as $i)
+                                    <tr class="border-t border-gray-50">
+                                        <td class="px-3 py-2 text-gray-700">{{ $i->insumo }}</td>
+                                        <td class="px-3 py-2 text-gray-500">{{ $i->deposito->deposito ?? '' }}</td>
+                                        <td class="px-3 py-2 text-right font-medium text-amber-600">{{ number_format($i->stock_actual, 2) }}</td>
+                                        <td class="px-3 py-2 text-right text-gray-500">{{ number_format($i->stock_minimo, 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @endif
+                @endif
             </div>
-        </div>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarId)
+        <x-ui.modal-confirmacion confirmar="eliminar" cancelar="cancelarEliminar">
+            ¿Está seguro de eliminar este insumo?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

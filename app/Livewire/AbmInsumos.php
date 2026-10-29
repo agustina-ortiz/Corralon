@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\Insumo;
 use App\Models\CategoriaInsumo;
 use App\Models\Corralon;
@@ -18,9 +20,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class AbmInsumos extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
     public $showFilters = false;
     public $showEstadisticas = false;
@@ -272,7 +279,7 @@ class AbmInsumos extends Component
         // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
         $total = $this->baseQuery()->count();
         if ($total > 2000) {
-            session()->flash('error', "El listado tiene {$total} insumos, demasiados para un PDF. Acotá los filtros o usá la exportación a Excel.");
+            $this->toastError("El listado tiene {$total} insumos, demasiados para un PDF. Acotá los filtros o usá la exportación a Excel.");
             return;
         }
 
@@ -297,20 +304,21 @@ class AbmInsumos extends Component
     {
         // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear insumos.');
+            $this->toastError('No tienes permisos para crear insumos.');
             return;
         }
         
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar insumos.');
+            $this->toastError('No tienes permisos para editar insumos.');
             return;
         }
         
@@ -320,7 +328,7 @@ class AbmInsumos extends Component
         $user = auth()->user();
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
         if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para editar insumos de este depósito.');
+            $this->toastError('No tienes permisos para editar insumos de este depósito.');
             return;
         }
 
@@ -333,19 +341,20 @@ class AbmInsumos extends Component
         
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear insumos.');
+            $this->toastError('No tienes permisos para crear insumos.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar insumos.');
+            $this->toastError('No tienes permisos para editar insumos.');
             $this->showModal = false;
             return;
         }
@@ -357,7 +366,7 @@ class AbmInsumos extends Component
 
         // Verificar que el depósito seleccionado esté permitido
         if (!$user->esAdministrador() && !in_array((int)$this->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para usar ese depósito.');
+            $this->toastError('No tienes permisos para usar ese depósito.');
             return;
         }
 
@@ -366,7 +375,7 @@ class AbmInsumos extends Component
 
             // Verificar acceso al insumo original por depósito
             if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
-                session()->flash('error', 'No tienes permisos para editar insumos de este depósito.');
+                $this->toastError('No tienes permisos para editar insumos de este depósito.');
                 return;
             }
             
@@ -381,7 +390,7 @@ class AbmInsumos extends Component
             // Recalcular el stock después de actualizar
             $insumo->sincronizarStock();
             
-            session()->flash('message', 'Insumo actualizado correctamente.');
+            $this->toastExito('Insumo actualizado correctamente.');
         } else {
             // CREAR INSUMO NUEVO
             $insumo = Insumo::create([
@@ -412,9 +421,9 @@ class AbmInsumos extends Component
                 // Sincronizar el stock
                 $insumo->sincronizarStock();
                 
-                session()->flash('message', "Insumo creado correctamente con stock inicial de {$this->stock_inicial} {$this->unidad}.");
+                $this->toastExito("Insumo creado correctamente con stock inicial de {$this->stock_inicial} {$this->unidad}.");
             } else {
-                session()->flash('message', 'Insumo creado correctamente. El stock inicial es 0. Registra movimientos de entrada para aumentar el stock.');
+                $this->toastExito('Insumo creado correctamente. El stock inicial es 0. Registra movimientos de entrada para aumentar el stock.');
             }
         }
 
@@ -422,11 +431,24 @@ class AbmInsumos extends Component
         $this->resetForm();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarInsumos()) {
-            session()->flash('error', 'No tienes permisos para eliminar insumos.');
+            $this->toastError('No tienes permisos para eliminar insumos.');
             return;
         }
         
@@ -436,15 +458,15 @@ class AbmInsumos extends Component
         $user = auth()->user();
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('insumos');
         if (!$user->esAdministrador() && !in_array($insumo->id_deposito, $depositosPermitidos)) {
-            session()->flash('error', 'No tienes permisos para eliminar insumos de este depósito.');
+            $this->toastError('No tienes permisos para eliminar insumos de este depósito.');
             return;
         }
         
         try {
             $insumo->delete();
-            session()->flash('message', 'Insumo eliminado correctamente.');
+            $this->toastExito('Insumo eliminado correctamente.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar el insumo porque tiene movimientos asociados.');
+            $this->toastError('No se puede eliminar el insumo porque tiene movimientos asociados.');
         }
     }
 
@@ -452,6 +474,16 @@ class AbmInsumos extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['insumo', 'id_categoria', 'unidad', 'stock_inicial', 'stock_minimo', 'id_deposito', 'nro_orden_compra'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()
