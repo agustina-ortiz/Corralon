@@ -101,22 +101,22 @@ class AbmVehiculos extends Component
     }
 
     protected $messages = [
-        'nro_patrimonio.required' => 'El numero de patrimonio es obligatorio',
-        'nro_patrimonio.unique' => 'Este numero de patrimonio ya esta en uso',
-        'vehiculo.required' => 'El nombre del vehiculo es obligatorio',
+        'nro_patrimonio.required' => 'El número de patrimonio es obligatorio',
+        'nro_patrimonio.unique' => 'Este número de patrimonio ya está en uso',
+        'vehiculo.required' => 'El nombre del vehículo es obligatorio',
         'marca_modelo.required' => 'La marca/modelo es obligatoria',
         'patente.required' => 'La patente es obligatoria',
         'tipo_combustible.required' => 'El tipo de combustible es obligatorio',
-        'nro_motor.required' => 'El numero de motor es obligatorio',
-        'nro_chasis.required' => 'El numero de chasis es obligatorio',
+        'nro_motor.required' => 'El número de motor es obligatorio',
+        'nro_chasis.required' => 'El número de chasis es obligatorio',
         'estado.required' => 'El estado es obligatorio',
-        'nro_poliza.required' => 'El numero de poliza es obligatorio',
-        'id_deposito.required' => 'El deposito es obligatorio',
-        'id_deposito.exists' => 'El deposito seleccionado no existe',
-        'vencimiento_oblea.required' => 'El vencimiento de oblea es obligatorio para vehiculos a gas',
-        'vencimiento_oblea.date' => 'Ingrese una fecha valida',
-        'vencimiento_poliza.date' => 'Ingrese una fecha valida',
-        'vencimiento_vtv.date' => 'Ingrese una fecha valida',
+        'nro_póliza.required' => 'El número de poliza es obligatorio',
+        'id_deposito.required' => 'El depósito es obligatorio',
+        'id_deposito.exists' => 'El depósito seleccionado no existe',
+        'vencimiento_oblea.required' => 'El vencimiento de oblea es obligatorio para vehículos a gas',
+        'vencimiento_oblea.date' => 'Ingrese una fecha válida',
+        'vencimiento_póliza.date' => 'Ingrese una fecha válida',
+        'vencimiento_vtv.date' => 'Ingrese una fecha válida',
     ];
 
     public function mount()

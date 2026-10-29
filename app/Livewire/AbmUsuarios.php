@@ -77,13 +77,13 @@ class AbmUsuarios extends Component
     protected $messages = [
         'name.required' => 'El nombre es obligatorio',
         'email.required' => 'El email es obligatorio',
-        'email.email' => 'Debe ser un email valido',
-        'email.unique' => 'Este email ya esta registrado',
+        'email.email' => 'Debe ser un email válido',
+        'email.unique' => 'Este email ya está registrado',
         'id_rol.required' => 'Debe seleccionar un rol',
-        'id_rol.exists' => 'El rol seleccionado no es valido',
-        'password.required' => 'La contrasena es obligatoria',
-        'password.min' => 'La contrasena debe tener al menos 8 caracteres',
-        'password.confirmed' => 'Las contrasenas no coinciden',
+        'id_rol.exists' => 'El rol seleccionado no es válido',
+        'password.required' => 'La contraseña es obligatoria',
+        'password.min' => 'La contraseña debe tener al menos 8 caracteres',
+        'password.confirmed' => 'Las contraseñas no coinciden',
     ];
 
     public function mount()
