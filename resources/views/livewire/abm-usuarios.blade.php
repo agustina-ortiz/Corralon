@@ -1,6 +1,12 @@
 {{-- resources/views/livewire/abm-usuarios.blade.php --}}
-<div>
-    <!-- Header con busqueda y boton crear -->
+<x-ui.pagina titulo="Usuarios" icono="fa-users-gear">
+    @if($puedeCrear)
+        <x-slot:acciones>
+            <x-ui.boton icono="fa-plus" wire:click="abrirModal('crear')">Nuevo Usuario</x-ui.boton>
+        </x-slot:acciones>
+    @endif
+
+    <!-- Búsqueda y filtros -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
@@ -16,32 +22,14 @@
             </div>
         </div>
         <div class="flex gap-3">
-            <button
-                wire:click="$toggle('mostrarFiltros')"
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
+            <x-ui.boton variante="secundario" icono="fa-filter" wire:click="$toggle('mostrarFiltros')">
                 Filtros
                 @if($filtro_acceso || $filtro_corralon || $filtro_rol)
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
                         {{ collect([$filtro_acceso, $filtro_corralon, $filtro_rol])->filter()->count() }}
                     </span>
                 @endif
-            </button>
-
-            @if($puedeCrear)
-            <button
-                wire:click="abrirModal('crear')"
-                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Nuevo Usuario
-            </button>
-            @endif
+            </x-ui.boton>
         </div>
     </div>
 
@@ -131,18 +119,11 @@
                                 <div class="text-sm text-gray-600">{{ $usuario->email }}</div>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full
-                                    {{ $usuario->rol->nombre === 'Administrador'
-                                        ? 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border border-purple-200'
-                                        : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200' }}">
-                                    {{ $usuario->rol->nombre }}
-                                </span>
+                                <x-ui.badge :color="$usuario->rol->nombre === 'Administrador' ? 'violeta' : 'gris'">{{ $usuario->rol->nombre }}</x-ui.badge>
                             </td>
                             <td class="px-6 py-4">
                                 @if($usuario->esAdministrador())
-                                    <span class="px-3 py-1 inline-flex text-xs font-medium rounded-full bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-200">
-                                        Acceso total
-                                    </span>
+                                    <x-ui.badge color="verde">Acceso total</x-ui.badge>
                                 @else
                                     @php $permisosUser = $usuario->permisos; @endphp
                                     @if($permisosUser->isEmpty())
@@ -173,28 +154,12 @@
                             </td>
                             @if($puedeEditar || $puedeEliminar)
                             <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1">
                                     @if($puedeEditar)
-                                    <button
-                                        wire:click="abrirModal('editar', {{ $usuario->id }})"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Editar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="abrirModal('editar', {{ $usuario->id }})" />
                                     @endif
                                     @if($puedeEliminar && $usuario->id !== auth()->id())
-                                    <button
-                                        wire:click="confirmarEliminar({{ $usuario->id }})"
-                                        class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                        title="Eliminar"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $usuario->id }})" />
                                     @endif
                                 </div>
                             </td>
@@ -202,8 +167,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center">
-                                <p class="text-sm font-medium text-gray-400">No se encontraron usuarios</p>
+                            <td colspan="5" class="px-6 py-6">
+                                <x-ui.vacio icono="fa-users">{{ $busqueda || $filtro_acceso || $filtro_corralon || $filtro_rol ? 'No hay usuarios que coincidan con la búsqueda o los filtros' : 'Todavía no hay usuarios cargados' }}</x-ui.vacio>
                             </td>
                         </tr>
                     @endforelse
@@ -220,23 +185,19 @@
     <x-ui.modal :titulo="$modo === 'crear' ? 'Nuevo Usuario' : 'Editar Usuario'"
                 :icono="$modo === 'crear' ? 'fa-plus' : 'fa-pen'"
                 cerrar="intentarCerrar" ancho="4xl" submit="guardar">
-        <!-- Datos basicos -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                <input type="text" wire:model="name" @error('name') aria-invalid="true" @enderror class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 @error('name') border-red-300 @enderror">
-                @error('name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                <input type="email" wire:model="email" @error('email') aria-invalid="true" @enderror class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 @error('email') border-red-300 @enderror">
-                @error('email') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+        <!-- Datos básicos -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <x-ui.campo etiqueta="Nombre" nombre="name" obligatorio>
+                <x-ui.input nombre="name" wire:model="name" maxlength="255" autocomplete="off" />
+            </x-ui.campo>
+            <x-ui.campo etiqueta="Email" nombre="email" obligatorio>
+                <x-ui.input nombre="email" type="email" wire:model="email" maxlength="255" autocomplete="off" />
+            </x-ui.campo>
         </div>
 
         <!-- Rol -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-3">Rol *</label>
+        <fieldset class="w-full min-w-0">
+            <legend class="block text-sm font-medium text-gray-700 mb-3">Rol <span class="text-red-600" aria-hidden="true">*</span></legend>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 @foreach($roles as $rol)
                 <label
@@ -258,42 +219,36 @@
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-semibold text-gray-900">{{ $rol->nombre }}</span>
                             @if($rol->nombre === 'Administrador')
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                                    Acceso total
-                                </span>
+                                <x-ui.badge color="violeta">Acceso total</x-ui.badge>
                             @endif
                         </div>
                         <p class="mt-1 text-xs text-gray-500 leading-relaxed">
                             @if($rol->nombre === 'Administrador')
-                                Acceso completo a todos los modulos y corralones. No requiere configurar permisos adicionales.
+                                Acceso completo a todos los módulos y corralones. No requiere configurar permisos adicionales.
                             @elseif($rol->nombre === 'Visualizador')
-                                Acceso limitado segun los permisos que se configuren debajo. Puede tener permisos de solo lectura o de edicion por modulo.
+                                Acceso limitado según los permisos que se configuren debajo. Puede tener permisos de solo lectura o de edición por módulo.
                             @elseif($rol->descripcion)
                                 {{ $rol->descripcion }}
                             @else
-                                Rol personalizado. Configure los permisos de acceso en la seccion inferior.
+                                Rol personalizado. Configure los permisos de acceso en la sección inferior.
                             @endif
                         </p>
                     </div>
                 </label>
                 @endforeach
             </div>
-            @error('id_rol') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-        </div>
+            @error('id_rol') <p id="error-id_rol" class="mt-1 text-xs text-red-600" data-error="id_rol">{{ $message }}</p> @enderror
+        </fieldset>
 
-        <!-- Contrasenas -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    Contrasena {{ $modo === 'editar' ? '(dejar en blanco para no cambiar)' : '*' }}
-                </label>
-                <input type="password" wire:model="password" @error('password') aria-invalid="true" @enderror class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 @error('password') border-red-300 @enderror">
-                @error('password') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contrasena</label>
-                <input type="password" wire:model="password_confirmation" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-            </div>
+        <!-- Contraseñas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <x-ui.campo etiqueta="Contraseña" nombre="password" :obligatorio="$modo === 'crear'"
+                        :ayuda="$modo === 'editar' ? 'Dejar en blanco para no cambiarla.' : 'Mínimo 8 caracteres.'">
+                <x-ui.input nombre="password" type="password" wire:model="password" autocomplete="new-password" />
+            </x-ui.campo>
+            <x-ui.campo etiqueta="Confirmar Contraseña" nombre="password_confirmation">
+                <x-ui.input nombre="password_confirmation" type="password" wire:model="password_confirmation" autocomplete="new-password" />
+            </x-ui.campo>
         </div>
 
         @php
@@ -307,7 +262,7 @@
                     <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
-                    El rol Administrador tiene acceso completo a todos los modulos y corralones. No es necesario configurar permisos adicionales.
+                    El rol Administrador tiene acceso completo a todos los módulos y corralones. No es necesario configurar permisos adicionales.
                 </p>
             </div>
         @else
@@ -318,8 +273,8 @@
 
             <!-- PERMISOS GLOBALES -->
             <div class="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
-                <h5 class="text-sm font-semibold text-gray-700 mb-3">Modulos Globales</h5>
-                <p class="text-xs text-gray-500 mb-3">Estos modulos no dependen de un corralon especifico. "Vehículos (todos)" da acceso a todos los vehículos; para restringirlo a ciertos corralones/depósitos usá los permisos por corralón.</p>
+                <h5 class="text-sm font-semibold text-gray-700 mb-3">Módulos Globales</h5>
+                <p class="text-xs text-gray-500 mb-3">Estos módulos no dependen de un corralón específico. "Vehículos (todos)" da acceso a todos los vehículos; para restringirlo a ciertos corralones/depósitos usá los permisos por corralón.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     @foreach($modulosGlobales as $modulo)
                     <div class="flex items-center justify-between p-2 rounded-lg bg-white border border-gray-100">
@@ -343,8 +298,8 @@
 
             <!-- PERMISOS POR CORRALON -->
             <div class="rounded-xl border border-gray-200 p-4 bg-gray-50/50">
-                <h5 class="text-sm font-semibold text-gray-700 mb-3">Permisos por Corralon</h5>
-                <p class="text-xs text-gray-500 mb-3">Selecciona los corralones y configura que modulos puede acceder en cada uno.</p>
+                <h5 class="text-sm font-semibold text-gray-700 mb-3">Permisos por Corralón</h5>
+                <p class="text-xs text-gray-500 mb-3">Seleccioná los corralones y configurá a qué módulos puede acceder en cada uno.</p>
 
                 <!-- Selector de corralones -->
                 <div class="flex flex-wrap gap-2 mb-4">
@@ -397,12 +352,10 @@
         @endif
 
         <x-slot:footer>
-            <button type="button" wire:click="intentarCerrar" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium">
-                Cancelar
-            </button>
-            <button type="submit" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium">
+            <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+            <x-ui.boton type="submit" wire:loading.attr="disabled" wire:target="guardar">
                 {{ $modo === 'crear' ? 'Crear Usuario' : 'Guardar Cambios' }}
-            </button>
+            </x-ui.boton>
         </x-slot:footer>
     </x-ui.modal>
     @endif
@@ -419,4 +372,4 @@
             Hay cambios sin guardar. ¿Desea descartarlos?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>
