@@ -266,14 +266,32 @@
 
                                 <!-- Categorías de licencia -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Categorías (ej: A.1.4 B.2 D.1)</label>
-                                    <input
-                                        type="text"
-                                        wire:model="tipo_licencia"
-                                        placeholder="Ej: A.1.4 B.2 D.1 D.4"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('tipo_licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Categorías
+                                        @if(count($categoriasSeleccionadas))
+                                            <span class="text-xs font-normal text-gray-500">({{ count($categoriasSeleccionadas) }} seleccionadas)</span>
+                                        @endif
+                                    </label>
+                                    <div class="border border-gray-200 rounded-xl p-3 max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                        @forelse($categoriasLicencia as $categoria)
+                                            <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    wire:model.live="categoriasSeleccionadas"
+                                                    value="{{ $categoria->id }}"
+                                                    class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                >
+                                                <span class="text-sm text-gray-700">
+                                                    <span class="font-semibold">{{ $categoria->codigo }}</span>
+                                                    <span class="text-gray-500">— {{ $categoria->descripcion }}</span>
+                                                </span>
+                                            </label>
+                                        @empty
+                                            <p class="text-sm text-gray-400">No hay categorías cargadas.</p>
+                                        @endforelse
+                                    </div>
+                                    @error('categoriasSeleccionadas') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                    @error('categoriasSeleccionadas.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                                 </div>
 
                                 <!-- Fila: Área + Domicilio -->

@@ -36,6 +36,12 @@ class Chofer extends Model
         return $this->belongsToMany(Vehiculo::class, 'choferes_vehiculos', 'chofer_id', 'vehiculo_id');
     }
 
+    public function categoriasLicencia(): BelongsToMany
+    {
+        return $this->belongsToMany(CategoriaLicencia::class, 'choferes_categorias_licencia', 'chofer_id', 'categoria_licencia_id')
+            ->orderBy('orden');
+    }
+
     public function licenciaVencida(): bool
     {
         return $this->vencimiento_licencia && $this->vencimiento_licencia->isPast();

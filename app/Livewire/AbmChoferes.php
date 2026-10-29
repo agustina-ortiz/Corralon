@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\CategoriaLicencia;
 use App\Models\Chofer;
 use App\Models\Vehiculo;
 use App\Models\Secretaria;
@@ -22,12 +23,12 @@ class AbmChoferes extends Component
     public $dni;
     public $numero_empleado;
     public $licencia;
-    public $tipo_licencia;
     public $vencimiento_licencia;
     public $domicilio;
     public $secretaria_id;
     public $area;
     public $vehiculosSeleccionados = [];
+    public $categoriasSeleccionadas = [];
 
     protected function rules()
     {
@@ -36,7 +37,8 @@ class AbmChoferes extends Component
             'dni'               => 'required|string|max:50|unique:choferes,dni' . ($this->editMode ? ',' . $this->choferId : ''),
             'numero_empleado'   => 'required|string|max:50|unique:choferes,numero_empleado' . ($this->editMode ? ',' . $this->choferId : ''),
             'licencia'          => 'nullable|string|max:100',
-            'tipo_licencia'     => 'nullable|string|max:255',
+            'categoriasSeleccionadas'   => 'array',
+            'categoriasSeleccionadas.*' => 'exists:categorias_licencia,id',
             'vencimiento_licencia' => 'nullable|date',
             'domicilio'         => 'nullable|string|max:255',
             'secretaria_id'     => 'nullable|exists:secretarias,id',
@@ -76,11 +78,13 @@ class AbmChoferes extends Component
 
         $vehiculos = Vehiculo::orderBy('nro_patrimonio')->get();
         $secretarias = Secretaria::orderBy('secretaria')->get();
+        $categoriasLicencia = CategoriaLicencia::orderBy('orden')->get();
 
         return view('livewire.abm-choferes', [
             'choferes'    => $choferes,
             'vehiculos'   => $vehiculos,
             'secretarias' => $secretarias,
+            'categoriasLicencia' => $categoriasLicencia,
             'puedeCrear'   => $user->puedeCrearChoferes(),
             'puedeEditar'  => $user->puedeEditarChoferes(),
             'puedeEliminar' => $user->puedeEliminarChoferes(),
@@ -105,19 +109,19 @@ class AbmChoferes extends Component
             return;
         }
 
-        $chofer = Chofer::with('vehiculos')->findOrFail($id);
+        $chofer = Chofer::with('vehiculos', 'categoriasLicencia')->findOrFail($id);
 
         $this->choferId             = $chofer->id;
         $this->nombre               = $chofer->nombre;
         $this->dni                  = $chofer->dni;
         $this->numero_empleado      = $chofer->numero_empleado;
         $this->licencia             = $chofer->licencia;
-        $this->tipo_licencia        = $chofer->tipo_licencia;
         $this->vencimiento_licencia = $chofer->vencimiento_licencia?->format('Y-m-d');
         $this->domicilio            = $chofer->domicilio;
         $this->secretaria_id        = $chofer->secretaria_id;
         $this->area                 = $chofer->area;
         $this->vehiculosSeleccionados = $chofer->vehiculos->pluck('id')->toArray();
+        $this->categoriasSeleccionadas = $chofer->categoriasLicencia->pluck('id')->map(fn ($id) => (string) $id)->toArray();
 
         $this->editMode  = true;
         $this->showModal = true;
@@ -139,12 +143,15 @@ class AbmChoferes extends Component
 
         $this->validate();
 
+        // tipo_licencia queda como texto derivado de las categorías elegidas (lo usan estadísticas y PDF)
+        $codigos = CategoriaLicencia::whereIn('id', $this->categoriasSeleccionadas)->orderBy('orden')->pluck('codigo');
+
         $data = [
             'nombre'               => $this->nombre,
             'dni'                  => $this->dni,
             'numero_empleado'      => $this->numero_empleado,
             'licencia'             => $this->licencia ?: null,
-            'tipo_licencia'        => $this->tipo_licencia ?: null,
+            'tipo_licencia'        => $codigos->isNotEmpty() ? $codigos->implode(' ') : null,
             'vencimiento_licencia' => $this->vencimiento_licencia ?: null,
             'domicilio'            => $this->domicilio ?: null,
             'secretaria_id'        => $this->secretaria_id ?: null,
@@ -155,10 +162,12 @@ class AbmChoferes extends Component
             $chofer = Chofer::findOrFail($this->choferId);
             $chofer->update($data);
             $chofer->vehiculos()->sync($this->vehiculosSeleccionados);
+            $chofer->categoriasLicencia()->sync($this->categoriasSeleccionadas);
             session()->flash('message', 'Chofer actualizado correctamente.');
         } else {
             $chofer = Chofer::create($data);
             $chofer->vehiculos()->sync($this->vehiculosSeleccionados);
+            $chofer->categoriasLicencia()->sync($this->categoriasSeleccionadas);
             session()->flash('message', 'Chofer creado correctamente.');
         }
 
@@ -192,8 +201,8 @@ class AbmChoferes extends Component
     {
         $this->reset([
             'choferId', 'nombre', 'dni', 'numero_empleado', 'licencia',
-            'tipo_licencia', 'vencimiento_licencia', 'domicilio',
-            'secretaria_id', 'area', 'vehiculosSeleccionados', 'editMode',
+            'vencimiento_licencia', 'domicilio',
+            'secretaria_id', 'area', 'vehiculosSeleccionados', 'categoriasSeleccionadas', 'editMode',
         ]);
         $this->resetValidation();
     }

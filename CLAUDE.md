@@ -56,7 +56,8 @@ routes/
 | `Insumo` | `insumos` | Items de inventario |
 | `Maquinaria` | `maquinarias` | Equipos/máquinas |
 | `Vehiculo` | `vehiculos` | Flota vehicular (nro_patrimonio, marca_modelo, anio, patente, combustible, VTV, póliza, origen, jurisdiccion_procedencia, nro_telepase, estado, id_secretaria, id_deposito). Estados: `EN USO`, `BAJA`, `MANTENIMIENTO` |
-| `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados) |
+| `Chofer` | `choferes` | Conductores (licencia, vencimientos, vehículos asignados). Categorías de licencia vía `categoriasLicencia()` (pivote `choferes_categorias_licencia`); la columna `tipo_licencia` queda como texto derivado ("A.1.4 B.2") que se regenera al guardar en AbmChoferes |
+| `CategoriaLicencia` | `categorias_licencia` | Catálogo fijo de categorías de licencia de conducir (`codigo`, `descripcion`, `orden`), cargado por la migración `2026_10_29_120000`. Sin ABM. En el modal de choferes es una lista de checkboxes (selección múltiple) |
 | `Empleado` | `empleados` | Personal (tabla local, legada — el tab `/empleados` ya no la usa) |
 | `Evento` | `eventos` | Eventos programados |
 | `Secretaria` | `secretarias` | Dependencias/secretarías municipales. Relaciones `areas()`, `depositos()` (belongsToMany vía `depositos_secretarias`) |
