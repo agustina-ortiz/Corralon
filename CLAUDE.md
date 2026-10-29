@@ -478,7 +478,7 @@ La interfaz se está adaptando al kit `C:\Users\Usuario\Desktop\especificaciones
 - **`<x-ui.pagina titulo icono>`** + slot `acciones` — título de la pantalla (antes no había) y botones a la derecha (Estadísticas, Exportar, Nuevo). Adaptado: fila dentro del relleno del layout, no barra a sangre. La vista Livewire queda con `<x-ui.pagina>` como raíz. **Ojo:** no escribir `<x-ui.algo>` ni en un comentario HTML (`<!-- -->`): Blade lo compila como componente abierto y la vista da ParseError; en comentarios usar `{{-- --}}` y sin el `<`.
 - El buscador, el botón Filtros y el panel de filtros quedan como estaban hasta la fase de listados (spec 17).
 
-**Migradas a controles/botones:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Empleados (solo encabezado y vacío), Insumos, Maquinarias. **Pendientes:** Vehículos (incluido el modal de Documentos), Transferencias de Insumos y de Maquinarias, Dashboard, Estadísticas.
+**Migradas a controles/botones:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Empleados (solo encabezado y vacío), Insumos, Maquinarias, Vehículos (incluido el modal de Documentos), Dashboard y Estadísticas (encabezado con "Personalizar"/"Imprimir PDF" en acciones, modal y vacíos; el panel de filtros de Estadísticas queda para la fase de listados). **Pendientes:** Transferencias de Insumos y de Maquinarias.
 
 **Migradas a modales/toasts:** todas las pantallas (Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Insumos, Maquinarias, Vehículos, Transferencias de Insumos/Maquinarias, Dashboard, Estadísticas).
 
