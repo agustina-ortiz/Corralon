@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\Maquinaria;
 use App\Models\Deposito;
 use App\Models\MovimientoMaquinaria;
@@ -28,6 +30,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class TransferenciasMaquinarias extends Component
 {
     use WithPagination, WithFileUploads;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
@@ -99,6 +103,12 @@ class TransferenciasMaquinarias extends Component
 
     // Panel de asignaciones pendientes
     public $showAsignacionesPendientes = false;
+
+    // Asignación pendiente a dar de baja (abre el modal de confirmación)
+    public $bajaAsignacion = null;
+
+    // Comprobante existente a eliminar desde el modal de edición (abre la confirmación)
+    public $eliminarComprobanteId = null;
 
     // Para transferencia multi-maquinaria (modal separado)
     public $showModalTransferencia = false;
@@ -405,7 +415,7 @@ class TransferenciasMaquinarias extends Component
         // Tope de seguridad: dompdf carga todo en memoria y se cae con datasets muy grandes.
         $total = $this->baseMovimientosQuery($this->getDepositosAccesibles())->count();
         if ($total > 2000) {
-            session()->flash('error', "Hay {$total} movimientos, demasiados para un PDF. Acotá el período/filtros o usá la exportación a Excel.");
+            $this->toastError("Hay {$total} movimientos, demasiados para un PDF. Acotá el período/filtros o usá la exportación a Excel.");
             return;
         }
 
@@ -815,12 +825,13 @@ class TransferenciasMaquinarias extends Component
     public function crear()
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos de maquinarias.');
+            $this->toastError('No tienes permisos para crear movimientos de maquinarias.');
             return;
         }
 
         $this->resetForm();
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
         $this->paso_actual = 1;
     }
 
@@ -873,7 +884,7 @@ class TransferenciasMaquinarias extends Component
             ->find($maquinariaId);
 
         if (!$this->maquinaria_seleccionada) {
-            session()->flash('error', 'No tiene acceso a esta maquinaria.');
+            $this->toastError('No tiene acceso a esta maquinaria.');
             return;
         }
 
@@ -999,7 +1010,7 @@ class TransferenciasMaquinarias extends Component
     public function guardar()
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos de maquinarias.');
+            $this->toastError('No tienes permisos para crear movimientos de maquinarias.');
             $this->showModal = false;
             return;
         }
@@ -1018,13 +1029,13 @@ class TransferenciasMaquinarias extends Component
                 case 'devolucion':                 return $this->guardarDevolucion();
                 case 'mantenimiento':              return $this->guardarMantenimiento();
                 default:
-                    session()->flash('error', 'Tipo de movimiento no válido.');
+                    $this->toastError('Tipo de movimiento no válido.');
                     $this->cerrarModal();
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al procesar el movimiento: ' . $e->getMessage());
+            $this->toastError('Error al procesar el movimiento: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardar movimiento maquinaria: ' . $e->getMessage());
         }
@@ -1058,13 +1069,13 @@ class TransferenciasMaquinarias extends Component
 
             $deposito = Deposito::find($this->id_deposito_origen);
             $unidad   = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Carga de stock realizada: {$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria} en {$deposito->deposito}");
+            $this->toastExito("Carga de stock realizada: {$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria} en {$deposito->deposito}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la carga de stock: ' . $e->getMessage());
+            $this->toastError('Error al realizar la carga de stock: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarCargaStock: ' . $e->getMessage());
         }
@@ -1098,13 +1109,13 @@ class TransferenciasMaquinarias extends Component
 
             $deposito = Deposito::find($this->id_deposito_origen);
             $unidad   = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Ajuste positivo realizado: +{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria} en {$deposito->deposito}");
+            $this->toastExito("Ajuste positivo realizado: +{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria} en {$deposito->deposito}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar el ajuste positivo: ' . $e->getMessage());
+            $this->toastError('Error al realizar el ajuste positivo: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAjustePositivo: ' . $e->getMessage());
         }
@@ -1118,7 +1129,7 @@ class TransferenciasMaquinarias extends Component
             $maquinaria     = Maquinaria::findOrFail($this->maquinaria_id);
 
             if ($this->cantidad_a_cargar > $maquinaria->getCantidadTotalDisponible()) {
-                session()->flash('error', 'La cantidad excede el stock disponible.');
+                $this->toastError('La cantidad excede el stock disponible.');
                 $this->cerrarModal();
                 return;
             }
@@ -1145,13 +1156,13 @@ class TransferenciasMaquinarias extends Component
 
             $unidad = $this->cantidad_a_cargar == 1 ? 'unidad' : 'unidades';
             $destinoMsg = $this->tipo_destino ? ' → ' . $this->obtenerNombreDestino() : '';
-            session()->flash('message', "Ajuste negativo realizado: -{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria}{$destinoMsg}");
+            $this->toastExito("Ajuste negativo realizado: -{$this->cantidad_a_cargar} {$unidad} de {$maquinaria->maquinaria}{$destinoMsg}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar el ajuste negativo: ' . $e->getMessage());
+            $this->toastError('Error al realizar el ajuste negativo: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAjusteNegativo: ' . $e->getMessage());
         }
@@ -1195,13 +1206,13 @@ class TransferenciasMaquinarias extends Component
 
             $destinoNombre = $this->obtenerNombreDestino();
             $unidad = $this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "{$nombreTipo} realizada: {$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} → {$destinoNombre}");
+            $this->toastExito("{$nombreTipo} realizada: {$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} → {$destinoNombre}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la asignación: ' . $e->getMessage());
+            $this->toastError('Error al realizar la asignación: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarAsignacionNueva: ' . $e->getMessage());
         }
@@ -1236,13 +1247,13 @@ class TransferenciasMaquinarias extends Component
 
             $destinoNombre = $this->obtenerNombreDestino();
             $unidad = $this->cantidad_a_asignar == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Entrada Reposición realizada: +{$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} ← {$destinoNombre}");
+            $this->toastExito("Entrada Reposición realizada: +{$this->cantidad_a_asignar} {$unidad} de {$maquinaria->maquinaria} ← {$destinoNombre}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la entrada reposición: ' . $e->getMessage());
+            $this->toastError('Error al realizar la entrada reposición: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarEntradaReposicionMaquinaria: ' . $e->getMessage());
         }
@@ -1322,13 +1333,13 @@ class TransferenciasMaquinarias extends Component
             $dep_origen  = Deposito::find($deposito_origen_id);
             $dep_destino = Deposito::find($deposito_destino_id);
             $unidad      = $this->cantidad_a_transferir == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Transferencia realizada: {$this->cantidad_a_transferir} {$unidad} de {$maquinaria->maquinaria} desde {$dep_origen->deposito} hacia {$dep_destino->deposito}");
+            $this->toastExito("Transferencia realizada: {$this->cantidad_a_transferir} {$unidad} de {$maquinaria->maquinaria} desde {$dep_origen->deposito} hacia {$dep_destino->deposito}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la transferencia: ' . $e->getMessage());
+            $this->toastError('Error al realizar la transferencia: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarTransferencia: ' . $e->getMessage());
         }
@@ -1391,13 +1402,13 @@ class TransferenciasMaquinarias extends Component
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
 
-            session()->flash('message', "Devolución realizada exitosamente: {$maquinaria->maquinaria}");
+            $this->toastExito("Devolución realizada exitosamente: {$maquinaria->maquinaria}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
+            $this->toastError('Error al realizar la devolución: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarDevolucion: ' . $e->getMessage());
         }
@@ -1426,13 +1437,13 @@ class TransferenciasMaquinarias extends Component
             $this->actualizarCantidadMaquinaria($maquinaria->id);
             DB::commit();
 
-            session()->flash('message', "Maquinaria enviada a mantenimiento: {$maquinaria->maquinaria}");
+            $this->toastExito("Maquinaria enviada a mantenimiento: {$maquinaria->maquinaria}");
             \Illuminate\Support\Facades\Cache::flush();
             $this->cerrarModal();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al enviar a mantenimiento: ' . $e->getMessage());
+            $this->toastError('Error al enviar a mantenimiento: ' . $e->getMessage());
             $this->cerrarModal();
             \Log::error('Error en guardarMantenimiento: ' . $e->getMessage());
         }
@@ -1454,11 +1465,12 @@ class TransferenciasMaquinarias extends Component
     public function crearTransferencia()
     {
         if (!auth()->user()->puedeCrearTransferenciasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             return;
         }
         $this->resetFormTransferencia();
         $this->showModalTransferencia = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function cerrarModalTransferencia()
@@ -1587,7 +1599,7 @@ class TransferenciasMaquinarias extends Component
     public function guardarTransferencia()
     {
         if (!auth()->user()->puedeCrearTransferenciasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear transferencias.');
+            $this->toastError('No tienes permisos para crear transferencias.');
             $this->cerrarModalTransferencia();
             return;
         }
@@ -1613,12 +1625,12 @@ class TransferenciasMaquinarias extends Component
             foreach ($this->maquinarias_transferencia as $index => $item) {
                 if (empty($item['cantidad']) || intval($item['cantidad']) < 1) {
                     $this->addError("maquinarias_transferencia.{$index}.cantidad", 'Debe ingresar una cantidad válida.');
-                    session()->flash('error', "Debe ingresar una cantidad válida para {$item['nombre']}.");
+                    $this->toastError("Debe ingresar una cantidad válida para {$item['nombre']}.");
                     return;
                 }
                 if (intval($item['cantidad']) > intval($item['cantidad_disponible'])) {
                     $this->addError("maquinarias_transferencia.{$index}.cantidad", "No puede transferir más de {$item['cantidad_disponible']} unidades disponibles.");
-                    session()->flash('error', "La cantidad de {$item['nombre']} excede las unidades disponibles.");
+                    $this->toastError("La cantidad de {$item['nombre']} excede las unidades disponibles.");
                     return;
                 }
             }
@@ -1690,7 +1702,7 @@ class TransferenciasMaquinarias extends Component
             $depOrigen  = Deposito::find($this->id_deposito_origen_tf);
             $depDestino = Deposito::find($this->id_deposito_destino_tf);
 
-            session()->flash('message', "Transferencia realizada: {$total} maquinaria(s) desde {$depOrigen->deposito} hacia {$depDestino->deposito}.");
+            $this->toastExito("Transferencia realizada: {$total} maquinaria(s) desde {$depOrigen->deposito} hacia {$depDestino->deposito}.");
             $this->cerrarModalTransferencia();
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1698,7 +1710,7 @@ class TransferenciasMaquinarias extends Component
             throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la transferencia: ' . $e->getMessage());
+            $this->toastError('Error al realizar la transferencia: ' . $e->getMessage());
             \Log::error('Error en guardarTransferencia maquinarias: ' . $e->getMessage());
         }
     }
@@ -1749,13 +1761,13 @@ class TransferenciasMaquinarias extends Component
     public function devolverAsignacion($maquinariaId, $tipoReferencia, $idReferencia, $cantidadDevolver)
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
         $cantidadDevolver = intval($cantidadDevolver);
         if ($cantidadDevolver < 1) {
-            session()->flash('error', 'La cantidad debe ser al menos 1.');
+            $this->toastError('La cantidad debe ser al menos 1.');
             return;
         }
 
@@ -1767,7 +1779,7 @@ class TransferenciasMaquinarias extends Component
 
             $pendiente = $this->calcularPendienteMaquinaria($maquinariaId, $tipoReferencia, $idReferencia);
             if ($cantidadDevolver > $pendiente) {
-                session()->flash('error', "No puede devolver más de {$pendiente} unidades pendientes.");
+                $this->toastError("No puede devolver más de {$pendiente} unidades pendientes.");
                 return;
             }
 
@@ -1792,20 +1804,40 @@ class TransferenciasMaquinarias extends Component
 
             $referenciaNombre = $this->resolverNombreReferencia($tipoReferencia, $idReferencia);
             $unidad = $cantidadDevolver == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Devolución realizada: +{$cantidadDevolver} {$unidad} de {$maquinaria->maquinaria} desde {$referenciaNombre}");
+            $this->toastExito("Devolución realizada: +{$cantidadDevolver} {$unidad} de {$maquinaria->maquinaria} desde {$referenciaNombre}");
             \Illuminate\Support\Facades\Cache::flush();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al realizar la devolución: ' . $e->getMessage());
+            $this->toastError('Error al realizar la devolución: ' . $e->getMessage());
             \Log::error('Error en devolverAsignacion maquinaria: ' . $e->getMessage());
+        }
+    }
+
+    public function confirmarBajaAsignacion($maquinariaId, $tipoReferencia, $idReferencia)
+    {
+        $this->bajaAsignacion = ['id' => $maquinariaId, 'tipo_referencia' => $tipoReferencia, 'id_referencia' => $idReferencia];
+    }
+
+    public function cancelarBajaAsignacion()
+    {
+        $this->bajaAsignacion = null;
+    }
+
+    public function bajaAsignacionConfirmada()
+    {
+        $baja = $this->bajaAsignacion;
+        $this->bajaAsignacion = null;
+
+        if ($baja) {
+            $this->darDeBajaAsignacion($baja['id'], $baja['tipo_referencia'], $baja['id_referencia']);
         }
     }
 
     public function darDeBajaAsignacion($maquinariaId, $tipoReferencia, $idReferencia)
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear movimientos.');
+            $this->toastError('No tienes permisos para crear movimientos.');
             return;
         }
 
@@ -1817,7 +1849,7 @@ class TransferenciasMaquinarias extends Component
 
             $pendiente = $this->calcularPendienteMaquinaria($maquinariaId, $tipoReferencia, $idReferencia);
             if ($pendiente <= 0) {
-                session()->flash('error', 'No hay cantidad pendiente para dar de baja.');
+                $this->toastError('No hay cantidad pendiente para dar de baja.');
                 return;
             }
 
@@ -1841,12 +1873,12 @@ class TransferenciasMaquinarias extends Component
 
             $referenciaNombre = $this->resolverNombreReferencia($tipoReferencia, $idReferencia);
             $unidad = $pendiente == 1 ? 'unidad' : 'unidades';
-            session()->flash('message', "Baja realizada: {$pendiente} {$unidad} de {$maquinaria->maquinaria} en {$referenciaNombre}");
+            $this->toastExito("Baja realizada: {$pendiente} {$unidad} de {$maquinaria->maquinaria} en {$referenciaNombre}");
             \Illuminate\Support\Facades\Cache::flush();
 
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al dar de baja: ' . $e->getMessage());
+            $this->toastError('Error al dar de baja: ' . $e->getMessage());
             \Log::error('Error en darDeBajaAsignacion maquinaria: ' . $e->getMessage());
         }
     }
@@ -1914,14 +1946,14 @@ class TransferenciasMaquinarias extends Component
     public function abrirEdicion($id)
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->toastError('No tienes permisos para editar movimientos.');
             return;
         }
 
         $movimiento = MovimientoMaquinaria::with('tipoMovimiento')->find($id);
 
         if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
-            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->toastError('Este movimiento no se puede editar.');
             return;
         }
 
@@ -1932,6 +1964,7 @@ class TransferenciasMaquinarias extends Component
         $this->edit_comprobantes = [];
         $this->resetErrorBag();
         $this->showEditModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function removeEditComprobante($index)
@@ -1941,8 +1974,21 @@ class TransferenciasMaquinarias extends Component
         $this->edit_comprobantes = array_values($comprobantes);
     }
 
-    public function eliminarComprobanteExistente($comprobanteId)
+    public function confirmarEliminarComprobante($comprobanteId)
     {
+        $this->eliminarComprobanteId = $comprobanteId;
+    }
+
+    public function cancelarEliminarComprobante()
+    {
+        $this->eliminarComprobanteId = null;
+    }
+
+    public function eliminarComprobanteExistente()
+    {
+        $comprobanteId = $this->eliminarComprobanteId;
+        $this->eliminarComprobanteId = null;
+
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
             return;
         }
@@ -1954,14 +2000,14 @@ class TransferenciasMaquinarias extends Component
         if ($comprobante) {
             \Illuminate\Support\Facades\Storage::disk('local')->delete('comprobantes-maquinaria/' . $comprobante->archivo);
             $comprobante->delete();
-            session()->flash('message', 'Comprobante eliminado.');
+            $this->toastExito('Comprobante eliminado.');
         }
     }
 
     public function guardarEdicion()
     {
         if (!auth()->user()->puedeCrearMovimientosMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar movimientos.');
+            $this->toastError('No tienes permisos para editar movimientos.');
             $this->cerrarEdicion();
             return;
         }
@@ -1980,7 +2026,7 @@ class TransferenciasMaquinarias extends Component
         $movimiento = MovimientoMaquinaria::with('tipoMovimiento')->find($this->edit_movimiento_id);
 
         if (!$movimiento || !in_array($movimiento->tipoMovimiento?->tipo_movimiento, self::TIPOS_EDITABLES)) {
-            session()->flash('error', 'Este movimiento no se puede editar.');
+            $this->toastError('Este movimiento no se puede editar.');
             $this->cerrarEdicion();
             return;
         }
@@ -2006,7 +2052,7 @@ class TransferenciasMaquinarias extends Component
             ]);
         }
 
-        session()->flash('message', 'Movimiento actualizado correctamente.');
+        $this->toastExito('Movimiento actualizado correctamente.');
         $this->cerrarEdicion();
     }
 
@@ -2025,6 +2071,30 @@ class TransferenciasMaquinarias extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    // Hay un formulario por modal: los campos y el cierre dependen del que esté abierto.
+    protected function camposFormulario(): array
+    {
+        if ($this->showEditModal) {
+            return ['edit_nro_orden_compra', 'edit_observaciones', 'edit_comprobantes'];
+        }
+        if ($this->showModalTransferencia) {
+            return ['id_corralon_origen', 'id_corralon_destino', 'id_deposito_origen_tf', 'id_deposito_destino_tf', 'maquinarias_transferencia', 'observaciones'];
+        }
+
+        return ['maquinaria_id', 'tipo_movimiento', 'id_deposito_destino', 'observaciones', 'nro_orden_compra', 'comprobantes', 'fecha_devolucion_esperada', 'cantidad_a_transferir', 'cantidad_a_cargar', 'cantidad_a_asignar', 'tipo_destino', 'id_referencia', 'id_secretaria_ajuste', 'area_ajuste'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        if ($this->showEditModal) {
+            $this->cerrarEdicion();
+        } elseif ($this->showModalTransferencia) {
+            $this->cerrarModalTransferencia();
+        } else {
+            $this->cerrarModal();
+        }
     }
 
     private function resetForm()
