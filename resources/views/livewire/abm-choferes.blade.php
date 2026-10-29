@@ -28,25 +28,7 @@
         @endif
     </div>
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -142,8 +124,7 @@
 
                                     @if($puedeEliminar)
                                     <button
-                                        wire:click="eliminar({{ $chofer->id }})"
-                                        wire:confirm="¿Está seguro de eliminar este chofer? Se eliminarán también sus asignaciones de vehículos."
+                                        wire:click="confirmarEliminar({{ $chofer->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -180,220 +161,217 @@
 
     <!-- Modal -->
     @if($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModal"></div>
+        <x-ui.modal :titulo="$editMode ? 'Editar Chofer' : 'Nuevo Chofer'"
+                    :icono="$editMode ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="2xl" submit="guardar">
+            <!-- Fila: Nombre -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre y Apellido *</label>
+                <input
+                    type="text"
+                    wire:model="nombre"
+                    @error('nombre') aria-invalid="true" @enderror
+                    placeholder="Ej: García, Juan"
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
 
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                    <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Chofer' : 'Nuevo Chofer' }}
-                                </h3>
-                                <button
-                                    type="button"
-                                    wire:click="cerrarModal"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="space-y-5">
-                                <!-- Fila: Nombre -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre y Apellido *</label>
-                                    <input
-                                        type="text"
-                                        wire:model="nombre"
-                                        placeholder="Ej: García, Juan"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Fila: DNI + Legajo -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
-                                        <input
-                                            type="text"
-                                            wire:model="dni"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('dni') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">N° Empleado *</label>
-                                        <input
-                                            type="text"
-                                            wire:model="numero_empleado"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('numero_empleado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Fila: Licencia + Vencimiento -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Licencia</label>
-                                        <select
-                                            wire:model="licencia"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                            <option value="">— Sin especificar —</option>
-                                            <option value="PROFESIONAL">PROFESIONAL</option>
-                                            <option value="COMUN">COMÚN</option>
-                                        </select>
-                                        @error('licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Licencia</label>
-                                        <input
-                                            type="date"
-                                            wire:model="vencimiento_licencia"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('vencimiento_licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Categorías de licencia -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        Categorías
-                                        @if(count($categoriasSeleccionadas))
-                                            <span class="text-xs font-normal text-gray-500">({{ count($categoriasSeleccionadas) }} seleccionadas)</span>
-                                        @endif
-                                    </label>
-                                    <div class="border border-gray-200 rounded-xl p-3 max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                        @forelse($categoriasLicencia as $categoria)
-                                            <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    wire:model.live="categoriasSeleccionadas"
-                                                    value="{{ $categoria->id }}"
-                                                    class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                >
-                                                <span class="text-sm text-gray-700">
-                                                    <span class="font-semibold">{{ $categoria->codigo }}</span>
-                                                    <span class="text-gray-500">— {{ $categoria->descripcion }}</span>
-                                                </span>
-                                            </label>
-                                        @empty
-                                            <p class="text-sm text-gray-400">No hay categorías cargadas.</p>
-                                        @endforelse
-                                    </div>
-                                    @error('categoriasSeleccionadas') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    @error('categoriasSeleccionadas.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Fila: Área + Domicilio -->
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
-                                        <input
-                                            type="text"
-                                            wire:model="area"
-                                            placeholder="Ej: Tránsito"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('area') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Domicilio</label>
-                                        <input
-                                            type="text"
-                                            wire:model="domicilio"
-                                            placeholder="Ej: 39 N°3285"
-                                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                        @error('domicilio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                    </div>
-                                </div>
-
-                                <!-- Secretaría -->
-                                @if($secretarias->count() > 0)
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                                    <select
-                                        wire:model="secretaria_id"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">— Sin asignar —</option>
-                                        @foreach($secretarias as $secretaria)
-                                            <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('secretaria_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                                @endif
-
-                                <!-- Vehículos asignados -->
-                                <div x-data="{ busquedaVehiculo: '' }">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Vehículos asignados</label>
-                                    <div class="relative mb-2">
-                                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                        </svg>
-                                        <input
-                                            type="text"
-                                            x-model="busquedaVehiculo"
-                                            placeholder="Buscar por patente o patrimonio..."
-                                            class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        >
-                                    </div>
-                                    <div class="border border-gray-200 rounded-xl max-h-40 overflow-y-auto p-3 space-y-2">
-                                        @forelse($vehiculos as $vehiculo)
-                                            <label
-                                                class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-1"
-                                                x-show="busquedaVehiculo === '' || '{{ strtolower($vehiculo->patente . ' ' . $vehiculo->nro_patrimonio) }}'.includes(busquedaVehiculo.toLowerCase())"
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    wire:model="vehiculosSeleccionados"
-                                                    value="{{ $vehiculo->id }}"
-                                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                >
-                                                <span class="text-sm text-gray-700">
-                                                    <span class="font-medium">Patrimonio {{ $vehiculo->nro_patrimonio }}</span>
-                                                    @if($vehiculo->vehiculo) — {{ $vehiculo->vehiculo }}@endif
-                                                    @if($vehiculo->patente) ({{ $vehiculo->patente }})@endif
-                                                </span>
-                                            </label>
-                                        @empty
-                                            <p class="text-sm text-gray-400">No hay vehículos registrados.</p>
-                                        @endforelse
-                                    </div>
-                                    @error('vehiculosSeleccionados') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                wire:click="cerrarModal"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
+            <!-- Fila: DNI + Legajo -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
+                    <input
+                        type="text"
+                        wire:model="dni"
+                        @error('dni') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('dni') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">N° Empleado *</label>
+                    <input
+                        type="text"
+                        wire:model="numero_empleado"
+                        @error('numero_empleado') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('numero_empleado') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                 </div>
             </div>
-        </div>
+
+            <!-- Fila: Licencia + Vencimiento -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Licencia</label>
+                    <select
+                        wire:model="licencia"
+                        @error('licencia') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                        <option value="">— Sin especificar —</option>
+                        <option value="PROFESIONAL">PROFESIONAL</option>
+                        <option value="COMUN">COMÚN</option>
+                    </select>
+                    @error('licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Vencimiento Licencia</label>
+                    <input
+                        type="date"
+                        wire:model="vencimiento_licencia"
+                        @error('vencimiento_licencia') aria-invalid="true" @enderror
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('vencimiento_licencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <!-- Categorías de licencia -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Categorías
+                    @if(count($categoriasSeleccionadas))
+                        <span class="text-xs font-normal text-gray-500">({{ count($categoriasSeleccionadas) }} seleccionadas)</span>
+                    @endif
+                </label>
+                <div class="border border-gray-200 rounded-xl p-3 max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1">
+                    @forelse($categoriasLicencia as $categoria)
+                        <label class="flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                wire:model.live="categoriasSeleccionadas"
+                                @error('categoriasSeleccionadas') aria-invalid="true" @enderror
+                                value="{{ $categoria->id }}"
+                                class="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            >
+                            <span class="text-sm text-gray-700">
+                                <span class="font-semibold">{{ $categoria->codigo }}</span>
+                                <span class="text-gray-500">— {{ $categoria->descripcion }}</span>
+                            </span>
+                        </label>
+                    @empty
+                        <p class="text-sm text-gray-400">No hay categorías cargadas.</p>
+                    @endforelse
+                </div>
+                @error('categoriasSeleccionadas') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                @error('categoriasSeleccionadas.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <!-- Fila: Área + Domicilio -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                    <input
+                        type="text"
+                        wire:model="area"
+                        @error('area') aria-invalid="true" @enderror
+                        placeholder="Ej: Tránsito"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('area') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Domicilio</label>
+                    <input
+                        type="text"
+                        wire:model="domicilio"
+                        @error('domicilio') aria-invalid="true" @enderror
+                        placeholder="Ej: 39 N°3285"
+                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                    @error('domicilio') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                </div>
+            </div>
+
+            <!-- Secretaría -->
+            @if($secretarias->count() > 0)
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
+                <select
+                    wire:model="secretaria_id"
+                    @error('secretaria_id') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">— Sin asignar —</option>
+                    @foreach($secretarias as $secretaria)
+                        <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
+                    @endforeach
+                </select>
+                @error('secretaria_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+            @endif
+
+            <!-- Vehículos asignados -->
+            <div x-data="{ busquedaVehiculo: '' }">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Vehículos asignados</label>
+                <div class="relative mb-2">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input
+                        type="text"
+                        x-model="busquedaVehiculo"
+                        placeholder="Buscar por patente o patrimonio..."
+                        class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                    >
+                </div>
+                <div class="border border-gray-200 rounded-xl max-h-40 overflow-y-auto p-3 space-y-2">
+                    @forelse($vehiculos as $vehiculo)
+                        <label
+                            class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-1"
+                            x-show="busquedaVehiculo === '' || '{{ strtolower($vehiculo->patente . ' ' . $vehiculo->nro_patrimonio) }}'.includes(busquedaVehiculo.toLowerCase())"
+                        >
+                            <input
+                                type="checkbox"
+                                wire:model="vehiculosSeleccionados"
+                                @error('vehiculosSeleccionados') aria-invalid="true" @enderror
+                                value="{{ $vehiculo->id }}"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            >
+                            <span class="text-sm text-gray-700">
+                                <span class="font-medium">Patrimonio {{ $vehiculo->nro_patrimonio }}</span>
+                                @if($vehiculo->vehiculo) — {{ $vehiculo->vehiculo }}@endif
+                                @if($vehiculo->patente) ({{ $vehiculo->patente }})@endif
+                            </span>
+                        </label>
+                    @empty
+                        <p class="text-sm text-gray-400">No hay vehículos registrados.</p>
+                    @endforelse
+                </div>
+                @error('vehiculosSeleccionados') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <x-slot:footer>
+                <button
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardar"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editMode ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($eliminarId)
+        <x-ui.modal-confirmacion confirmar="eliminar" cancelar="cancelarEliminar">
+            ¿Está seguro de eliminar este chofer? Se eliminarán también sus asignaciones de vehículos.
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

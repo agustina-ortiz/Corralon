@@ -286,7 +286,7 @@ Los movimientos **Ajuste Negativo**, **Asignación con Reposición** y **Asignac
 
 Ruta `/secretarias` — componente `AbmSecretarias`:
 - CRUD de secretarías y áreas (áreas pertenecen a una secretaría)
-- Modal "Ver Áreas": scrolleable (`max-h-96 overflow-y-auto`) cuando hay más de 8 áreas
+- Modal "Ver Áreas": usa `<x-ui.modal>`, así que el body scrollea solo cuando no entra (ya no lleva `max-h-96` propio). Eliminar un área abre la confirmación apilada (`:z="60"`)
 - Modal "Nueva/Editar Área": select de secretaría + nombre de área
 
 ### Columna `tipo` en `tipo_movimientos`
@@ -456,13 +456,26 @@ Los 4 listados principales tienen botones **📊 Estadísticas** (modal) y **⬇
 - Verificación de permisos antes de cada operación CRUD
 - Filtrado automático por corralon via `->porCorralonesPermitidos()`
 
+### Capa de UI (kit de especificaciones)
+
+La interfaz se está adaptando al kit `C:\Users\Usuario\Desktop\especificaciones` (specs 10-19) **sin cambiar funcionalidad**. Piezas en `resources/views/components/ui/` y `app/Livewire/Traits/`, tests en `tests/Feature/Ui/` (no usan base de datos):
+
+- **`<x-ui.modal>`** — todo modal nuevo o migrado. Props `titulo`, `icono` (Font Awesome, `fa-plus`), `cerrar` (acción de X y Esc), `ancho` (`sm`…`6xl`), `submit`, `z` (50/60/70 para apilados); slots `footer` y `encabezado`. Header y footer fijos, **solo el body scrollea**, Esc cierra el de más arriba, **el click en el backdrop NO cierra**, foco atrapado, Enter pasa al campo siguiente (en el último guarda), **F2 guarda**. Los controles con error llevan `@error('x') aria-invalid="true" @enderror` para que el foco vaya al primer error.
+- **`<x-ui.modal-confirmacion>`** — reemplaza `wire:confirm` y `confirm()`. Patrón: `confirmarEliminar($id)` guarda `$eliminarId`, `eliminar()` lo usa, `cancelarEliminar()` lo limpia.
+- **Toasts** (`<x-ui.toasts />` montado en `layouts/app` y `layouts/guest`) + trait **`EnviaToasts`** (`toastExito/toastError/toastAviso/toastInfo`). Reemplazan a los banners `session()->flash` + bloque verde/rojo del blade.
+- **`ConfirmaDescarte`** — cerrar un formulario con cambios pide confirmación. El componente define `camposFormulario()` y `cerrarFormulario()`, llama a `marcarFormularioLimpio()` al abrir, y el modal usa `cerrar="intentarCerrar"`.
+- **`App\Support\Tema`** — clases de color de las piezas, con los colores de siempre del Corralón (botones azules, header blanco). Clases literales (Tailwind escanea `app/**/*.php`).
+- Font Awesome viene de npm (`@fortawesome/fontawesome-free`, importado en `resources/js/app.js`): tras `git pull`, `npm install` + `npm run build`.
+
+**Migradas:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios. **Pendientes:** Insumos, Maquinarias, Vehículos, Transferencias de Insumos/Maquinarias, Dashboard, Estadísticas.
+
 ### Mensajes de feedback (éxito y error)
 
 Toda operación que pueda fallar (eliminar con FK, crear movimiento con stock insuficiente, etc.) debe dejar **siempre** un mensaje informativo de la razón:
 
-- **Componente:** envolver la operación en `try/catch` y hacer `session()->flash('error', '<razón>')`. Capturar primero `\Illuminate\Database\QueryException` con un mensaje específico (ej: "No se puede eliminar la categoría porque tiene insumos o movimientos asociados.") y luego `\Exception` con un mensaje genérico de respaldo. El éxito usa `session()->flash('message', ...)` (en `AbmUsuarios` la clave de éxito es `'mensaje'`).
-- **Vista (blade):** además del bloque de éxito (`session()->has('message')`, verde), todo blade ABM debe incluir un bloque rojo `@if (session()->has('error'))` que renderice `session('error')`. Sin este bloque la operación falla en silencio.
-- Todos los ABM y ambas Transferencias ya cumplen este patrón. `abm-empleados` es solo lectura (no aplica).
+- **Componente:** envolver la operación en `try/catch` y avisar la razón. Capturar primero `\Illuminate\Database\QueryException` con un mensaje específico (ej: "No se puede eliminar la categoría porque tiene insumos o movimientos asociados.") y luego `\Exception` con un mensaje genérico de respaldo.
+- **Vistas migradas al kit:** `$this->toastError('<razón>')` / `$this->toastExito(...)` (trait `EnviaToasts`), sin bloques de mensaje en el blade.
+- **Vistas todavía sin migrar:** `session()->flash('error', ...)` / `session()->flash('message', ...)` y en el blade el bloque verde (`session()->has('message')`) y el rojo (`session()->has('error')`). Sin el bloque rojo la operación falla en silencio. `abm-empleados` es solo lectura (no aplica).
 
 ### Patrones de acceso rápido en TransferenciasInsumos
 

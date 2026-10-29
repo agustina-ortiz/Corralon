@@ -27,25 +27,7 @@
         @endif
     </div>
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -92,8 +74,7 @@
 
                                     @if($puedeEliminar)
                                     <button
-                                        wire:click="eliminar({{ $categoria->id }})"
-                                        wire:confirm="¿Está seguro de eliminar esta categoría?"
+                                        wire:click="confirmarEliminar({{ $categoria->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar"
                                     >
@@ -130,73 +111,62 @@
 
     <!-- Modal -->
     @if ($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Overlay -->
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModal"></div>
-
-                <!-- Modal -->
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form wire:submit.prevent="guardar">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editMode ? 'Editar Categoría' : 'Nueva Categoría' }}
-                                </h3>
-                                <button 
-                                    type="button" 
-                                    wire:click="cerrarModal"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="space-y-5">
-                                <!-- Nombre -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                                    <input 
-                                        type="text"
-                                        wire:model="nombre" 
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                    @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <!-- Descripción -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                                    <textarea 
-                                        wire:model="descripcion" 
-                                        rows="3"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none"
-                                    ></textarea>
-                                    @error('descripcion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button 
-                                type="button"
-                                wire:click="cerrarModal" 
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button 
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editMode ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <x-ui.modal :titulo="$editMode ? 'Editar Categoría' : 'Nueva Categoría'"
+                    :icono="$editMode ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="lg" submit="guardar">
+            <!-- Nombre -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                <input 
+                    type="text"
+                    wire:model="nombre"
+                    @error('nombre') aria-invalid="true" @enderror 
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('nombre') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
             </div>
-        </div>
+
+            <!-- Descripción -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <textarea 
+                    wire:model="descripcion"
+                    @error('descripcion') aria-invalid="true" @enderror 
+                    rows="3"
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 resize-none"
+                ></textarea>
+                @error('descripcion') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <x-slot:footer>
+                <button 
+                    type="button"
+                    wire:click="intentarCerrar" 
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button 
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardar"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editMode ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($eliminarId)
+        <x-ui.modal-confirmacion confirmar="eliminar" cancelar="cancelarEliminar">
+            ¿Está seguro de eliminar esta categoría?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

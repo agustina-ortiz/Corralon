@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\Evento;
 use App\Models\Secretaria;
 use Livewire\Component;
@@ -10,9 +12,14 @@ use Livewire\WithPagination;
 class AbmEventos extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
     
     // Campos del formulario
@@ -87,20 +94,21 @@ class AbmEventos extends Component
     {
         // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearEventos()) {
-            session()->flash('error', 'No tienes permisos para crear eventos.');
+            $this->toastError('No tienes permisos para crear eventos.');
             return;
         }
         
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarEventos()) {
-            session()->flash('error', 'No tienes permisos para editar eventos.');
+            $this->toastError('No tienes permisos para editar eventos.');
             return;
         }
         
@@ -115,19 +123,20 @@ class AbmEventos extends Component
         
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearEventos()) {
-            session()->flash('error', 'No tienes permisos para crear eventos.');
+            $this->toastError('No tienes permisos para crear eventos.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarEventos()) {
-            session()->flash('error', 'No tienes permisos para editar eventos.');
+            $this->toastError('No tienes permisos para editar eventos.');
             $this->showModal = false;
             return;
         }
@@ -145,31 +154,44 @@ class AbmEventos extends Component
         if ($this->editMode) {
             $evento = Evento::findOrFail($this->evento_id);
             $evento->update($data);
-            session()->flash('message', 'Evento actualizado correctamente.');
+            $this->toastExito('Evento actualizado correctamente.');
         } else {
             Evento::create($data);
-            session()->flash('message', 'Evento creado correctamente.');
+            $this->toastExito('Evento creado correctamente.');
         }
 
         $this->showModal = false;
         $this->resetForm();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarEventos()) {
-            session()->flash('error', 'No tienes permisos para eliminar eventos.');
+            $this->toastError('No tienes permisos para eliminar eventos.');
             return;
         }
         
         try {
             Evento::findOrFail($id)->delete();
-            session()->flash('message', 'Evento eliminado correctamente.');
+            $this->toastExito('Evento eliminado correctamente.');
         } catch (\Illuminate\Database\QueryException $e) {
-            session()->flash('error', 'No se puede eliminar el evento porque tiene movimientos o asignaciones asociadas.');
+            $this->toastError('No se puede eliminar el evento porque tiene movimientos o asignaciones asociadas.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar el evento.');
+            $this->toastError('No se pudo eliminar el evento.');
         }
     }
 
@@ -177,6 +199,16 @@ class AbmEventos extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['evento', 'fecha', 'ubicacion', 'secretaria_id', 'evento_anual'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()

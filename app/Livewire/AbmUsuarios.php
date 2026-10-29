@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\User;
 use App\Models\Corralon;
 use App\Models\Deposito;
@@ -15,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 class AbmUsuarios extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     // Busqueda y filtros
     public $busqueda = '';
@@ -25,6 +29,9 @@ class AbmUsuarios extends Component
 
     // Modal
     public $modalAbierto = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $modo = 'crear';
 
     // Campos del formulario
@@ -186,12 +193,12 @@ class AbmUsuarios extends Component
     public function abrirModal($modo = 'crear', $id = null)
     {
         if ($modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
-            session()->flash('error', 'No tienes permisos para crear usuarios.');
+            $this->toastError('No tienes permisos para crear usuarios.');
             return;
         }
 
         if ($modo === 'editar' && !auth()->user()->puedeEditarUsuarios()) {
-            session()->flash('error', 'No tienes permisos para editar usuarios.');
+            $this->toastError('No tienes permisos para editar usuarios.');
             return;
         }
 
@@ -210,6 +217,7 @@ class AbmUsuarios extends Component
         }
 
         $this->modalAbierto = true;
+        $this->marcarFormularioLimpio();
     }
 
     private function cargarPermisosUsuario(User $usuario)
@@ -245,16 +253,26 @@ class AbmUsuarios extends Component
         $this->resetearFormulario();
     }
 
+    protected function camposFormulario(): array
+    {
+        return ['name', 'email', 'password', 'password_confirmation', 'id_rol', 'permisos_por_corralon', 'permisos_globales', 'corralones_seleccionados', 'depositos_especificos'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
+    }
+
     public function guardar()
     {
         if ($this->modo === 'crear' && !auth()->user()->puedeCrearUsuarios()) {
-            session()->flash('error', 'No tienes permisos para crear usuarios.');
+            $this->toastError('No tienes permisos para crear usuarios.');
             $this->cerrarModal();
             return;
         }
 
         if ($this->modo === 'editar' && !auth()->user()->puedeEditarUsuarios()) {
-            session()->flash('error', 'No tienes permisos para editar usuarios.');
+            $this->toastError('No tienes permisos para editar usuarios.');
             $this->cerrarModal();
             return;
         }
@@ -350,36 +368,49 @@ class AbmUsuarios extends Component
             }
 
             DB::commit();
-            session()->flash('mensaje', $this->modo === 'crear' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
+            $this->toastExito($this->modo === 'crear' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
         } catch (\Exception $e) {
             DB::rollBack();
-            session()->flash('error', 'Error al guardar: ' . $e->getMessage());
+            $this->toastError('Error al guardar: ' . $e->getMessage());
         }
 
         $this->cerrarModal();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         if (!auth()->user()->puedeEliminarUsuarios()) {
-            session()->flash('error', 'No tienes permisos para eliminar usuarios.');
+            $this->toastError('No tienes permisos para eliminar usuarios.');
             return;
         }
 
         $usuario = User::findOrFail($id);
 
         if ($usuario->id === auth()->id()) {
-            session()->flash('error', 'No puedes eliminar tu propio usuario');
+            $this->toastError('No puedes eliminar tu propio usuario');
             return;
         }
 
         try {
             $usuario->delete(); // cascade elimina permisos
-            session()->flash('mensaje', 'Usuario eliminado exitosamente');
+            $this->toastExito('Usuario eliminado exitosamente');
         } catch (\Illuminate\Database\QueryException $e) {
-            session()->flash('error', 'No se puede eliminar el usuario porque tiene movimientos asociados.');
+            $this->toastError('No se puede eliminar el usuario porque tiene movimientos asociados.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar el usuario.');
+            $this->toastError('No se pudo eliminar el usuario.');
         }
     }
 

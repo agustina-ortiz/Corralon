@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\CategoriaLicencia;
@@ -12,9 +14,14 @@ use App\Models\Secretaria;
 class AbmChoferes extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
 
     // Campos del formulario
@@ -94,18 +101,19 @@ class AbmChoferes extends Component
     public function crear()
     {
         if (!auth()->user()->puedeCrearChoferes()) {
-            session()->flash('error', 'No tienes permisos para crear choferes.');
+            $this->toastError('No tienes permisos para crear choferes.');
             return;
         }
 
         $this->resetForm();
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         if (!auth()->user()->puedeEditarChoferes()) {
-            session()->flash('error', 'No tienes permisos para editar choferes.');
+            $this->toastError('No tienes permisos para editar choferes.');
             return;
         }
 
@@ -125,18 +133,19 @@ class AbmChoferes extends Component
 
         $this->editMode  = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         if (!$this->editMode && !auth()->user()->puedeCrearChoferes()) {
-            session()->flash('error', 'No tienes permisos para crear choferes.');
+            $this->toastError('No tienes permisos para crear choferes.');
             $this->cerrarModal();
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarChoferes()) {
-            session()->flash('error', 'No tienes permisos para editar choferes.');
+            $this->toastError('No tienes permisos para editar choferes.');
             $this->cerrarModal();
             return;
         }
@@ -163,31 +172,44 @@ class AbmChoferes extends Component
             $chofer->update($data);
             $chofer->vehiculos()->sync($this->vehiculosSeleccionados);
             $chofer->categoriasLicencia()->sync($this->categoriasSeleccionadas);
-            session()->flash('message', 'Chofer actualizado correctamente.');
+            $this->toastExito('Chofer actualizado correctamente.');
         } else {
             $chofer = Chofer::create($data);
             $chofer->vehiculos()->sync($this->vehiculosSeleccionados);
             $chofer->categoriasLicencia()->sync($this->categoriasSeleccionadas);
-            session()->flash('message', 'Chofer creado correctamente.');
+            $this->toastExito('Chofer creado correctamente.');
         }
 
         $this->cerrarModal();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         if (!auth()->user()->puedeEliminarChoferes()) {
-            session()->flash('error', 'No tienes permisos para eliminar choferes.');
+            $this->toastError('No tienes permisos para eliminar choferes.');
             return;
         }
 
         try {
             Chofer::findOrFail($id)->delete();
-            session()->flash('message', 'Chofer eliminado correctamente.');
+            $this->toastExito('Chofer eliminado correctamente.');
         } catch (\Illuminate\Database\QueryException $e) {
-            session()->flash('error', 'No se puede eliminar el chofer porque tiene vehículos o asignaciones asociadas.');
+            $this->toastError('No se puede eliminar el chofer porque tiene vehículos o asignaciones asociadas.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar el chofer.');
+            $this->toastError('No se pudo eliminar el chofer.');
         }
     }
 
@@ -195,6 +217,16 @@ class AbmChoferes extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['nombre', 'dni', 'numero_empleado', 'licencia', 'vencimiento_licencia', 'domicilio', 'secretaria_id', 'area', 'vehiculosSeleccionados', 'categoriasSeleccionadas'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()

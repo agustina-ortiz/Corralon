@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\CategoriaInsumo;
@@ -9,9 +11,14 @@ use App\Models\CategoriaInsumo;
 class AbmCategoriasInsumos extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
 
     public $categoria_id;
@@ -68,20 +75,21 @@ class AbmCategoriasInsumos extends Component
     {
         // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearCategoriasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear categorías de insumos.');
+            $this->toastError('No tienes permisos para crear categorías de insumos.');
             return;
         }
         
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarCategoriasInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar categorías de insumos.');
+            $this->toastError('No tienes permisos para editar categorías de insumos.');
             return;
         }
         
@@ -93,19 +101,20 @@ class AbmCategoriasInsumos extends Component
 
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearCategoriasInsumos()) {
-            session()->flash('error', 'No tienes permisos para crear categorías de insumos.');
+            $this->toastError('No tienes permisos para crear categorías de insumos.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarCategoriasInsumos()) {
-            session()->flash('error', 'No tienes permisos para editar categorías de insumos.');
+            $this->toastError('No tienes permisos para editar categorías de insumos.');
             $this->showModal = false;
             return;
         }
@@ -120,9 +129,7 @@ class AbmCategoriasInsumos extends Component
             ]
         );
 
-        session()->flash(
-            'message',
-            $this->editMode
+        $this->toastExito($this->editMode
                 ? 'Categoría actualizada correctamente.'
                 : 'Categoría creada correctamente.'
         );
@@ -130,21 +137,34 @@ class AbmCategoriasInsumos extends Component
         $this->cerrarModal();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarCategoriasInsumos()) {
-            session()->flash('error', 'No tienes permisos para eliminar categorías de insumos.');
+            $this->toastError('No tienes permisos para eliminar categorías de insumos.');
             return;
         }
         
         try {
             CategoriaInsumo::findOrFail($id)->delete();
-            session()->flash('message', 'Categoría eliminada correctamente.');
+            $this->toastExito('Categoría eliminada correctamente.');
         } catch (\Illuminate\Database\QueryException $e) {
-            session()->flash('error', 'No se puede eliminar la categoría porque tiene insumos o movimientos asociados.');
+            $this->toastError('No se puede eliminar la categoría porque tiene insumos o movimientos asociados.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se pudo eliminar la categoría.');
+            $this->toastError('No se pudo eliminar la categoría.');
         }
     }
 
@@ -152,6 +172,16 @@ class AbmCategoriasInsumos extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['nombre', 'descripcion'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()

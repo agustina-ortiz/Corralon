@@ -38,25 +38,7 @@
         @endif
     </div>
 
-    <!-- Mensaje de éxito -->
-    @if (session()->has('message'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('message') }}
-        </div>
-    @endif
 
-    <!-- Mensaje de error -->
-    @if (session()->has('error'))
-        <div class="mb-6 px-4 py-3.5 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            {{ session('error') }}
-        </div>
-    @endif
 
     <!-- Tabla de Secretarías -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -119,8 +101,7 @@
                                     @endif
                                     @if($puedeEliminar)
                                     <button
-                                        wire:click="eliminarSecretaria({{ $item->id }})"
-                                        wire:confirm="¿Está seguro de eliminar esta secretaría?"
+                                        wire:click="confirmarEliminarSecretaria({{ $item->id }})"
                                         class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
                                         title="Eliminar secretaría"
                                     >
@@ -157,231 +138,184 @@
 
     <!-- Modal Ver Áreas -->
     @if($showModalAreas)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalAreas"></div>
-
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div class="bg-white px-6 pt-6 pb-5">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xl font-semibold text-gray-900">
-                                Áreas de {{ $nombreSecretariaAreas }}
-                            </h3>
-                            <button
-                                type="button"
-                                wire:click="cerrarModalAreas"
-                                class="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-
-                        @if(count($areasSecretaria) > 0)
-                        <div class="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden {{ count($areasSecretaria) > 8 ? 'max-h-96 overflow-y-auto' : '' }}">
-                            @foreach($areasSecretaria as $areaItem)
-                            <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
-                                <div class="flex items-center gap-3">
-                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                                    </svg>
-                                    <span class="text-sm text-gray-700">{{ $areaItem['area'] }}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    @if($puedeEditar)
-                                    <button
-                                        wire:click="editarArea({{ $areaItem['id'] }})"
-                                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
-                                        title="Editar área"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
-                                    @endif
-                                    @if($puedeEliminar)
-                                    <button
-                                        wire:click="eliminarAreaDesdeModal({{ $areaItem['id'] }})"
-                                        wire:confirm="¿Está seguro de eliminar el área '{{ $areaItem['area'] }}'?"
-                                        class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                                        title="Eliminar área"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                    @endif
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                        @else
-                        <div class="text-center py-8 text-gray-400">
-                            <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            <p class="text-sm">Esta secretaría no tiene áreas</p>
-                        </div>
-                        @endif
+        <x-ui.modal :titulo="'Áreas de ' . $nombreSecretariaAreas" icono="fa-sitemap"
+                    cerrar="cerrarModalAreas" ancho="lg">
+            @if(count($areasSecretaria) > 0)
+            <div class="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                @foreach($areasSecretaria as $areaItem)
+                <div class="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors" wire:key="area-{{ $areaItem['id'] }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">{{ $areaItem['area'] }}</span>
                     </div>
-
-                    <div class="bg-gray-50 px-6 py-4 flex items-center justify-between">
-                        @if($puedeCrear)
-                        <button
-                            wire:click="crearArea({{ $idSecretariaAreas }})"
-                            class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 shadow-sm transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            Agregar Área
-                        </button>
-                        @else
-                        <div></div>
-                        @endif
+                    <div class="flex items-center gap-2">
+                        @if($puedeEditar)
                         <button
                             type="button"
-                            wire:click="cerrarModalAreas"
-                            class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                            wire:click="editarArea({{ $areaItem['id'] }})"
+                            class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-150"
+                            title="Editar área"
                         >
-                            Cerrar
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
                         </button>
+                        @endif
+                        @if($puedeEliminar)
+                        <button
+                            type="button"
+                            wire:click="confirmarEliminarArea({{ $areaItem['id'] }})"
+                            class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
+                            title="Eliminar área"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                        @endif
                     </div>
                 </div>
+                @endforeach
             </div>
-        </div>
+            @else
+            <div class="text-center py-8 text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                <p class="text-sm">Esta secretaría no tiene áreas</p>
+            </div>
+            @endif
+
+            <x-slot:footer>
+                @if($puedeCrear)
+                <button
+                    type="button"
+                    wire:click="crearArea({{ $idSecretariaAreas }})"
+                    class="mr-auto px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 shadow-sm transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Agregar Área
+                </button>
+                @endif
+                <button
+                    type="button"
+                    wire:click="cerrarModalAreas"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cerrar
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 
     <!-- Modal Secretaría -->
     @if($showModalSecretaria)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalSecretaria"></div>
-
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form wire:submit.prevent="guardarSecretaria">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editModeSecretaria ? 'Editar Secretaría' : 'Nueva Secretaría' }}
-                                </h3>
-                                <button
-                                    type="button"
-                                    wire:click="cerrarModalSecretaria"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="space-y-5">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Secretaría *</label>
-                                    <input
-                                        type="text"
-                                        wire:model="secretaria"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        autofocus
-                                    >
-                                    @error('secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                wire:click="cerrarModalSecretaria"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editModeSecretaria ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <x-ui.modal :titulo="$editModeSecretaria ? 'Editar Secretaría' : 'Nueva Secretaría'"
+                    :icono="$editModeSecretaria ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="lg" submit="guardarSecretaria">
+            <div>
+                <label for="secretaria" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Secretaría *</label>
+                <input
+                    id="secretaria"
+                    type="text"
+                    wire:model="secretaria"
+                    @error('secretaria') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
             </div>
-        </div>
+
+            <x-slot:footer>
+                <button
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardarSecretaria"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editModeSecretaria ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
     @endif
 
     <!-- Modal Área -->
     @if($showModalArea)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" wire:click="cerrarModalArea"></div>
-
-                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form wire:submit.prevent="guardarArea">
-                        <div class="bg-white px-6 pt-6 pb-5">
-                            <div class="flex items-center justify-between mb-6">
-                                <h3 class="text-xl font-semibold text-gray-900">
-                                    {{ $editModeArea ? 'Editar Área' : 'Nueva Área' }}
-                                </h3>
-                                <button
-                                    type="button"
-                                    wire:click="cerrarModalArea"
-                                    class="text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <div class="space-y-5">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría *</label>
-                                    <select
-                                        wire:model="id_secretaria"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
-                                        <option value="">Seleccione una secretaría</option>
-                                        @foreach(\App\Models\Secretaria::orderBy('secretaria')->get() as $sec)
-                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Área *</label>
-                                    <input
-                                        type="text"
-                                        wire:model="area"
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                        autofocus
-                                    >
-                                    @error('area') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                wire:click="cerrarModalArea"
-                                class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                type="submit"
-                                class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/30 transition-all duration-200 font-medium"
-                            >
-                                {{ $editModeArea ? 'Actualizar' : 'Crear' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <x-ui.modal :titulo="$editModeArea ? 'Editar Área' : 'Nueva Área'"
+                    :icono="$editModeArea ? 'fa-pen' : 'fa-plus'"
+                    cerrar="intentarCerrar" ancho="lg" submit="guardarArea">
+            <div>
+                <label for="id_secretaria" class="block text-sm font-medium text-gray-700 mb-2">Secretaría *</label>
+                <select
+                    id="id_secretaria"
+                    wire:model="id_secretaria"
+                    @error('id_secretaria') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                    <option value="">Seleccione una secretaría</option>
+                    @foreach(\App\Models\Secretaria::orderBy('secretaria')->get() as $sec)
+                        <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
+                    @endforeach
+                </select>
+                @error('id_secretaria') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
             </div>
-        </div>
+
+            <div>
+                <label for="area" class="block text-sm font-medium text-gray-700 mb-2">Nombre del Área *</label>
+                <input
+                    id="area"
+                    type="text"
+                    wire:model="area"
+                    @error('area') aria-invalid="true" @enderror
+                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
+                >
+                @error('area') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+            </div>
+
+            <x-slot:footer>
+                <button
+                    type="button"
+                    wire:click="intentarCerrar"
+                    class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled" wire:target="guardarArea"
+                    class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-xl hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/30 transition-all duration-200 font-medium"
+                >
+                    {{ $editModeArea ? 'Actualizar' : 'Crear' }}
+                </button>
+            </x-slot:footer>
+        </x-ui.modal>
+    @endif
+
+    @if($confirmandoDescarte)
+        <x-ui.modal-confirmacion tipo="advertencia" titulo="Cambios sin guardar" boton="Descartar cambios"
+                                 confirmar="descartarCambios" cancelar="seguirEditando" :z="60">
+            Hay cambios sin guardar. ¿Desea descartarlos?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarSecretariaId)
+        <x-ui.modal-confirmacion confirmar="eliminarSecretaria" cancelar="cancelarEliminarSecretaria">
+            ¿Está seguro de eliminar esta secretaría?
+        </x-ui.modal-confirmacion>
+    @endif
+
+    @if($eliminarAreaId)
+        <x-ui.modal-confirmacion confirmar="eliminarAreaDesdeModal" cancelar="cancelarEliminarArea" :z="60">
+            ¿Está seguro de eliminar el área "{{ collect($areasSecretaria)->firstWhere('id', $eliminarAreaId)['area'] ?? '' }}"?
+        </x-ui.modal-confirmacion>
     @endif
 </div>

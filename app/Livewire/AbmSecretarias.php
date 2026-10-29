@@ -4,12 +4,16 @@ namespace App\Livewire;
 
 use App\Models\Secretaria;
 use App\Models\Area;
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class AbmSecretarias extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
 
@@ -31,6 +35,10 @@ class AbmSecretarias extends Component
     public $areasSecretaria = [];
     public $nombreSecretariaAreas = '';
     public $idSecretariaAreas = null;
+
+    // Registros a eliminar (abren el modal de confirmación)
+    public $eliminarSecretariaId = null;
+    public $eliminarAreaId = null;
 
     protected function rules()
     {
@@ -112,10 +120,23 @@ class AbmSecretarias extends Component
         $this->idSecretariaAreas = null;
     }
 
-    public function eliminarAreaDesdeModal($id)
+    public function confirmarEliminarArea($id)
     {
+        $this->eliminarAreaId = $id;
+    }
+
+    public function cancelarEliminarArea()
+    {
+        $this->eliminarAreaId = null;
+    }
+
+    public function eliminarAreaDesdeModal()
+    {
+        $id = $this->eliminarAreaId;
+        $this->eliminarAreaId = null;
+
         if (!auth()->user()->puedeEliminarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para eliminar áreas.');
+            $this->toastError('No tienes permisos para eliminar áreas.');
             return;
         }
 
@@ -126,7 +147,7 @@ class AbmSecretarias extends Component
             // Refrescar el listado del modal
             $this->verAreas($this->idSecretariaAreas);
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar el área porque tiene registros asociados.');
+            $this->toastError('No se puede eliminar el área porque tiene registros asociados.');
             $this->showModalAreas = false;
         }
     }
@@ -136,19 +157,20 @@ class AbmSecretarias extends Component
     public function crearSecretaria()
     {
         if (!auth()->user()->puedeCrearSecretarias()) {
-            session()->flash('error', 'No tienes permisos para crear secretarías.');
+            $this->toastError('No tienes permisos para crear secretarías.');
             return;
         }
 
         $this->resetFormSecretaria();
         $this->editModeSecretaria = false;
         $this->showModalSecretaria = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editarSecretaria($id)
     {
         if (!auth()->user()->puedeEditarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para editar secretarías.');
+            $this->toastError('No tienes permisos para editar secretarías.');
             return;
         }
 
@@ -157,18 +179,19 @@ class AbmSecretarias extends Component
         $this->secretaria = $secretaria->secretaria;
         $this->editModeSecretaria = true;
         $this->showModalSecretaria = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardarSecretaria()
     {
         if (!$this->editModeSecretaria && !auth()->user()->puedeCrearSecretarias()) {
-            session()->flash('error', 'No tienes permisos para crear secretarías.');
+            $this->toastError('No tienes permisos para crear secretarías.');
             $this->showModalSecretaria = false;
             return;
         }
 
         if ($this->editModeSecretaria && !auth()->user()->puedeEditarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para editar secretarías.');
+            $this->toastError('No tienes permisos para editar secretarías.');
             $this->showModalSecretaria = false;
             return;
         }
@@ -178,40 +201,53 @@ class AbmSecretarias extends Component
         if ($this->editModeSecretaria) {
             $secretaria = Secretaria::findOrFail($this->secretaria_id);
             $secretaria->update(['secretaria' => $this->secretaria]);
-            session()->flash('message', 'Secretaría actualizada correctamente.');
+            $this->toastExito('Secretaría actualizada correctamente.');
         } else {
             Secretaria::create(['secretaria' => $this->secretaria]);
-            session()->flash('message', 'Secretaría creada correctamente.');
+            $this->toastExito('Secretaría creada correctamente.');
         }
 
         $this->showModalSecretaria = false;
         $this->resetFormSecretaria();
     }
 
-    public function eliminarSecretaria($id)
+    public function confirmarEliminarSecretaria($id)
     {
+        $this->eliminarSecretariaId = $id;
+    }
+
+    public function cancelarEliminarSecretaria()
+    {
+        $this->eliminarSecretariaId = null;
+    }
+
+    public function eliminarSecretaria()
+    {
+        $id = $this->eliminarSecretariaId;
+        $this->eliminarSecretariaId = null;
+
         if (!auth()->user()->puedeEliminarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para eliminar secretarías.');
+            $this->toastError('No tienes permisos para eliminar secretarías.');
             return;
         }
 
         $secretaria = Secretaria::findOrFail($id);
 
         if ($secretaria->areas()->count() > 0) {
-            session()->flash('error', 'No se puede eliminar la secretaría porque tiene áreas asociadas.');
+            $this->toastError('No se puede eliminar la secretaría porque tiene áreas asociadas.');
             return;
         }
 
         if ($secretaria->corralones()->count() > 0) {
-            session()->flash('error', 'No se puede eliminar la secretaría porque tiene corralones asociados.');
+            $this->toastError('No se puede eliminar la secretaría porque tiene corralones asociados.');
             return;
         }
 
         try {
             $secretaria->delete();
-            session()->flash('message', 'Secretaría eliminada correctamente.');
+            $this->toastExito('Secretaría eliminada correctamente.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar la secretaría porque tiene registros asociados.');
+            $this->toastError('No se puede eliminar la secretaría porque tiene registros asociados.');
         }
     }
 
@@ -220,7 +256,7 @@ class AbmSecretarias extends Component
     public function crearArea($secretariaId = null)
     {
         if (!auth()->user()->puedeCrearSecretarias()) {
-            session()->flash('error', 'No tienes permisos para crear áreas.');
+            $this->toastError('No tienes permisos para crear áreas.');
             return;
         }
 
@@ -231,12 +267,13 @@ class AbmSecretarias extends Component
             $this->id_secretaria = $secretariaId;
         }
         $this->showModalArea = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editarArea($id)
     {
         if (!auth()->user()->puedeEditarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para editar áreas.');
+            $this->toastError('No tienes permisos para editar áreas.');
             return;
         }
 
@@ -247,18 +284,19 @@ class AbmSecretarias extends Component
         $this->id_secretaria = $area->id_secretaria;
         $this->editModeArea = true;
         $this->showModalArea = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardarArea()
     {
         if (!$this->editModeArea && !auth()->user()->puedeCrearSecretarias()) {
-            session()->flash('error', 'No tienes permisos para crear áreas.');
+            $this->toastError('No tienes permisos para crear áreas.');
             $this->showModalArea = false;
             return;
         }
 
         if ($this->editModeArea && !auth()->user()->puedeEditarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para editar áreas.');
+            $this->toastError('No tienes permisos para editar áreas.');
             $this->showModalArea = false;
             return;
         }
@@ -271,13 +309,13 @@ class AbmSecretarias extends Component
                 'area' => $this->area,
                 'id_secretaria' => $this->id_secretaria,
             ]);
-            session()->flash('message', 'Área actualizada correctamente.');
+            $this->toastExito('Área actualizada correctamente.');
         } else {
             Area::create([
                 'area' => $this->area,
                 'id_secretaria' => $this->id_secretaria,
             ]);
-            session()->flash('message', 'Área creada correctamente.');
+            $this->toastExito('Área creada correctamente.');
         }
 
         $this->showModalArea = false;
@@ -287,7 +325,7 @@ class AbmSecretarias extends Component
     public function eliminarArea($id)
     {
         if (!auth()->user()->puedeEliminarSecretarias()) {
-            session()->flash('error', 'No tienes permisos para eliminar áreas.');
+            $this->toastError('No tienes permisos para eliminar áreas.');
             return;
         }
 
@@ -295,9 +333,9 @@ class AbmSecretarias extends Component
 
         try {
             $area->delete();
-            session()->flash('message', 'Área eliminada correctamente.');
+            $this->toastExito('Área eliminada correctamente.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar el área porque tiene registros asociados.');
+            $this->toastError('No se puede eliminar el área porque tiene registros asociados.');
         }
     }
 
@@ -311,6 +349,22 @@ class AbmSecretarias extends Component
     {
         $this->showModalArea = false;
         $this->resetFormArea();
+    }
+
+    // --- Cambios sin guardar (ConfirmaDescarte): el formulario abierto ---
+
+    protected function camposFormulario(): array
+    {
+        return $this->showModalArea ? ['area', 'id_secretaria'] : ['secretaria'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        if ($this->showModalArea) {
+            $this->cerrarModalArea();
+        } else {
+            $this->cerrarModalSecretaria();
+        }
     }
 
     private function resetFormSecretaria()

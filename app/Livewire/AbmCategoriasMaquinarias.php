@@ -2,6 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\ConfirmaDescarte;
+use App\Livewire\Traits\EnviaToasts;
 use App\Models\CategoriaMaquinaria;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -9,9 +11,14 @@ use Livewire\WithPagination;
 class AbmCategoriasMaquinarias extends Component
 {
     use WithPagination;
+    use EnviaToasts;
+    use ConfirmaDescarte;
 
     public $search = '';
     public $showModal = false;
+
+    // Registro a eliminar (abre el modal de confirmación)
+    public $eliminarId = null;
     public $editMode = false;
     
     // Campos del formulario
@@ -70,20 +77,21 @@ class AbmCategoriasMaquinarias extends Component
     {
         // Verificar permiso de creación por rol
         if (!auth()->user()->puedeCrearCategoriasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear categorías de maquinarias.');
+            $this->toastError('No tienes permisos para crear categorías de maquinarias.');
             return;
         }
         
         $this->resetForm();
         $this->editMode = false;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function editar($id)
     {
         // Verificar permiso de edición por rol
         if (!auth()->user()->puedeEditarCategoriasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar categorías de maquinarias.');
+            $this->toastError('No tienes permisos para editar categorías de maquinarias.');
             return;
         }
         
@@ -94,19 +102,20 @@ class AbmCategoriasMaquinarias extends Component
         
         $this->editMode = true;
         $this->showModal = true;
+        $this->marcarFormularioLimpio();
     }
 
     public function guardar()
     {
         // Verificar permisos por rol
         if (!$this->editMode && !auth()->user()->puedeCrearCategoriasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para crear categorías de maquinarias.');
+            $this->toastError('No tienes permisos para crear categorías de maquinarias.');
             $this->showModal = false;
             return;
         }
 
         if ($this->editMode && !auth()->user()->puedeEditarCategoriasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para editar categorías de maquinarias.');
+            $this->toastError('No tienes permisos para editar categorías de maquinarias.');
             $this->showModal = false;
             return;
         }
@@ -119,32 +128,45 @@ class AbmCategoriasMaquinarias extends Component
                 'nombre' => $this->nombre,
                 'descripcion' => $this->descripcion,
             ]);
-            session()->flash('message', 'Categoría actualizada correctamente.');
+            $this->toastExito('Categoría actualizada correctamente.');
         } else {
             CategoriaMaquinaria::create([
                 'nombre' => $this->nombre,
                 'descripcion' => $this->descripcion,
             ]);
-            session()->flash('message', 'Categoría creada correctamente.');
+            $this->toastExito('Categoría creada correctamente.');
         }
 
         $this->showModal = false;
         $this->resetForm();
     }
 
-    public function eliminar($id)
+    public function confirmarEliminar($id)
     {
+        $this->eliminarId = $id;
+    }
+
+    public function cancelarEliminar()
+    {
+        $this->eliminarId = null;
+    }
+
+    public function eliminar()
+    {
+        $id = $this->eliminarId;
+        $this->eliminarId = null;
+
         // Verificar permiso de eliminación por rol
         if (!auth()->user()->puedeEliminarCategoriasMaquinarias()) {
-            session()->flash('error', 'No tienes permisos para eliminar categorías de maquinarias.');
+            $this->toastError('No tienes permisos para eliminar categorías de maquinarias.');
             return;
         }
         
         try {
             CategoriaMaquinaria::findOrFail($id)->delete();
-            session()->flash('message', 'Categoría eliminada correctamente.');
+            $this->toastExito('Categoría eliminada correctamente.');
         } catch (\Exception $e) {
-            session()->flash('error', 'No se puede eliminar la categoría porque tiene maquinarias asociadas.');
+            $this->toastError('No se puede eliminar la categoría porque tiene maquinarias asociadas.');
         }
     }
 
@@ -152,6 +174,16 @@ class AbmCategoriasMaquinarias extends Component
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    protected function camposFormulario(): array
+    {
+        return ['nombre', 'descripcion'];
+    }
+
+    public function cerrarFormulario(): void
+    {
+        $this->cerrarModal();
     }
 
     private function resetForm()
