@@ -141,13 +141,10 @@
                     <x-ui.input nombre="numero_empleado" wire:model="numero_empleado" maxlength="50" autocomplete="off" />
                 </x-ui.campo>
 
-                <x-ui.campo etiqueta="Tipo de Licencia" nombre="licencia">
-                    <x-ui.select-nativo nombre="licencia" wire:model="licencia">
-                        <option value="">— Sin especificar —</option>
-                        <option value="PROFESIONAL">PROFESIONAL</option>
-                        <option value="COMUN">COMÚN</option>
-                    </x-ui.select-nativo>
-                </x-ui.campo>
+                <x-ui.grupo etiqueta="Tipo de Licencia" nombre="licencia">
+                    <x-ui.opciones nombre="licencia" wire:model="licencia" class="w-full"
+                                   :opciones="['' => 'Sin especificar', 'PROFESIONAL' => 'Profesional', 'COMUN' => 'Común']" />
+                </x-ui.grupo>
 
                 <x-ui.campo etiqueta="Vencimiento Licencia" nombre="vencimiento_licencia">
                     <x-ui.input nombre="vencimiento_licencia" type="date" wire:model="vencimiento_licencia" />
@@ -196,12 +193,8 @@
 
                 @if($secretarias->count() > 0)
                     <x-ui.campo class="sm:col-span-2" etiqueta="Secretaría" nombre="secretaria_id">
-                        <x-ui.select-nativo nombre="secretaria_id" wire:model="secretaria_id">
-                            <option value="">— Sin asignar —</option>
-                            @foreach($secretarias as $secretaria)
-                                <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                            @endforeach
-                        </x-ui.select-nativo>
+                        <x-ui.combobox nombre="secretaria_id" wire:model="secretaria_id" placeholder="— Sin asignar —"
+                                       vacio="— Sin asignar —" :opciones="$secretarias" etiqueta="secretaria" />
                     </x-ui.campo>
                 @endif
             </div>

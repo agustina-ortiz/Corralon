@@ -46,7 +46,7 @@
     $grupo = $nombre ?? 'opciones-'.Str::random(6);
     $conError = $nombre !== null && isset($errors) && $errors->has($nombre);
     $describe = $nombre === null ? null : trim(($conError ? 'error-'.$nombre.' ' : '').'ayuda-'.$nombre);
-    $claseOpcion = 'flex h-full items-center justify-center text-center cursor-pointer select-none px-4 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors '
+    $claseOpcion = 'flex h-full items-center justify-center text-center cursor-pointer select-none whitespace-nowrap px-3 py-2.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors '
         .'peer-disabled:cursor-not-allowed peer-disabled:opacity-60 '
         .Tema::opcionElegida();
 @endphp
