@@ -55,96 +55,40 @@
         <!-- Cuerpo: campos de filtro -->
         <div class="px-6 py-5">
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <x-ui.campo etiqueta="Corralón" nombre="filtro_corralon">
+                    <x-ui.combobox nombre="filtro_corralon" wire:model.live="filtro_corralon" :opciones="$corralones" etiqueta="descripcion"
+                                   vacio="Todos los corralones" placeholder="Todos los corralones" />
+                </x-ui.campo>
+                <x-ui.campo etiqueta="Depósito" nombre="filtro_deposito">
+                    <x-ui.combobox nombre="filtro_deposito" wire:model.live="filtro_deposito"
+                                   :opciones="$depositos->mapWithKeys(fn ($d) => [$d->id => $d->deposito.' — '.($d->corralon->descripcion ?? 's/c')])->all()"
+                                   vacio="Todos los depósitos" placeholder="Todos los depósitos" />
+                </x-ui.campo>
+                <x-ui.campo etiqueta="Desde" nombre="fecha_desde">
+                    <x-ui.input nombre="fecha_desde" type="date" wire:model.live="fecha_desde" />
+                </x-ui.campo>
+                <x-ui.campo etiqueta="Hasta" nombre="fecha_hasta">
+                    <x-ui.input nombre="fecha_hasta" type="date" wire:model.live="fecha_hasta" />
+                </x-ui.campo>
+                <x-ui.campo etiqueta="Categoría de insumo" nombre="filtro_categoria_insumo">
+                    <x-ui.combobox nombre="filtro_categoria_insumo" wire:model.live="filtro_categoria_insumo" :opciones="$categoriasInsumos"
+                                   vacio="Todas las categorías" placeholder="Todas las categorías" />
+                </x-ui.campo>
+                <x-ui.campo etiqueta="Categoría de maquinaria" nombre="filtro_categoria_maquinaria">
+                    <x-ui.combobox nombre="filtro_categoria_maquinaria" wire:model.live="filtro_categoria_maquinaria" :opciones="$categoriasMaquinarias"
+                                   vacio="Todas las categorías" placeholder="Todas las categorías" />
+                </x-ui.campo>
+                {{-- Selección múltiple: casillas en un desplegable propio (el combobox elige uno solo) --}}
                 <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        Corralón
-                    </label>
-                    <select wire:model.live="filtro_corralon" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todos los corralones</option>
-                        @foreach($corralones as $c)
-                            <option value="{{ $c->id }}">{{ $c->descripcion }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                        </svg>
-                        Depósito
-                    </label>
-                    <select wire:model.live="filtro_deposito" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todos los depósitos</option>
-                        @foreach($depositos as $d)
-                            <option value="{{ $d->id }}">{{ $d->deposito }} — {{ $d->corralon->descripcion ?? 's/c' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Desde
-                    </label>
-                    <input type="date" wire:model.live="fecha_desde" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        Hasta
-                    </label>
-                    <input type="date" wire:model.live="fecha_hasta" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 10V5a2 2 0 012-2z"></path>
-                        </svg>
-                        Categoría de insumo
-                    </label>
-                    <select wire:model.live="filtro_categoria_insumo" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todas las categorías</option>
-                        @foreach($categoriasInsumos as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Categoría de maquinaria
-                    </label>
-                    <select wire:model.live="filtro_categoria_maquinaria" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todas las categorías</option>
-                        @foreach($categoriasMaquinarias as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-                        </svg>
-                        Tipo de movimiento
-                    </label>
+                    <span id="rotulo-filtro_tipo_movimiento" class="block text-sm font-medium text-gray-700 mb-2">Tipo de movimiento</span>
                     @php
                         $tiposSeleccionados = collect($filtro_tipo_movimiento)->filter()->map(fn($v) => (int) $v);
                         $nombresSeleccionados = $tiposMovimiento->whereIn('id', $tiposSeleccionados->all())->pluck('tipo_movimiento');
                     @endphp
                     <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.window="abierto = false">
-                        <button type="button" @click="abierto = !abierto"
-                                class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left bg-white border border-gray-200 rounded-xl hover:border-gray-300 focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                            <span class="truncate {{ $nombresSeleccionados->count() ? 'text-gray-700' : 'text-gray-500' }}">
+                        <button type="button" @click="abierto = !abierto" aria-labelledby="rotulo-filtro_tipo_movimiento" :aria-expanded="abierto"
+                                class="{{ \App\Support\Tema::controlCombobox() }}">
+                            <span class="flex-1 truncate {{ $nombresSeleccionados->count() ? '' : 'text-gray-400' }}">
                                 @if($nombresSeleccionados->count() === 0)
                                     Todos los tipos
                                 @elseif($nombresSeleccionados->count() === 1)
@@ -153,9 +97,7 @@
                                     {{ $nombresSeleccionados->count() }} tipos seleccionados
                                 @endif
                             </span>
-                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" :class="abierto && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                            <i class="fa-solid fa-chevron-down shrink-0 text-xs text-gray-400 transition-transform" :class="abierto && 'rotate-180'" aria-hidden="true"></i>
                         </button>
 
                         <div x-show="abierto" x-transition.opacity style="display: none"
@@ -189,93 +131,31 @@
                         </div>
                     @endif
                 </div>
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        Destino — Tipo
-                    </label>
-                    <select wire:model.live="filtro_tipo_destino" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todos los destinos</option>
-                        @foreach($tiposDestino as $valor => $etiqueta)
-                            <option value="{{ $valor }}">{{ $etiqueta }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-ui.campo etiqueta="Destino — Tipo" nombre="filtro_tipo_destino">
+                    <x-ui.combobox nombre="filtro_tipo_destino" wire:model.live="filtro_tipo_destino" :opciones="$tiposDestino" :ordenar="false"
+                                   vacio="Todos los destinos" placeholder="Todos los destinos" />
+                </x-ui.campo>
                 @if($filtro_tipo_destino)
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        {{ $tiposDestino[$filtro_tipo_destino] }}
-                    </label>
-                    <div class="relative" x-data="{ abierto: false }" @click.outside="abierto = false" @keydown.escape.window="abierto = false">
-                        <button type="button" @click="abierto = !abierto; $nextTick(() => $refs.buscadorDestino && $refs.buscadorDestino.focus())"
-                                class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-left bg-white border border-gray-200 rounded-xl hover:border-gray-300 focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                            <span class="truncate {{ $destinoLabel ? 'text-gray-700' : 'text-gray-500' }}">
-                                {{ $destinoLabel ?: 'Todos' }}
-                            </span>
-                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform" :class="abierto && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-
-                        <div x-show="abierto" x-transition.opacity style="display: none"
-                             class="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                            <div class="p-2 border-b border-gray-100 bg-gray-50">
-                                <input type="text" x-ref="buscadorDestino"
-                                       wire:model.live.debounce.300ms="filtro_destino_busqueda"
-                                       placeholder="Buscar…"
-                                       class="w-full px-3 py-1.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43]">
-                            </div>
-                            <div class="max-h-60 overflow-y-auto py-1">
-                                <button type="button" wire:click="limpiarDestino" @click="abierto = false"
-                                        class="w-full text-left px-3 py-2 text-sm {{ $filtro_destino_id === '' ? 'text-[#4a7a2a] font-semibold bg-[#77BF43]/5' : 'text-gray-500' }} hover:bg-[#77BF43]/5">
-                                    Todos
-                                </button>
-                                @forelse($opcionesDestino as $op)
-                                    <button type="button" wire:key="dest-{{ $op['id'] }}"
-                                            wire:click="seleccionarDestino('{{ $op['id'] }}')" @click="abierto = false"
-                                            class="w-full text-left px-3 py-2 text-sm hover:bg-[#77BF43]/5 {{ (string) $filtro_destino_id === (string) $op['id'] ? 'text-[#4a7a2a] font-semibold bg-[#77BF43]/5' : 'text-gray-700' }}">
-                                        <span class="block truncate" title="{{ $op['label'] }}">{{ $op['label'] }}</span>
-                                        @if($op['detalle'])
-                                            <span class="block text-[11px] text-gray-400 truncate">{{ $op['detalle'] }}</span>
-                                        @endif
-                                    </button>
-                                @empty
-                                    <p class="px-3 py-3 text-sm text-gray-400">Sin resultados</p>
-                                @endforelse
-                            </div>
-                            @if($opcionesDestino->count() >= 50)
-                                <p class="px-3 py-1.5 text-[11px] text-gray-400 border-t border-gray-100 bg-gray-50">
-                                    Mostrando los primeros 50 — refiná la búsqueda.
-                                </p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
+                    @php
+                        // Resultados de la búsqueda (hasta 50) + el elegido, para que el botón lo muestre aunque no esté entre ellos.
+                        $opcionesRegistro = $opcionesDestino->map(fn ($op) => ['id' => $op['id'], 'nombre' => $op['label'], 'detalle' => $op['detalle'] ?: null]);
+                        if ($filtro_destino_id !== '' && ! $opcionesRegistro->contains(fn ($op) => (string) $op['id'] === (string) $filtro_destino_id)) {
+                            $opcionesRegistro->prepend(['id' => $filtro_destino_id, 'nombre' => $destinoLabel]);
+                        }
+                    @endphp
+                    <x-ui.campo :etiqueta="$tiposDestino[$filtro_tipo_destino]" nombre="filtro_destino_id"
+                                :ayuda="$opcionesDestino->count() >= 50 ? 'Se muestran los primeros 50: refiná la búsqueda.' : null">
+                        <x-ui.combobox nombre="filtro_destino_id" wire:model.live="filtro_destino_id" :opciones="$opcionesRegistro->all()"
+                                       buscar-en="filtro_destino_busqueda" accion="seleccionarDestino"
+                                       vacio="Todos" placeholder="Todos" sin-resultados="Sin resultados" />
+                    </x-ui.campo>
                 @endif
                 @if($filtro_tipo_destino === 'secretaria' && $filtro_destino_id !== '')
-                <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-                        </svg>
-                        Destino — Área
-                    </label>
-                    <select wire:model.live="filtro_area" class="w-full px-4 py-2.5 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#77BF43]/25 focus:border-[#77BF43] transition-all duration-200">
-                        <option value="">Todas las áreas</option>
-                        @foreach($areas as $ar)
-                            <option value="{{ $ar->area }}">{{ $ar->area }}</option>
-                        @endforeach
-                    </select>
-                    @if($areas->count() === 0)
-                        <p class="mt-1.5 text-[11px] text-gray-400">Esta secretaría no tiene áreas cargadas.</p>
-                    @endif
-                </div>
+                    <x-ui.campo etiqueta="Destino — Área" nombre="filtro_area"
+                                :ayuda="$areas->count() === 0 ? 'Esta secretaría no tiene áreas cargadas.' : null">
+                        <x-ui.combobox nombre="filtro_area" wire:model.live="filtro_area" :opciones="$areas->pluck('area')->all()"
+                                       vacio="Todas las áreas" placeholder="Todas las áreas" />
+                    </x-ui.campo>
                 @endif
             </div>
             <p class="mt-3 text-[11px] text-gray-400">

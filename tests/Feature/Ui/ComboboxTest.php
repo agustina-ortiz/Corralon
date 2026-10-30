@@ -322,22 +322,17 @@ class ComboboxTest extends TestCase
     }
 
     /**
-     * Guardián (kit, spec 14: "nunca un <select> nativo"): en los formularios
-     * (todo lo que está dentro de un x-ui.modal) va x-ui.combobox o
-     * x-ui.opciones. Los selects de los paneles de filtros quedan para la
-     * fase de listados.
+     * Guardián (kit, specs 14 y 17: "nunca un <select> nativo"): en los
+     * formularios (x-ui.modal) y en los paneles de filtros de los listados va
+     * x-ui.combobox o x-ui.opciones.
      */
-    public function test_ningun_modal_usa_un_select_nativo(): void
+    public function test_ninguna_vista_usa_un_select_nativo(): void
     {
         $vistas = glob(resource_path('views/livewire/{,*/}*.blade.php'), GLOB_BRACE);
         $this->assertNotEmpty($vistas);
 
         foreach ($vistas as $vista) {
-            preg_match_all('/<x-ui\.modal.*?<\/x-ui\.modal>/s', file_get_contents($vista), $modales);
-
-            foreach ($modales[0] as $modal) {
-                $this->assertStringNotContainsString('<select', $modal, basename($vista).' tiene un <select> nativo en un modal.');
-            }
+            $this->assertStringNotContainsString('<select', file_get_contents($vista), basename($vista).' tiene un <select> nativo.');
         }
 
         $this->assertFileDoesNotExist(resource_path('views/components/ui/select-nativo.blade.php'));

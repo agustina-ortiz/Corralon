@@ -88,6 +88,14 @@ class Estadisticas extends Component
         $this->resetPaginasWidgets();
     }
 
+    /** La X del combobox de destino lo deja en '': mismo efecto que limpiarDestino(). */
+    public function updatedFiltroDestinoId($valor): void
+    {
+        if ((string) $valor === '') {
+            $this->limpiarDestino();
+        }
+    }
+
     /** Vuelve el destino a "todos" dentro del tipo elegido. */
     public function limpiarDestino(): void
     {
