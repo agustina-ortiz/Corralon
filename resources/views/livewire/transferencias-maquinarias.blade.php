@@ -29,180 +29,58 @@
     </x-slot:acciones>
 
     <!-- Búsqueda y filtros -->
+    @php
+        $filtrosActivos = collect([$filtro_corralon, $filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_usuario, $filtro_maquinaria, $filtro_categoria, $filtro_tipo_movimiento])->filter()->count();
+    @endphp
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div class="flex-1 max-w-md">
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input 
-                    type="text" 
-                    wire:model.live="search" 
-                    placeholder="Buscar movimientos..."
-                    class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-            </div>
-        </div>
+        <x-ui.buscador wire:model.live="search" placeholder="Buscar movimientos..." />
         <div class="flex gap-3">
-            <button 
-                wire:click="$toggle('showFilters')" 
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
-                Filtros
-                @if($filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_maquinaria || $filtro_categoria || $filtro_tipo_movimiento)
-                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_corralon, $filtro_fecha_desde, $filtro_fecha_hasta, $filtro_deposito_origen, $filtro_usuario, $filtro_maquinaria, $filtro_categoria, $filtro_tipo_movimiento])->filter()->count() }}
-                    </span>
-                @endif
-            </button>
+            <x-ui.boton-filtros :activos="$filtrosActivos" wire:click="$toggle('showFilters')" />
         </div>
     </div>
 
-    <!-- Panel de Filtros -->
-    <div 
-        x-data="{ show: @entangle('showFilters') }"
-        x-show="show"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform -translate-y-4"
-        x-transition:enter-end="opacity-100 transform translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 transform translate-y-0"
-        x-transition:leave-end="opacity-0 transform -translate-y-4"
-        class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-        style="display: none;"
-    >
-        <div class="px-6 py-5">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filtros Avanzados
-                </h3>
-                @if($filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_maquinaria || $filtro_categoria || $filtro_tipo_movimiento)
-                    <button
-                        wire:click="limpiarFiltros"
-                        class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Limpiar filtros
-                    </button>
-                @endif
-            </div>
+    {{-- Panel de Filtros --}}
+    <x-ui.panel-filtros mostrar="showFilters" :activos="$filtrosActivos" columnas="4">
+        <x-ui.campo etiqueta="Corralón" nombre="filtro_corralon">
+            <x-ui.combobox nombre="filtro_corralon" wire:model.live="filtro_corralon" :opciones="$corralonesFiltro" etiqueta="descripcion"
+                           vacio="Todos los corralones" placeholder="Todos los corralones" />
+        </x-ui.campo>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Filtro Corralón -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Corralón</label>
-                    <select
-                        wire:model.live="filtro_corralon"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los corralones</option>
-                        @foreach($corralonesFiltro as $corralon)
-                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                        @endforeach
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Fecha Desde" nombre="filtro_fecha_desde">
+            <x-ui.input nombre="filtro_fecha_desde" type="date" wire:model.live="filtro_fecha_desde" />
+        </x-ui.campo>
 
-                <!-- Filtro Fecha Desde -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Desde</label>
-                    <input
-                        type="date"
-                        wire:model.live="filtro_fecha_desde"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                </div>
+        <x-ui.campo etiqueta="Fecha Hasta" nombre="filtro_fecha_hasta">
+            <x-ui.input nombre="filtro_fecha_hasta" type="date" wire:model.live="filtro_fecha_hasta" />
+        </x-ui.campo>
 
-                <!-- Filtro Fecha Hasta -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Hasta</label>
-                    <input
-                        type="date"
-                        wire:model.live="filtro_fecha_hasta"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                </div>
+        <x-ui.campo etiqueta="Depósito" nombre="filtro_deposito_origen">
+            <x-ui.combobox nombre="filtro_deposito_origen" wire:model.live="filtro_deposito_origen" :opciones="$depositos" etiqueta="deposito"
+                           vacio="Todos los depósitos" placeholder="Todos los depósitos" />
+        </x-ui.campo>
 
-                <!-- Filtro Depósito -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Depósito</label>
-                    <select
-                        wire:model.live="filtro_deposito_origen"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los depósitos</option>
-                        @foreach($depositos as $deposito)
-                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                        @endforeach
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Tipo de Movimiento" nombre="filtro_tipo_movimiento">
+            <x-ui.combobox nombre="filtro_tipo_movimiento" wire:model.live="filtro_tipo_movimiento" :opciones="$tipos_movimiento" etiqueta="tipo_movimiento"
+                           vacio="Todos los tipos" placeholder="Todos los tipos" />
+        </x-ui.campo>
 
-                <!-- Filtro Tipo de Movimiento -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Movimiento</label>
-                    <select
-                        wire:model.live="filtro_tipo_movimiento"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los tipos</option>
-                        @foreach($tipos_movimiento as $tipo)
-                            <option value="{{ $tipo->id }}">{{ $tipo->tipo_movimiento }}</option>
-                        @endforeach
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Usuario" nombre="filtro_usuario">
+            <x-ui.combobox nombre="filtro_usuario" wire:model.live="filtro_usuario" :opciones="$usuarios" etiqueta="name"
+                           vacio="Todos los usuarios" placeholder="Todos los usuarios" />
+        </x-ui.campo>
 
-                <!-- Filtro Usuario -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
-                    <select
-                        wire:model.live="filtro_usuario"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los usuarios</option>
-                        @foreach($usuarios as $usuario)
-                            <option value="{{ $usuario->id }}">{{ $usuario->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Maquinaria" nombre="filtro_maquinaria">
+            <x-ui.input nombre="filtro_maquinaria" wire:model.live="filtro_maquinaria" placeholder="Nombre de la maquinaria" autocomplete="off" />
+        </x-ui.campo>
 
-                <!-- Filtro Maquinaria -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Maquinaria</label>
-                    <input
-                        type="text"
-                        wire:model.live="filtro_maquinaria"
-                        placeholder="Nombre de la maquinaria"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                </div>
+        <x-ui.campo etiqueta="Categoría" nombre="filtro_categoria">
+            <x-ui.combobox nombre="filtro_categoria" wire:model.live="filtro_categoria" :opciones="$categorias"
+                           vacio="Todas las categorías" placeholder="Todas las categorías" />
+        </x-ui.campo>
+    </x-ui.panel-filtros>
 
-                <!-- Filtro Categoría -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-                    <select
-                        wire:model.live="filtro_categoria"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todas las categorías</option>
-                        @foreach($categorias as $categoria)
-                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
-    {{-- Panel de Asignaciones Pendientes (solo si hay pendientes) --}}
+    
+{{-- Panel de Asignaciones Pendientes (solo si hay pendientes) --}}
     @if($puedeCrear && $asignacionesPendientes->count() > 0)
     <div class="mb-6">
         <button
@@ -280,234 +158,228 @@
     </div>
     @endif
 
-    <!-- Lista de Movimientos -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fecha</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Maquinaria</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Origen</th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Destino</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipo</th>
-                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Usuario</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
-                @forelse ($movimientos as $movimiento)
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <!-- Fecha -->
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
-                            <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
-                        </td>
-                        
-                        <!-- Maquinaria -->
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $movimiento->maquinaria->maquinaria }}</div>
-                            <div class="text-xs text-gray-500">{{ $movimiento->maquinaria->categoriaMaquinaria->nombre }}</div>
-                            @if($movimiento->observaciones)
-                                <div class="flex items-start gap-1 mt-1 text-xs text-gray-400 max-w-xs" title="{{ $movimiento->observaciones }}">
-                                    <i class="fa-regular fa-comment-dots flex-shrink-0 mt-0.5" aria-hidden="true"></i>
-                                    <span class="line-clamp-2">{{ $movimiento->observaciones }}</span>
-                                </div>
-                            @endif
-                        </td>
+    {{-- Lista de Movimientos --}}
+    <x-ui.tabla>
+        <x-slot:cabecera>
+            <x-ui.th>Fecha</x-ui.th>
+            <x-ui.th>Maquinaria</x-ui.th>
+            <x-ui.th>Cantidad</x-ui.th>
+            <x-ui.th centro>Origen</x-ui.th>
+            <x-ui.th centro>Destino</x-ui.th>
+            <x-ui.th>Estado</x-ui.th>
+            <x-ui.th centro>Tipo</x-ui.th>
+            <x-ui.th>Usuario</x-ui.th>
+        </x-slot:cabecera>
 
-                        <!-- Cantidad -->
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
-                                @php
-                                    $cantidad = $movimiento->cantidad_historica;
-                                @endphp
-                                @if($cantidad > 0)
-                                    <span class="text-sm font-semibold text-green-700">{{ $cantidad }}</span>
-                                @elseif($cantidad == 0)
-                                    <span class="text-sm font-semibold text-orange-700">{{ $cantidad }}</span>
-                                @else
-                                    <span class="text-sm font-semibold text-red-700">{{ $cantidad }}</span>
-                                @endif
-                                <span class="text-xs text-gray-500">
-                                    {{ $cantidad == 1 ? 'unidad' : 'unidades' }}
-                                </span>
-                            </div>
-                            
-                            <!-- Indicador de entrada/salida -->
-                            @if($movimiento->tipoMovimiento->esEntrada())
-                                <div class="flex items-center gap-1 mt-1">
-                                    <i class="fa-solid fa-arrow-up text-[10px] text-green-600" aria-hidden="true"></i>
-                                    <span class="text-xs text-green-600">
-                                        +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
-                                    </span>
-                                </div>
-                            @else
-                                <div class="flex items-center gap-1 mt-1">
-                                    <i class="fa-solid fa-arrow-down text-[10px] text-red-600" aria-hidden="true"></i>
-                                    <span class="text-xs text-red-600">
-                                        -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
-                                    </span>
-                                </div>
-                            @endif
-                        </td>
-                        
-                        <!-- COLUMNA ORIGEN -->
-                        <td class="px-6 py-4 text-center">
-                            @php
-                                $nombreTipo = $movimiento->tipoMovimiento->tipo_movimiento;
-                                $esSalidaTransferencia = $nombreTipo === 'Transferencia Salida' || $nombreTipo === 'Transferencia Salida Maquinaria';
-                                $esEntradaTransferencia = $nombreTipo === 'Transferencia Entrada' || $nombreTipo === 'Transferencia Entrada Maquinaria';
-                                $esTransferencia = $esSalidaTransferencia || $esEntradaTransferencia;
+        @forelse ($movimientos as $movimiento)
+            <tr wire:key="fila-{{ $movimiento->id }}" class="hover:bg-gray-50 transition-colors">
+                <!-- Fecha -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">{{ $movimiento->fecha->format('d/m/Y') }}</div>
+                    <div class="text-xs text-gray-500">{{ $movimiento->created_at->format('H:i') }}</div>
+                </td>
+                
+                <!-- Maquinaria -->
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">{{ $movimiento->maquinaria->maquinaria }}</div>
+                    <div class="text-xs text-gray-500">{{ $movimiento->maquinaria->categoriaMaquinaria->nombre }}</div>
+                    @if($movimiento->observaciones)
+                        <div class="flex items-start gap-1 mt-1 text-xs text-gray-400 max-w-xs" title="{{ $movimiento->observaciones }}">
+                            <i class="fa-regular fa-comment-dots flex-shrink-0 mt-0.5" aria-hidden="true"></i>
+                            <span class="line-clamp-2">{{ $movimiento->observaciones }}</span>
+                        </div>
+                    @endif
+                </td>
 
-                                if ($esTransferencia) {
-                                    if ($esSalidaTransferencia) {
-                                        // Movimiento de SALIDA — el origen es el depósito del movimiento
-                                        $depositoOrigen = $movimiento->depositoEntrada;
-                                    } else {
-                                        // Movimiento de ENTRADA — buscar el complementario de salida
-                                        $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
-                                            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Salida%'))
-                                            ->whereBetween('created_at', [
-                                                $movimiento->created_at->copy()->subSeconds(5),
-                                                $movimiento->created_at->copy()->addSeconds(5),
-                                            ])
-                                            ->first();
-                                        $depositoOrigen = $movimientoSalida?->depositoEntrada;
-                                    }
-                                } else {
-                                    // No es transferencia — origen solo aplica a salidas
-                                    $depositoOrigen = $movimiento->tipoMovimiento->esSalida()
-                                        ? $movimiento->depositoEntrada
-                                        : null;
-                                }
-                            @endphp
-                            
-                            @if($depositoOrigen)
-                                <x-ui.badge color="rojo">{{ $depositoOrigen->deposito }}</x-ui.badge>
-                            @else
-                                <span class="text-sm text-gray-400">—</span>
-                            @endif
-                        </td>
+                <!-- Cantidad -->
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-2">
+                        @php
+                            $cantidad = $movimiento->cantidad_historica;
+                        @endphp
+                        @if($cantidad > 0)
+                            <span class="text-sm font-semibold text-green-700">{{ $cantidad }}</span>
+                        @elseif($cantidad == 0)
+                            <span class="text-sm font-semibold text-orange-700">{{ $cantidad }}</span>
+                        @else
+                            <span class="text-sm font-semibold text-red-700">{{ $cantidad }}</span>
+                        @endif
+                        <span class="text-xs text-gray-500">
+                            {{ $cantidad == 1 ? 'unidad' : 'unidades' }}
+                        </span>
+                    </div>
+                    
+                    <!-- Indicador de entrada/salida -->
+                    @if($movimiento->tipoMovimiento->esEntrada())
+                        <div class="flex items-center gap-1 mt-1">
+                            <i class="fa-solid fa-arrow-up text-[10px] text-green-600" aria-hidden="true"></i>
+                            <span class="text-xs text-green-600">
+                                +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
+                            </span>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-1 mt-1">
+                            <i class="fa-solid fa-arrow-down text-[10px] text-red-600" aria-hidden="true"></i>
+                            <span class="text-xs text-red-600">
+                                -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
+                            </span>
+                        </div>
+                    @endif
+                </td>
+                
+                <!-- COLUMNA ORIGEN -->
+                <td class="px-6 py-4 text-center">
+                    @php
+                        $nombreTipo = $movimiento->tipoMovimiento->tipo_movimiento;
+                        $esSalidaTransferencia = $nombreTipo === 'Transferencia Salida' || $nombreTipo === 'Transferencia Salida Maquinaria';
+                        $esEntradaTransferencia = $nombreTipo === 'Transferencia Entrada' || $nombreTipo === 'Transferencia Entrada Maquinaria';
+                        $esTransferencia = $esSalidaTransferencia || $esEntradaTransferencia;
 
-                        <!-- COLUMNA DESTINO -->
-                        <td class="px-6 py-4 text-center">
-                            @php
-                                if ($esTransferencia) {
-                                    if ($esSalidaTransferencia) {
-                                        // Movimiento de SALIDA — buscar el complementario de entrada
-                                        $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
-                                            ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Entrada%'))
-                                            ->whereBetween('created_at', [
-                                                $movimiento->created_at->copy()->subSeconds(5),
-                                                $movimiento->created_at->copy()->addSeconds(5),
-                                            ])
-                                            ->first();
-                                        $depositoDestino = $movimientoEntrada?->depositoEntrada;
-                                    } else {
-                                        // Movimiento de ENTRADA — el destino es el depósito del movimiento
-                                        $depositoDestino = $movimiento->depositoEntrada;
-                                    }
-                                } else {
-                                    // No es transferencia — destino solo aplica a entradas
-                                    $depositoDestino = $movimiento->tipoMovimiento->esEntrada()
-                                        ? $movimiento->depositoEntrada
-                                        : null;
-                                }
-                            @endphp
-                            
-                            @if($depositoDestino)
-                                <x-ui.badge color="verde">{{ $depositoDestino->deposito }}</x-ui.badge>
-                            @elseif($movimiento->id_secretaria || $movimiento->area)
-                                @if($movimiento->secretaria)
-                                    <x-ui.badge color="violeta">{{ $movimiento->secretaria->secretaria }}</x-ui.badge>
-                                @endif
-                                @if($movimiento->area)
-                                    <span class="block mt-1 text-xs text-purple-600">{{ $movimiento->area }}</span>
-                                @endif
-                            @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']) && $movimiento->id_referencia)
-                                @php
-                                    $refLabel = ['vehiculo' => 'Vehículo', 'evento' => 'Evento', 'empleado' => 'Empleado'][$movimiento->tipo_referencia];
-                                    $refNombre = match($movimiento->tipo_referencia) {
-                                        'vehiculo' => optional(\App\Models\Vehiculo::find($movimiento->id_referencia))->vehiculo,
-                                        'evento'   => optional(\App\Models\Evento::find($movimiento->id_referencia))->evento,
-                                        'empleado' => 'Legajo ' . $movimiento->id_referencia,
-                                        default    => null,
-                                    };
-                                @endphp
-                                <x-ui.badge color="azul">{{ $refNombre ?? $refLabel }}</x-ui.badge>
-                                <span class="block mt-1 text-xs text-blue-600">{{ $refLabel }}</span>
-                            @else
-                                <span class="text-sm text-gray-400">—</span>
-                            @endif
-                        </td>
+                        if ($esTransferencia) {
+                            if ($esSalidaTransferencia) {
+                                // Movimiento de SALIDA — el origen es el depósito del movimiento
+                                $depositoOrigen = $movimiento->depositoEntrada;
+                            } else {
+                                // Movimiento de ENTRADA — buscar el complementario de salida
+                                $movimientoSalida = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
+                                    ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Salida%'))
+                                    ->whereBetween('created_at', [
+                                        $movimiento->created_at->copy()->subSeconds(5),
+                                        $movimiento->created_at->copy()->addSeconds(5),
+                                    ])
+                                    ->first();
+                                $depositoOrigen = $movimientoSalida?->depositoEntrada;
+                            }
+                        } else {
+                            // No es transferencia — origen solo aplica a salidas
+                            $depositoOrigen = $movimiento->tipoMovimiento->esSalida()
+                                ? $movimiento->depositoEntrada
+                                : null;
+                        }
+                    @endphp
+                    
+                    @if($depositoOrigen)
+                        <x-ui.badge color="rojo">{{ $depositoOrigen->deposito }}</x-ui.badge>
+                    @else
+                        <span class="text-sm text-gray-400">—</span>
+                    @endif
+                </td>
 
-                        <!-- Estado ACTUAL de la maquinaria -->
-                        <td class="px-6 py-4">
-                            @if($movimiento->estado_calculado === 'disponible')
-                                <x-ui.badge color="verde">Disponible</x-ui.badge>
-                            @else
-                                <x-ui.badge color="ambar">No Disponible</x-ui.badge>
-                            @endif
-                        </td>
-                        
-                        <!-- Tipo de Movimiento -->
-                        <td class="px-6 py-4 text-center">
-                            @php
-                                $colorTipo = $movimiento->tipoMovimiento->esEntrada()
-                                    ? 'verde'
-                                    : ($movimiento->tipoMovimiento->esSalida() ? 'rojo' : 'gris');
-                            @endphp
-                            <x-ui.badge :color="$colorTipo">{{ $movimiento->tipoMovimiento->tipo_movimiento }}</x-ui.badge>
-                            @if($movimiento->nro_orden_compra)
-                                <div class="text-xs text-gray-500 text-center mt-1">OC: {{ $movimiento->nro_orden_compra }}</div>
-                            @endif
-                        </td>
+                <!-- COLUMNA DESTINO -->
+                <td class="px-6 py-4 text-center">
+                    @php
+                        if ($esTransferencia) {
+                            if ($esSalidaTransferencia) {
+                                // Movimiento de SALIDA — buscar el complementario de entrada
+                                $movimientoEntrada = \App\Models\MovimientoMaquinaria::where('id_referencia', $movimiento->id_maquinaria)
+                                    ->whereHas('tipoMovimiento', fn($q) => $q->where('tipo_movimiento', 'like', '%Transferencia Entrada%'))
+                                    ->whereBetween('created_at', [
+                                        $movimiento->created_at->copy()->subSeconds(5),
+                                        $movimiento->created_at->copy()->addSeconds(5),
+                                    ])
+                                    ->first();
+                                $depositoDestino = $movimientoEntrada?->depositoEntrada;
+                            } else {
+                                // Movimiento de ENTRADA — el destino es el depósito del movimiento
+                                $depositoDestino = $movimiento->depositoEntrada;
+                            }
+                        } else {
+                            // No es transferencia — destino solo aplica a entradas
+                            $depositoDestino = $movimiento->tipoMovimiento->esEntrada()
+                                ? $movimiento->depositoEntrada
+                                : null;
+                        }
+                    @endphp
+                    
+                    @if($depositoDestino)
+                        <x-ui.badge color="verde">{{ $depositoDestino->deposito }}</x-ui.badge>
+                    @elseif($movimiento->id_secretaria || $movimiento->area)
+                        @if($movimiento->secretaria)
+                            <x-ui.badge color="violeta">{{ $movimiento->secretaria->secretaria }}</x-ui.badge>
+                        @endif
+                        @if($movimiento->area)
+                            <span class="block mt-1 text-xs text-purple-600">{{ $movimiento->area }}</span>
+                        @endif
+                    @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']) && $movimiento->id_referencia)
+                        @php
+                            $refLabel = ['vehiculo' => 'Vehículo', 'evento' => 'Evento', 'empleado' => 'Empleado'][$movimiento->tipo_referencia];
+                            $refNombre = match($movimiento->tipo_referencia) {
+                                'vehiculo' => optional(\App\Models\Vehiculo::find($movimiento->id_referencia))->vehiculo,
+                                'evento'   => optional(\App\Models\Evento::find($movimiento->id_referencia))->evento,
+                                'empleado' => 'Legajo ' . $movimiento->id_referencia,
+                                default    => null,
+                            };
+                        @endphp
+                        <x-ui.badge color="azul">{{ $refNombre ?? $refLabel }}</x-ui.badge>
+                        <span class="block mt-1 text-xs text-blue-600">{{ $refLabel }}</span>
+                    @else
+                        <span class="text-sm text-gray-400">—</span>
+                    @endif
+                </td>
 
-                        <!-- Usuario -->
-                        <td class="px-6 py-4 text-sm text-gray-500">
-                            <div class="flex items-center gap-1">
-                                <span class="mr-1">{{ $movimiento->usuario->name }}</span>
-                                @if($movimiento->comprobantes->count() > 0)
-                                    <div x-data="{ open: false }" class="relative">
-                                        <x-ui.accion icono="fa-paperclip" :etiqueta="'Ver comprobantes ('.$movimiento->comprobantes->count().')'"
-                                                     x-on:click="open = !open" />
-                                        <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-50 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
-                                            <div class="text-xs font-semibold text-gray-700 mb-2">Comprobantes adjuntos</div>
-                                            @foreach($movimiento->comprobantes as $comp)
-                                                <div class="flex items-center justify-between gap-1 px-2 py-1 rounded-lg hover:bg-gray-50">
-                                                    <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
-                                                    <div class="flex items-center flex-shrink-0">
-                                                        <x-ui.accion icono="fa-regular fa-eye" etiqueta="Ver" :href="route('comprobantes-maquinaria.ver', $comp->id)" target="_blank" />
-                                                        <x-ui.accion icono="fa-download" etiqueta="Descargar" color="exito" :href="route('comprobantes-maquinaria.descargar', $comp->id)" :navegar="false" />
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                <!-- Estado ACTUAL de la maquinaria -->
+                <td class="px-6 py-4">
+                    @if($movimiento->estado_calculado === 'disponible')
+                        <x-ui.badge color="verde">Disponible</x-ui.badge>
+                    @else
+                        <x-ui.badge color="ambar">No Disponible</x-ui.badge>
+                    @endif
+                </td>
+                
+                <!-- Tipo de Movimiento -->
+                <td class="px-6 py-4 text-center">
+                    @php
+                        $colorTipo = $movimiento->tipoMovimiento->esEntrada()
+                            ? 'verde'
+                            : ($movimiento->tipoMovimiento->esSalida() ? 'rojo' : 'gris');
+                    @endphp
+                    <x-ui.badge :color="$colorTipo">{{ $movimiento->tipoMovimiento->tipo_movimiento }}</x-ui.badge>
+                    @if($movimiento->nro_orden_compra)
+                        <div class="text-xs text-gray-500 text-center mt-1">OC: {{ $movimiento->nro_orden_compra }}</div>
+                    @endif
+                </td>
+
+                <!-- Usuario -->
+                <td class="px-6 py-4 text-sm text-gray-500">
+                    <div class="flex items-center gap-1">
+                        <span class="mr-1">{{ $movimiento->usuario->name }}</span>
+                        @if($movimiento->comprobantes->count() > 0)
+                            <div x-data="{ open: false }" class="relative">
+                                <x-ui.accion icono="fa-paperclip" :etiqueta="'Ver comprobantes ('.$movimiento->comprobantes->count().')'"
+                                             x-on:click="open = !open" />
+                                <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-50 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
+                                    <div class="text-xs font-semibold text-gray-700 mb-2">Comprobantes adjuntos</div>
+                                    @foreach($movimiento->comprobantes as $comp)
+                                        <div class="flex items-center justify-between gap-1 px-2 py-1 rounded-lg hover:bg-gray-50">
+                                            <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
+                                            <div class="flex items-center flex-shrink-0">
+                                                <x-ui.accion icono="fa-regular fa-eye" etiqueta="Ver" :href="route('comprobantes-maquinaria.ver', $comp->id)" target="_blank" />
+                                                <x-ui.accion icono="fa-download" etiqueta="Descargar" color="exito" :href="route('comprobantes-maquinaria.descargar', $comp->id)" :navegar="false" />
+                                            </div>
                                         </div>
-                                    </div>
-                                @endif
-                                @if($puedeCrear && in_array($movimiento->tipoMovimiento->tipo_movimiento, ['Carga de Stock', 'Ajuste Positivo']))
-                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar N° orden, observaciones y comprobantes"
-                                                 wire:click="abrirEdicion({{ $movimiento->id }})" />
-                                @endif
+                                    @endforeach
+                                </div>
                             </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="px-6 py-6">
-                            <x-ui.vacio icono="fa-right-left">{{ $search || $filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_maquinaria || $filtro_categoria || $filtro_tipo_movimiento ? 'No hay movimientos que coincidan con la búsqueda o los filtros' : 'Todavía no hay movimientos registrados' }}</x-ui.vacio>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        @endif
+                        @if($puedeCrear && in_array($movimiento->tipoMovimiento->tipo_movimiento, ['Carga de Stock', 'Ajuste Positivo']))
+                            <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar N° orden, observaciones y comprobantes"
+                                         wire:click="abrirEdicion({{ $movimiento->id }})" />
+                        @endif
+                    </div>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="8" class="px-6 py-6">
+                    <x-ui.vacio icono="fa-right-left">{{ $search || $filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_maquinaria || $filtro_categoria || $filtro_tipo_movimiento ? 'No hay movimientos que coincidan con la búsqueda o los filtros' : 'Todavía no hay movimientos registrados' }}</x-ui.vacio>
+                </td>
+            </tr>
+        @endforelse
 
-    <!-- Paginación -->
-    <div class="mt-6">
-        {{ $movimientos->links() }}
-    </div>
+        <x-slot:pie>
+            <x-ui.paginacion :paginador="$movimientos" />
+        </x-slot:pie>
+    </x-ui.tabla>
 
     <!-- Modal -->
     @if($showModal)
