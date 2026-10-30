@@ -109,6 +109,18 @@ final class Tema
         return 'bg-blue-50 text-blue-800';
     }
 
+    /** Página actual de <x-ui.paginacion>. */
+    public static function paginaActiva(): string
+    {
+        return 'border-transparent bg-blue-600 text-white shadow-sm shadow-blue-500/30';
+    }
+
+    /** Contador de filtros activos (burbuja del botón Filtros). */
+    public static function contadorFiltros(): string
+    {
+        return 'bg-blue-600 text-white';
+    }
+
     /** La opción elegida de <x-ui.opciones>: clases `peer-checked:` del radio oculto. */
     public static function opcionElegida(): string
     {
