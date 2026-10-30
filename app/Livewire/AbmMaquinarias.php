@@ -12,6 +12,8 @@ use App\Models\MovimientoMaquinaria;
 use App\Models\TipoMovimiento;
 use App\Models\User;
 use App\Exports\MaquinariasExport;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class AbmMaquinarias extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -87,6 +90,32 @@ class AbmMaquinarias extends Component
         }
         
         $this->limpiarFiltros();
+    }
+
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'maquinaria' => 'maquinaria',
+            'categoria' => fn (Builder $q, string $dir) => $q->orderBy(
+                CategoriaMaquinaria::select('nombre')->whereColumn('categoria_maquinarias.id', 'maquinarias.id_categoria_maquinaria'), $dir
+            ),
+            'cantidad' => 'cantidad',
+            'estado' => 'estado',
+            'deposito' => fn (Builder $q, string $dir) => $q->orderBy(
+                Deposito::select('deposito')->whereColumn('depositos.id', 'maquinarias.id_deposito'), $dir
+            ),
+            'corralon' => fn (Builder $q, string $dir) => $q->orderBy(
+                Deposito::join('corralones', 'corralones.id', '=', 'depositos.id_corralon')
+                    ->select('corralones.descripcion')
+                    ->whereColumn('depositos.id', 'maquinarias.id_deposito'),
+                $dir
+            ),
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['maquinaria', 'asc'];
     }
 
     public function render()
@@ -180,10 +209,9 @@ class AbmMaquinarias extends Component
 
     private function getMaquinariasDistribuidas()
     {
-        return $this->baseQuery()
-            ->with(['categoriaMaquinaria', 'deposito.corralon', 'movimientos.tipoMovimiento'])
-            ->orderBy('maquinaria')
-            ->paginate(15);
+        return $this->aplicarOrden(
+            $this->baseQuery()->with(['categoriaMaquinaria', 'deposito.corralon', 'movimientos.tipoMovimiento'])
+        )->paginate(15);
     }
 
     public function updatingSearch()
