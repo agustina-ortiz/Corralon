@@ -6,6 +6,8 @@ use App\Models\Deposito;
 use App\Models\Corralon;
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -14,6 +16,7 @@ class AbmDepositos extends Component
     use WithPagination;
     use EnviaToasts;
     use ConfirmaDescarte;
+    use OrdenaPorColumna;
 
     public $search = '';
     public $filtro_corralon = '';
@@ -55,7 +58,7 @@ class AbmDepositos extends Component
         $corralonesPermitidosIds = $user->getCorralonesParaModulo('depositos');
         $tieneMultiplesCorralones = $user->esAdministrador() || count($corralonesPermitidosIds) > 1;
 
-        $depositos = Deposito::with('corralon')
+        $depositos = $this->aplicarOrden(Deposito::with('corralon')
             ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
                 $query->where('deposito', 'like', '%' . $this->search . '%')
@@ -64,8 +67,7 @@ class AbmDepositos extends Component
             ->when($this->filtro_corralon, function($query) {
                 $query->where('id_corralon', $this->filtro_corralon);
             })
-            ->orderBy('id')
-            ->paginate(10);
+        )->paginate(10);
 
         // Filtrar corralones por permisos del módulo depósitos
         $corralones = Corralon::when(!$user->esAdministrador(), fn($q) => $q->whereIn('id', $corralonesPermitidosIds))
@@ -83,6 +85,25 @@ class AbmDepositos extends Component
         ])->layout('layouts.app', [
             'header' => 'ABM Depósitos'
         ]);
+    }
+
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'id' => 'id',
+            'deposito' => 'deposito',
+            'corralon' => fn (Builder $q, string $dir) => $q->orderBy(
+                Corralon::select('descripcion')->whereColumn('corralones.id', 'depositos.id_corralon'), $dir
+            ),
+            'ubicacion' => fn (Builder $q, string $dir) => $q->orderBy(
+                Corralon::select('ubicacion')->whereColumn('corralones.id', 'depositos.id_corralon'), $dir
+            ),
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['id', 'asc'];
     }
 
     public function updatingSearch()

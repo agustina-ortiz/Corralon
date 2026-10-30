@@ -98,4 +98,11 @@ class ListadoTest extends TestCase
         $this->assertStringContainsString('Limpiar filtros', $con);
         $this->assertStringContainsString('lg:grid-cols-4', $con);
     }
+
+    public function test_campo_oculto_deja_el_rotulo_solo_para_lectores_de_pantalla(): void
+    {
+        $html = Blade::render('<x-ui.campo etiqueta="Corralón" nombre="filtro_corralon" oculto>x</x-ui.campo>');
+
+        $this->assertStringContainsString('<label for="campo-filtro_corralon" class="sr-only">', $html);
+    }
 }

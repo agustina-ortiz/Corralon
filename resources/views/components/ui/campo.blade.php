@@ -12,6 +12,8 @@
                    (el control lleva id="campo-{nombre}").
       obligatorio  Marca el rótulo con un asterisco rojo.
       ayuda        Texto chico debajo del control (opcional).
+      oculto       El rótulo queda solo para lectores de pantalla (sr-only):
+                   filtros en la fila del buscador, sin rótulo visible.
     Slot: el control (<x-ui.input>, <x-ui.textarea>, un <select> nativo con
     id="campo-{nombre}" hasta la fase de combobox...).
 --}}
@@ -20,11 +22,12 @@
     'nombre' => null,
     'obligatorio' => false,
     'ayuda' => null,
+    'oculto' => false,
 ])
 
 <div {{ $attributes->class(['w-full']) }}>
     @if($etiqueta)
-        <label @if($nombre) for="campo-{{ $nombre }}" @endif class="block text-sm font-medium text-gray-700 mb-2">
+        <label @if($nombre) for="campo-{{ $nombre }}" @endif class="{{ $oculto ? 'sr-only' : 'block text-sm font-medium text-gray-700 mb-2' }}">
             {{ $etiqueta }}
             @if($obligatorio)<span class="text-red-600" aria-hidden="true">*</span>@endif
         </label>
