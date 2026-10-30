@@ -250,27 +250,13 @@
                 </x-ui.campo>
 
                 <x-ui.campo etiqueta="Categoría" nombre="id_categoria" obligatorio>
-                    <x-ui.select-nativo nombre="id_categoria" wire:model="id_categoria">
-                        <option value="">Seleccione una categoría</option>
-                        @foreach($categorias as $categoria)
-                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_categoria" wire:model="id_categoria" placeholder="Seleccione una categoría"
+                                   :opciones="$categorias" />
                 </x-ui.campo>
 
                 <x-ui.campo etiqueta="Unidad" nombre="unidad" obligatorio>
-                    <x-ui.select-nativo nombre="unidad" wire:model="unidad">
-                        <option value="">Seleccionar unidad...</option>
-                        <option value="UNIDAD">UNIDAD</option>
-                        <option value="LITROS">LITROS</option>
-                        <option value="TAMBOR">TAMBOR</option>
-                        <option value="METRO">METRO</option>
-                        <option value="ROLLO X 100 MT">ROLLO X 100 MT</option>
-                        <option value="PAQUETE">PAQUETE</option>
-                        <option value="BOLSA">BOLSA</option>
-                        <option value="BALDE">BALDE</option>
-                        <option value="KILOS">KILOS</option>
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="unidad" wire:model="unidad" placeholder="Seleccionar unidad..." :ordenar="false"
+                                   :opciones="['UNIDAD', 'LITROS', 'TAMBOR', 'METRO', 'ROLLO X 100 MT', 'PAQUETE', 'BOLSA', 'BALDE', 'KILOS']" />
                 </x-ui.campo>
 
                 @if(!$editMode)
@@ -289,12 +275,8 @@
                 </x-ui.campo>
 
                 <x-ui.campo class="sm:col-span-2" etiqueta="Depósito" nombre="id_deposito" obligatorio>
-                    <x-ui.select-nativo nombre="id_deposito" wire:model="id_deposito">
-                        <option value="">Seleccione un depósito</option>
-                        @foreach($depositos as $deposito)
-                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }} - {{ $deposito->corralon->descripcion ?? 'Sin corralón' }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_deposito" wire:model="id_deposito" placeholder="Seleccione un depósito" :ordenar="false"
+                                   :opciones="$depositos->mapWithKeys(fn ($d) => [$d->id => $d->deposito.' - '.($d->corralon->descripcion ?? 'Sin corralón')])" />
                 </x-ui.campo>
 
                 {{-- Solo al crear: va al movimiento de Inventario Inicial. --}}
