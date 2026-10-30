@@ -6,113 +6,37 @@
     </x-slot:acciones>
 
     <!-- Búsqueda y filtros -->
+    @php
+        $filtrosActivos = collect([$filtro_marca_modelo, $filtro_estado, $filtro_secretaria])->filter()->count();
+    @endphp
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div class="flex-1 max-w-md">
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input
-                    type="text"
-                    wire:model.live="search"
-                    placeholder="Buscar por nro. patrimonio, vehículo, marca/modelo, patente..."
-                    class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-            </div>
-        </div>
+        <x-ui.buscador wire:model.live="search" placeholder="Buscar por nro. patrimonio, vehículo, marca/modelo, patente..." />
         <div class="flex gap-3">
-            <x-ui.boton variante="secundario" icono="fa-filter" wire:click="$toggle('showFilters')">
-                Filtros
-                @if($filtro_marca_modelo || $filtro_estado || $filtro_secretaria)
-                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_marca_modelo, $filtro_estado, $filtro_secretaria])->filter()->count() }}
-                    </span>
-                @endif
-            </x-ui.boton>
+            <x-ui.boton-filtros :activos="$filtrosActivos" wire:click="$toggle('showFilters')" />
         </div>
     </div>
 
-    <!-- Panel de Filtros con animación suave -->
-    <div
-        x-data="{ show: @entangle('showFilters') }"
-        x-show="show"
-        x-transition:enter="transition ease-out duration-300"
-        x-transition:enter-start="opacity-0 transform -translate-y-4"
-        x-transition:enter-end="opacity-100 transform translate-y-0"
-        x-transition:leave="transition ease-in duration-200"
-        x-transition:leave-start="opacity-100 transform translate-y-0"
-        x-transition:leave-end="opacity-0 transform -translate-y-4"
-        class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-        style="display: none;"
-    >
-        <div class="px-6 py-5">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filtros Avanzados
-                </h3>
-                @if($filtro_marca_modelo || $filtro_estado || $filtro_secretaria)
-                    <button
-                        wire:click="limpiarFiltros"
-                        class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                        Limpiar filtros
-                    </button>
-                @endif
-            </div>
+    {{-- Panel de Filtros --}}
+    <x-ui.panel-filtros mostrar="showFilters" :activos="$filtrosActivos" columnas="3">
+        <x-ui.campo etiqueta="Marca/Modelo" nombre="filtro_marca_modelo">
+            <x-ui.combobox nombre="filtro_marca_modelo" wire:model.live="filtro_marca_modelo" :opciones="$marcasModelos->all()"
+                           vacio="Todas las marcas/modelos" placeholder="Todas las marcas/modelos" />
+        </x-ui.campo>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Filtro Marca/Modelo -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca/Modelo</label>
-                    <select
-                        wire:model.live="filtro_marca_modelo"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todas las marcas/modelos</option>
-                        @foreach($marcasModelos as $mm)
-                            <option value="{{ $mm }}">{{ $mm }}</option>
-                        @endforeach
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Estado" nombre="filtro_estado">
+            <x-ui.combobox nombre="filtro_estado" wire:model.live="filtro_estado"
+                           :opciones="['EN USO' => 'En Uso', 'BAJA' => 'Baja', 'MANTENIMIENTO' => 'Mantenimiento']" :ordenar="false"
+                           vacio="Todos los estados" placeholder="Todos los estados" />
+        </x-ui.campo>
 
-                <!-- Filtro Estado -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select
-                        wire:model.live="filtro_estado"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todos los estados</option>
-                        <option value="EN USO">En Uso</option>
-                        <option value="BAJA">Baja</option>
-                        <option value="MANTENIMIENTO">Mantenimiento</option>
-                    </select>
-                </div>
+        <x-ui.campo etiqueta="Secretaría" nombre="filtro_secretaria">
+            <x-ui.combobox nombre="filtro_secretaria" wire:model.live="filtro_secretaria" :opciones="$secretarias" etiqueta="secretaria"
+                           vacio="Todas las secretarías" placeholder="Todas las secretarías" />
+        </x-ui.campo>
+    </x-ui.panel-filtros>
 
-                <!-- Filtro Secretaría -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría</label>
-                    <select
-                        wire:model.live="filtro_secretaria"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                    >
-                        <option value="">Todas las secretarías</option>
-                        @foreach($secretarias as $secretaria)
-                            <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Alerta del dashboard aplicada como filtro -->
+    
+<!-- Alerta del dashboard aplicada como filtro -->
     @if($alertaActiva)
         <div class="mb-6 px-4 py-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -133,100 +57,92 @@
         </div>
     @endif
 
-    <!-- Tabla -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nro. Patrimonio</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículo</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patente</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Secretaría</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vencimiento VTV</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Documentos</th>
-                        @if($puedeEditar || $puedeEliminar)
-                            <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+    {{-- Tabla --}}
+    <x-ui.tabla>
+        <x-slot:cabecera>
+            <x-ui.th columna="patrimonio" :orden="$this->orden()">Nro. Patrimonio</x-ui.th>
+            <x-ui.th columna="vehiculo" :orden="$this->orden()">Vehículo</x-ui.th>
+            <x-ui.th columna="patente" :orden="$this->orden()">Patente</x-ui.th>
+            <x-ui.th columna="estado" :orden="$this->orden()">Estado</x-ui.th>
+            <x-ui.th columna="secretaria" :orden="$this->orden()" centro>Secretaría</x-ui.th>
+            <x-ui.th columna="vtv" :orden="$this->orden()">Vencimiento VTV</x-ui.th>
+            <x-ui.th columna="documentos" :orden="$this->orden()" centro>Documentos</x-ui.th>
+            @if($puedeEditar || $puedeEliminar)
+                <x-ui.th derecha>Acciones</x-ui.th>
+            @endif
+        </x-slot:cabecera>
+
+        @forelse ($vehiculos as $item)
+            <tr wire:key="fila-{{ $item->id }}" class="hover:bg-gray-50/50 transition-colors duration-150">
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">{{ $item->nro_patrimonio ?? '-' }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">{{ $item->vehiculo }}</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    {{ $item->patente ?? '-' }}
+                </td>
+                <td class="px-6 py-4">
+                    @php
+                        $estadoColores = [
+                            'EN USO' => 'azul',
+                            'BAJA' => 'rojo',
+                            'MANTENIMIENTO' => 'ambar',
+                        ];
+                        $estadoNombres = [
+                            'EN USO' => 'En Uso',
+                            'BAJA' => 'Baja',
+                            'MANTENIMIENTO' => 'Mantenimiento',
+                        ];
+                    @endphp
+                    <x-ui.badge :color="$estadoColores[$item->estado] ?? 'gris'">{{ $estadoNombres[$item->estado] ?? $item->estado }}</x-ui.badge>
+                </td>
+                <td class="whitespace-nowrap px-6 py-4">
+                    <x-ui.badge color="azul">{{ $item->secretaria?->secretaria ?? 'Sin secretaría' }}</x-ui.badge>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                    @if($item->vencimiento_vtv)
+                        {{ \Carbon\Carbon::parse($item->vencimiento_vtv)->format('d/m/Y') }}
+                    @else
+                        -
+                    @endif
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex items-center justify-center">
+                        <x-ui.boton variante="secundario" tamano="chico" icono="fa-regular fa-file-lines"
+                                    wire:click="abrirModalDocumentos({{ $item->id }})"
+                                    title="Ver documentos" aria-label="Ver documentos ({{ $item->documentos_count }})">
+                            <x-ui.badge :color="$item->documentos_count > 0 ? 'azul' : 'gris'">{{ $item->documentos_count }}</x-ui.badge>
+                        </x-ui.boton>
+                    </div>
+                </td>
+                @if($puedeEditar || $puedeEliminar)
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        @if($puedeEditar)
+                        <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $item->id }})" />
                         @endif
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-50">
-                    @forelse ($vehiculos as $item)
-                        <tr class="hover:bg-gray-50/50 transition-colors duration-150">
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->nro_patrimonio ?? '-' }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $item->vehiculo }}</div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ $item->patente ?? '-' }}
-                            </td>
-                            <td class="px-6 py-4">
-                                @php
-                                    $estadoColores = [
-                                        'EN USO' => 'azul',
-                                        'BAJA' => 'rojo',
-                                        'MANTENIMIENTO' => 'ambar',
-                                    ];
-                                    $estadoNombres = [
-                                        'EN USO' => 'En Uso',
-                                        'BAJA' => 'Baja',
-                                        'MANTENIMIENTO' => 'Mantenimiento',
-                                    ];
-                                @endphp
-                                <x-ui.badge :color="$estadoColores[$item->estado] ?? 'gris'">{{ $estadoNombres[$item->estado] ?? $item->estado }}</x-ui.badge>
-                            </td>
-                            <td class="whitespace-nowrap px-6 py-4">
-                                <x-ui.badge color="azul">{{ $item->secretaria?->secretaria ?? 'Sin secretaría' }}</x-ui.badge>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                @if($item->vencimiento_vtv)
-                                    {{ \Carbon\Carbon::parse($item->vencimiento_vtv)->format('d/m/Y') }}
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-center">
-                                    <x-ui.boton variante="secundario" tamano="chico" icono="fa-regular fa-file-lines"
-                                                wire:click="abrirModalDocumentos({{ $item->id }})"
-                                                title="Ver documentos" aria-label="Ver documentos ({{ $item->documentos_count }})">
-                                        <x-ui.badge :color="$item->documentos_count > 0 ? 'azul' : 'gris'">{{ $item->documentos_count }}</x-ui.badge>
-                                    </x-ui.boton>
-                                </div>
-                            </td>
-                            @if($puedeEditar || $puedeEliminar)
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-1">
-                                    @if($puedeEditar)
-                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $item->id }})" />
-                                    @endif
 
-                                    @if($puedeEliminar)
-                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $item->id }})" />
-                                    @endif
-                                </div>
-                            </td>
-                            @endif
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-6 py-6">
-                                <x-ui.vacio icono="fa-car">{{ $search || $filtro_marca_modelo || $filtro_estado || $filtro_secretaria || $alertaActiva ? 'No hay vehículos que coincidan con la búsqueda o los filtros' : 'Todavía no hay vehículos cargados' }}</x-ui.vacio>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                        @if($puedeEliminar)
+                        <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $item->id }})" />
+                        @endif
+                    </div>
+                </td>
+                @endif
+            </tr>
+        @empty
+            <tr>
+                <td colspan="8" class="px-6 py-6">
+                    <x-ui.vacio icono="fa-car">{{ $search || $filtro_marca_modelo || $filtro_estado || $filtro_secretaria || $alertaActiva ? 'No hay vehículos que coincidan con la búsqueda o los filtros' : 'Todavía no hay vehículos cargados' }}</x-ui.vacio>
+                </td>
+            </tr>
+        @endforelse
 
-        <!-- Paginación -->
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
-            {{ $vehiculos->links() }}
-        </div>
-    </div>
+        <x-slot:pie>
+            <x-ui.paginacion :paginador="$vehiculos" />
+        </x-slot:pie>
+    </x-ui.tabla>
 
     <!-- Modal -->
     @if($showModal)

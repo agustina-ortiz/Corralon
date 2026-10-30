@@ -4,6 +4,8 @@ namespace App\Livewire;
 
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\WithFileUploads;
@@ -17,7 +19,9 @@ use Livewire\Attributes\Url;
 
 class AbmVehiculos extends Component
 {
-    use WithPagination, WithFileUploads;
+    use WithPagination;
+    use OrdenaPorColumna;
+    use WithFileUploads;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -152,11 +156,31 @@ class AbmVehiculos extends Component
         $this->resetPage();
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'patrimonio' => 'nro_patrimonio',
+            'vehiculo' => 'vehiculo',
+            'patente' => 'patente',
+            'estado' => 'estado',
+            'secretaria' => fn (Builder $q, string $dir) => $q->orderBy(
+                Secretaria::select('secretaria')->whereColumn('secretarias.id', 'vehiculos.id_secretaria'), $dir
+            ),
+            'vtv' => 'vencimiento_vtv',
+            'documentos' => 'documentos_count',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['vehiculo', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
 
-        $vehiculos = Vehiculo::with(['deposito', 'secretaria'])
+        $vehiculos = $this->aplicarOrden(Vehiculo::with(['deposito', 'secretaria'])
             ->withCount('documentos')
             ->porCorralonesPermitidos()
             ->where(function($query) {
@@ -169,8 +193,7 @@ class AbmVehiculos extends Component
             ->when($this->filtro_estado, fn($q) => $q->where('estado', $this->filtro_estado))
             ->when($this->filtro_secretaria, fn($q) => $q->where('id_secretaria', $this->filtro_secretaria))
             ->when(isset(Vehiculo::ALERTAS[$this->filtro_alerta]), fn($q) => $q->conAlerta($this->filtro_alerta))
-            ->orderBy('vehiculo')
-            ->paginate(10);
+        )->paginate(10);
 
         $depositosPermitidos = $user->getDepositosPermitidosParaModulo('vehiculos');
         $depositos = Deposito::with('corralon')
