@@ -108,14 +108,8 @@
                 </x-ui.campo>
 
                 <x-ui.campo etiqueta="Corralón" nombre="id_corralon" obligatorio>
-                    <x-ui.select-nativo nombre="id_corralon" wire:model="id_corralon">
-                        <option value="">Seleccione un corralón</option>
-                        @foreach($corralones as $corralon)
-                            <option value="{{ $corralon->id }}">
-                                {{ $corralon->descripcion }} - {{ $corralon->ubicacion }}
-                            </option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_corralon" wire:model="id_corralon" placeholder="Seleccione un corralón"
+                                   :opciones="$corralones->mapWithKeys(fn ($c) => [$c->id => $c->descripcion.' - '.$c->ubicacion])" />
                 </x-ui.campo>
             </div>
 
