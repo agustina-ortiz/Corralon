@@ -61,8 +61,11 @@ class AbmDepositos extends Component
         $depositos = $this->aplicarOrden(Deposito::with('corralon')
             ->porCorralonesPermitidos()
             ->when($this->search, function($query) {
-                $query->where('deposito', 'like', '%' . $this->search . '%')
+                // Agrupado: un orWhere suelto se saltea porCorralonesPermitidos() y el filtro de corralón.
+                $query->where(function ($q) {
+                    $q->where('deposito', 'like', '%' . $this->search . '%')
                       ->orWhere('id', 'like', '%' . $this->search . '%');
+                });
             })
             ->when($this->filtro_corralon, function($query) {
                 $query->where('id_corralon', $this->filtro_corralon);
