@@ -274,7 +274,7 @@ class ComboboxTest extends TestCase
 
         // El texto vive en Alpine y va al servidor con debounce (no wire:model:
         // la respuesta del pedido que carga la lista pisaba lo tipeado).
-        $this->assertStringContainsString('x-on:input="resaltado = 0; enviarBusqueda()"', $html);
+        $this->assertStringContainsString('x-on:input="resaltado = primeraHabilitada(); enviarBusqueda()"', $html);
         $this->assertStringContainsString('setTimeout(() => $wire.set(this.buscarEn, this.busqueda), 300)', $html);
         $this->assertStringContainsString("buscarEn: 'busqueda'", $html);
         $this->assertStringNotContainsString('wire:model.live="busqueda"', $html);

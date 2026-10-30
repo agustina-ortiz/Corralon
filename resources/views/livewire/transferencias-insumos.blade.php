@@ -654,33 +654,21 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @if($tieneMultiplesCorralones)
                     <x-ui.campo etiqueta="Corralón Origen" nombre="id_corralon_origen" obligatorio>
-                        <x-ui.select-nativo nombre="id_corralon_origen" wire:model.live="id_corralon_origen">
-                            <option value="">Seleccione corralón origen</option>
-                            @foreach($corralones as $corralon)
-                                <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                            @endforeach
-                        </x-ui.select-nativo>
+                        <x-ui.combobox nombre="id_corralon_origen" wire:model.live="id_corralon_origen" placeholder="Seleccione corralón origen"
+                                       :opciones="$corralones" etiqueta="descripcion" />
                     </x-ui.campo>
 
                     <x-ui.campo etiqueta="Corralón Destino" nombre="id_corralon_destino" obligatorio>
-                        <x-ui.select-nativo nombre="id_corralon_destino" wire:model.live="id_corralon_destino">
-                            <option value="">Seleccione corralón destino</option>
-                            @foreach($corralones as $corralon)
-                                <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                            @endforeach
-                        </x-ui.select-nativo>
+                        <x-ui.combobox nombre="id_corralon_destino" wire:model.live="id_corralon_destino" placeholder="Seleccione corralón destino"
+                                       :opciones="$corralones" etiqueta="descripcion" />
                     </x-ui.campo>
                 @endif
 
                 <x-ui.campo etiqueta="Depósito Origen" nombre="id_deposito_origen" obligatorio
                             :ayuda="$tieneMultiplesCorralones && !$id_corralon_origen ? 'Primero seleccione un corralón de origen.' : null">
-                    <x-ui.select-nativo nombre="id_deposito_origen" wire:model.live="id_deposito_origen"
-                                        :disabled="$tieneMultiplesCorralones && !$id_corralon_origen">
-                        <option value="">Seleccione depósito origen</option>
-                        @foreach($depositosOrigen as $deposito)
-                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_deposito_origen" wire:model.live="id_deposito_origen" placeholder="Seleccione depósito origen"
+                                   :disabled="$tieneMultiplesCorralones && !$id_corralon_origen"
+                                   :ordenar="false" :opciones="$depositosOrigen" etiqueta="deposito" />
                 </x-ui.campo>
 
                 @php
@@ -689,13 +677,10 @@
                         : (!$tieneMultiplesCorralones && !$id_deposito_origen ? 'Primero seleccione un depósito de origen.' : null);
                 @endphp
                 <x-ui.campo etiqueta="Depósito Destino" nombre="id_deposito_destino" obligatorio :ayuda="$ayudaDestino">
-                    <x-ui.select-nativo nombre="id_deposito_destino" wire:model="id_deposito_destino"
-                                        :disabled="$tieneMultiplesCorralones ? !$id_corralon_destino : !$id_deposito_origen">
-                        <option value="">Seleccione depósito destino</option>
-                        @foreach($depositosDestino as $deposito)
-                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}{{ !$tieneMultiplesCorralones ? ' - ' . $deposito->corralon->descripcion : '' }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_deposito_destino" wire:model="id_deposito_destino" placeholder="Seleccione depósito destino"
+                                   :disabled="$tieneMultiplesCorralones ? !$id_corralon_destino : !$id_deposito_origen"
+                                   :ordenar="false"
+                                   :opciones="$depositosDestino->mapWithKeys(fn ($d) => [$d->id => $d->deposito.(! $tieneMultiplesCorralones ? ' - '.$d->corralon->descripcion : '')])" />
                 </x-ui.campo>
             </div>
 
@@ -703,60 +688,24 @@
                 <!-- Búsqueda y selección de insumos -->
                 <div>
                     <x-ui.campo etiqueta="Agregar Insumos" nombre="insumos_transferencia" obligatorio>
-                        <div class="relative">
-                            <x-ui.input nombre="insumos_transferencia"
-                                        wire:model.live="search_insumo_transferencia"
-                                        wire:focus="mostrarListaTransferencia"
-                                        placeholder="Buscar insumo por nombre o categoría..."
-                                        class="pr-10" autocomplete="off" />
-                            <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                        </div>
+                        {{-- Busca en el servidor (search_insumo_transferencia); al elegir agrega la línea. --}}
+                        <x-ui.combobox nombre="insumos_transferencia" buscar-en="search_insumo_transferencia" accion="agregarInsumoTransferencia"
+                                       placeholder="Buscar insumo por nombre o categoría..."
+                                       sin-resultados="No hay insumos con stock disponible que coincidan con la búsqueda"
+                                       x-on:combobox-abierto="$wire.mostrarListaTransferencia()"
+                                       :opciones="$insumos_disponibles_transferencia->map(function ($insumo) use ($insumos_transferencia) {
+                                           $yaAgregado = collect($insumos_transferencia)->contains('id', $insumo->id);
 
-                        @if($mostrar_lista_transferencia && $insumos_disponibles_transferencia->count() > 0)
-                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 overflow-y-auto">
-                                <ul class="py-2">
-                                    @foreach($insumos_disponibles_transferencia as $insumo)
-                                        @php
-                                            $yaAgregado = collect($insumos_transferencia)->contains('id', $insumo->id);
-                                        @endphp
-                                        <li>
-                                            <button
-                                                type="button"
-                                                wire:click="agregarInsumoTransferencia({{ $insumo->id }})"
-                                                class="w-full text-left px-4 py-3 hover:bg-purple-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0 {{ $yaAgregado ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                                @if($yaAgregado) disabled @endif
-                                            >
-                                                <div class="flex justify-between items-start">
-                                                    <div class="flex-1">
-                                                        <div class="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                                            {{ $insumo->insumo }}
-                                                            @if($yaAgregado)
-                                                                <span class="text-xs text-purple-600">(agregado)</span>
-                                                            @endif
-                                                        </div>
-                                                        <div class="mt-1">
-                                                            <x-ui.badge color="azul">{{ $insumo->categoriaInsumo->nombre }}</x-ui.badge>
-                                                        </div>
-                                                    </div>
-                                                    <div class="text-right ml-3">
-                                                        <div class="text-sm font-semibold text-green-600">
-                                                            {{ number_format($insumo->stock_actual, 2) }}
-                                                        </div>
-                                                        <div class="text-xs text-gray-400">{{ $insumo->unidad }}</div>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
-                        @if($mostrar_lista_transferencia && $search_insumo_transferencia && $insumos_disponibles_transferencia->count() == 0)
-                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                <x-ui.vacio icono="fa-box-open">No hay insumos con stock disponible que coincidan con la búsqueda</x-ui.vacio>
-                            </div>
-                        @endif
+                                           return [
+                                               'id' => $insumo->id,
+                                               'nombre' => $insumo->insumo,
+                                               'insignia' => $insumo->categoriaInsumo->nombre,
+                                               'cifra' => number_format($insumo->stock_actual, 2),
+                                               'subcifra' => $insumo->unidad,
+                                               'nota' => $yaAgregado ? '(agregado)' : null,
+                                               'deshabilitada' => $yaAgregado ?: null,
+                                           ];
+                                       })" />
                     </x-ui.campo>
                 </div>
 
@@ -855,53 +804,20 @@
             <!-- PASO 1: Seleccionar Insumo -->
             @if($paso_actual === 1)
                 <x-ui.campo etiqueta="Buscar Insumo" nombre="search_insumo" obligatorio>
-                    <div class="relative">
-                        <x-ui.input nombre="search_insumo"
-                                    wire:model.live="search_insumo"
-                                    wire:focus="mostrarLista"
-                                    placeholder="Buscar por nombre, categoría o depósito..."
-                                    class="pr-10" autocomplete="off" />
-                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                    </div>
-
-                    @if($mostrar_lista && $insumos_filtrados->count() > 0)
-                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
-                            <ul class="py-2">
-                                @foreach($insumos_filtrados as $insumo)
-                                    <li>
-                                        <button
-                                            type="button"
-                                            wire:click="seleccionarInsumo({{ $insumo->id }})"
-                                            class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                        >
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="text-sm font-medium text-gray-900">{{ $insumo->insumo }}</div>
-                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                                        <x-ui.badge color="azul">{{ $insumo->categoriaInsumo->nombre }}</x-ui.badge>
-                                                        <span>•</span>
-                                                        <span>{{ $insumo->deposito->deposito }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-right ml-3">
-                                                    <div class="text-sm font-semibold {{ $insumo->stock_actual > 0 ? 'text-green-600' : 'text-orange-600' }}">
-                                                        {{ number_format($insumo->stock_actual, 2) }}
-                                                    </div>
-                                                    <div class="text-xs text-gray-400">{{ $insumo->unidad }}</div>
-                                                </div>
-                                            </div>
-                                        </button>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if($mostrar_lista && $search_insumo && $insumos_filtrados->count() == 0)
-                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                            <x-ui.vacio icono="fa-box-open">No hay insumos que coincidan con la búsqueda</x-ui.vacio>
-                        </div>
-                    @endif
+                    {{-- Busca en el servidor (search_insumo); al elegir avanza al paso 2. --}}
+                    <x-ui.combobox nombre="search_insumo" buscar-en="search_insumo" accion="seleccionarInsumo"
+                                   placeholder="Buscar por nombre, categoría o depósito..."
+                                   sin-resultados="No hay insumos que coincidan con la búsqueda"
+                                   x-on:combobox-abierto="$wire.mostrarLista()"
+                                   :opciones="$insumos_filtrados->map(fn ($insumo) => [
+                                       'id' => $insumo->id,
+                                       'nombre' => $insumo->insumo,
+                                       'insignia' => $insumo->categoriaInsumo->nombre,
+                                       'detalle' => $insumo->deposito->deposito,
+                                       'cifra' => number_format($insumo->stock_actual, 2),
+                                       'cifra_color' => $insumo->stock_actual > 0 ? 'verde' : 'naranja',
+                                       'subcifra' => $insumo->unidad,
+                                   ])" />
                 </x-ui.campo>
 
                 @if(!$search_insumo)
@@ -1055,97 +971,32 @@
                                         <x-ui.accion icono="fa-xmark" etiqueta="Quitar la selección" wire:click="$set('id_referencia', '')" />
                                     </div>
                                 @else
-                                    <div class="relative">
-                                        <x-ui.input nombre="id_referencia"
-                                                    wire:model.live="search_destino"
-                                                    wire:focus="$set('mostrar_lista_destino', true)"
-                                                    placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
-                                                    class="pr-10" autocomplete="off" />
-                                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                                    </div>
-
-                                    @if($mostrar_lista_destino)
-                                        @if($tipo_destino === 'vehiculo' && $vehiculos_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($vehiculos_destino as $v)
-                                                        <li>
-                                                            <button
-                                                                type="button"
-                                                                wire:click="seleccionarDestino({{ $v->id }})"
-                                                                class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                                            >
-                                                                <div class="text-sm font-medium text-gray-900">{{ $v->vehiculo }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">{{ $v->patente }} • {{ $v->marca_modelo }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($tipo_destino === 'evento' && $eventos_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($eventos_destino as $ev)
-                                                        <li>
-                                                            <button
-                                                                type="button"
-                                                                wire:click="seleccionarDestino({{ $ev->id }})"
-                                                                class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                                            >
-                                                                <div class="text-sm font-medium text-gray-900">{{ $ev->evento }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">{{ $ev->fecha?->format('d/m/Y') }} • {{ $ev->ubicacion }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($tipo_destino === 'empleado' && $empleados_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($empleados_destino as $emp)
-                                                        <li>
-                                                            <button
-                                                                type="button"
-                                                                wire:click="seleccionarDestino({{ $emp->LEGAJO }})"
-                                                                class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                                            >
-                                                                <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($search_destino)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                                <x-ui.vacio icono="fa-magnifying-glass">No hay {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }} que coincidan con la búsqueda</x-ui.vacio>
-                                            </div>
-                                        @endif
-                                    @endif
+                                    {{-- Busca en el servidor (search_destino); al elegir marca el destino. --}}
+                                    @include('livewire.partials.combobox-destino', [
+                                        'tipo' => $tipo_destino,
+                                        'buscarEn' => 'search_destino',
+                                        'accion' => 'seleccionarDestino',
+                                        'alAbrir' => "\$wire.set('mostrar_lista_destino', true)",
+                                        'vehiculos' => $vehiculos_destino,
+                                        'eventos' => $eventos_destino,
+                                        'empleados' => $empleados_destino,
+                                    ])
                                 @endif
                             </x-ui.campo>
                         @elseif($tipo_destino === 'secretaria')
                             <!-- Secretaría y Área -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <x-ui.campo etiqueta="Secretaría" nombre="id_secretaria_ajuste" obligatorio>
-                                    <x-ui.select-nativo nombre="id_secretaria_ajuste" wire:model.live="id_secretaria_ajuste">
-                                        <option value="">— Seleccionar —</option>
-                                        @foreach($secretarias as $sec)
-                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                                        @endforeach
-                                    </x-ui.select-nativo>
+                                    <x-ui.combobox nombre="id_secretaria_ajuste" wire:model.live="id_secretaria_ajuste" placeholder="— Seleccionar —"
+                                                   :opciones="$secretarias" etiqueta="secretaria" />
                                 </x-ui.campo>
                                 <x-ui.campo etiqueta="Área" nombre="area_ajuste"
                                             :ayuda="$id_secretaria_ajuste && count($areas_disponibles) === 0 ? 'No hay áreas cargadas para esta secretaría.' : null"
                                             x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputInsumos?.focus()) })">
                                     <template x-if="!modoLibre">
                                         <div>
-                                            <x-ui.select-nativo nombre="area_ajuste" wire:model="area_ajuste">
-                                                <option value="">— Seleccionar —</option>
-                                                @foreach($areas_disponibles as $area)
-                                                    <option value="{{ $area }}">{{ $area }}</option>
-                                                @endforeach
-                                            </x-ui.select-nativo>
+                                            <x-ui.combobox nombre="area_ajuste" wire:model="area_ajuste" placeholder="— Seleccionar —"
+                                                           :opciones="collect($areas_disponibles)->values()" />
                                             <x-ui.boton variante="enlace" tamano="chico" icono="fa-regular fa-pen-to-square" class="mt-1"
                                                         x-on:click="modoLibre = true; $wire.set('area_ajuste', '')">
                                                 Escribir área manualmente
@@ -1335,88 +1186,33 @@
                                     <x-ui.accion icono="fa-xmark" etiqueta="Quitar la selección" wire:click="$set('multi_id_referencia', '')" />
                                 </div>
                             @else
-                                <div class="relative">
-                                    <x-ui.input nombre="multi_id_referencia"
-                                                wire:model.live="multi_search_destino"
-                                                wire:focus="$set('multi_mostrar_lista_destino', true)"
-                                                placeholder="Buscar {{ $multi_tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($multi_tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
-                                                class="pr-10" autocomplete="off" />
-                                    <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                                </div>
-
-                                @if($multi_mostrar_lista_destino)
-                                    @if($multi_tipo_destino === 'vehiculo' && $multi_vehiculos->count() > 0)
-                                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                            <ul class="py-2">
-                                                @foreach($multi_vehiculos as $v)
-                                                    <li>
-                                                        <button type="button" wire:click="multiSeleccionarDestino({{ $v->id }})"
-                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                            <div class="text-sm font-medium text-gray-900">{{ $v->vehiculo }}</div>
-                                                            <div class="text-xs text-gray-500 mt-0.5">{{ $v->patente }} • {{ $v->marca_modelo }}</div>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @elseif($multi_tipo_destino === 'evento' && $multi_eventos->count() > 0)
-                                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                            <ul class="py-2">
-                                                @foreach($multi_eventos as $ev)
-                                                    <li>
-                                                        <button type="button" wire:click="multiSeleccionarDestino({{ $ev->id }})"
-                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                            <div class="text-sm font-medium text-gray-900">{{ $ev->evento }}</div>
-                                                            <div class="text-xs text-gray-500 mt-0.5">{{ $ev->fecha?->format('d/m/Y') }} • {{ $ev->ubicacion }}</div>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @elseif($multi_tipo_destino === 'empleado' && $multi_empleados->count() > 0)
-                                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                            <ul class="py-2">
-                                                @foreach($multi_empleados as $emp)
-                                                    <li>
-                                                        <button type="button" wire:click="multiSeleccionarDestino({{ $emp->LEGAJO }})"
-                                                            class="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                            <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
-                                                            <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @elseif($multi_search_destino)
-                                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                            <x-ui.vacio icono="fa-magnifying-glass">No hay {{ $multi_tipo_destino === 'vehiculo' ? 'vehículos' : ($multi_tipo_destino === 'evento' ? 'eventos' : 'empleados') }} que coincidan con la búsqueda</x-ui.vacio>
-                                        </div>
-                                    @endif
-                                @endif
+                                {{-- Busca en el servidor (multi_search_destino); al elegir marca el destinatario. --}}
+                                @include('livewire.partials.combobox-destino', [
+                                    'tipo' => $multi_tipo_destino,
+                                    'nombre' => 'multi_id_referencia',
+                                    'buscarEn' => 'multi_search_destino',
+                                    'accion' => 'multiSeleccionarDestino',
+                                    'alAbrir' => "\$wire.set('multi_mostrar_lista_destino', true)",
+                                    'vehiculos' => $multi_vehiculos,
+                                    'eventos' => $multi_eventos,
+                                    'empleados' => $multi_empleados,
+                                ])
                             @endif
                         </x-ui.campo>
                     @elseif($multi_tipo_destino === 'secretaria')
                         {{-- Secretaría y Área --}}
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <x-ui.campo etiqueta="Secretaría" nombre="multi_id_secretaria" obligatorio>
-                                <x-ui.select-nativo nombre="multi_id_secretaria" wire:model.live="multi_id_secretaria">
-                                    <option value="">— Seleccionar —</option>
-                                    @foreach($secretarias as $sec)
-                                        <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                                    @endforeach
-                                </x-ui.select-nativo>
+                                <x-ui.combobox nombre="multi_id_secretaria" wire:model.live="multi_id_secretaria" placeholder="— Seleccionar —"
+                                               :opciones="$secretarias" etiqueta="secretaria" />
                             </x-ui.campo>
                             <x-ui.campo etiqueta="Área" nombre="multi_area"
                                         :ayuda="$multi_id_secretaria && count($multi_areas_disponibles) === 0 ? 'No hay áreas cargadas para esta secretaría.' : null"
                                         x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMulti?.focus()) })">
                                 <template x-if="!modoLibre">
                                     <div>
-                                        <x-ui.select-nativo nombre="multi_area" wire:model="multi_area">
-                                            <option value="">— Seleccionar —</option>
-                                            @foreach($multi_areas_disponibles as $area)
-                                                <option value="{{ $area }}">{{ $area }}</option>
-                                            @endforeach
-                                        </x-ui.select-nativo>
+                                        <x-ui.combobox nombre="multi_area" wire:model="multi_area" placeholder="— Seleccionar —"
+                                                       :opciones="collect($multi_areas_disponibles)->values()" />
                                         <x-ui.boton variante="enlace" tamano="chico" icono="fa-regular fa-pen-to-square" class="mt-1"
                                                     x-on:click="modoLibre = true; $wire.set('multi_area', '')">
                                             Escribir área manualmente
@@ -1515,13 +1311,12 @@
                                                      wire:click="quitarLineaMultiple({{ $index }})" class="flex-shrink-0" />
                                     </div>
                                     <div class="grid grid-cols-3 gap-2">
-                                        <x-ui.campo class="col-span-2" :nombre="$campoTipo">
-                                            <x-ui.select-nativo :nombre="$campoTipo" wire:model="multi_lineas.{{ $index }}.tipo"
-                                                                aria-label="Tipo de movimiento de {{ $linea['insumo_nombre'] }}">
-                                                <option value="asignacion_con_reposicion">Asignación con Reposición</option>
-                                                <option value="asignacion_sin_reposicion">Asignación sin Reposición</option>
-                                            </x-ui.select-nativo>
-                                        </x-ui.campo>
+                                        {{-- Grupo de radios: fieldset sin rótulo visible (lo dice el aria-label) --}}
+                                        <x-ui.grupo class="col-span-2" :nombre="$campoTipo">
+                                            <x-ui.opciones :nombre="$campoTipo" wire:model="multi_lineas.{{ $index }}.tipo" class="w-full"
+                                                           aria-label="Tipo de movimiento de {{ $linea['insumo_nombre'] }}"
+                                                           :opciones="['asignacion_con_reposicion' => 'Con reposición', 'asignacion_sin_reposicion' => 'Sin reposición']" />
+                                        </x-ui.grupo>
                                         <x-ui.campo :nombre="$campoCant">
                                             <x-ui.input :nombre="$campoCant" type="number" min="1" step="any"
                                                         wire:model="multi_lineas.{{ $index }}.cantidad"

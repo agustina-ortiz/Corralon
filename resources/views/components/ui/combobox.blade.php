@@ -190,7 +190,8 @@
             // el pedido que carga la lista).
             this.busqueda = this.servidor ? String($wire.get(this.buscarEn) ?? '') : '';
             if (tecla !== null) { this.busqueda = tecla; this.enviarBusqueda() }
-            this.resaltado = Math.max(0, this.filtradas.findIndex(o => this.seleccionada && String(o.valor) === String(this.seleccionada.valor)));
+            const elegida = this.filtradas.findIndex(o => this.seleccionada && String(o.valor) === String(this.seleccionada.valor));
+            this.resaltado = elegida >= 0 ? elegida : this.primeraHabilitada();
             if (this.servidor) this.$dispatch('combobox-abierto');
             this.$nextTick(() => {
                 this.posicionar();
@@ -199,6 +200,7 @@
                 this.enfocarResaltado();
             });
         },
+        primeraHabilitada() { return Math.max(0, this.filtradas.findIndex(o => ! o.deshabilitada)) },
         cerrar() { this.abierto = false; if (! this.servidor) this.busqueda = ''; this.resaltado = -1 },
         alternar() { this.abierto ? this.cerrar() : this.abrir() },
         elegir(opcion) {
@@ -217,7 +219,7 @@
             evento.preventDefault();
             if (! this.abierto) { this.abrir(evento.key); return }
             this.busqueda += evento.key;
-            this.resaltado = 0;
+            this.resaltado = this.primeraHabilitada();
             this.$refs.buscador?.focus();
             this.enviarBusqueda();
         },
@@ -291,7 +293,7 @@
         @if($conBuscador)
             <div class="shrink-0 border-b border-gray-200 p-2">
                 <input type="text" x-ref="buscador" autocomplete="off" placeholder="Buscar..."
-                       x-model="busqueda" x-on:input="resaltado = 0; enviarBusqueda()"
+                       x-model="busqueda" x-on:input="resaltado = primeraHabilitada(); enviarBusqueda()"
                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none {{ Tema::anilloFoco() }}">
             </div>
         @endif
