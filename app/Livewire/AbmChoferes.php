@@ -4,6 +4,8 @@ namespace App\Livewire;
 
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\CategoriaLicencia;
@@ -14,6 +16,7 @@ use App\Models\Secretaria;
 class AbmChoferes extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -69,19 +72,36 @@ class AbmChoferes extends Component
         $this->resetPage();
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'legajo' => 'numero_empleado',
+            'nombre' => 'nombre',
+            'dni' => 'dni',
+            'licencia' => 'licencia',
+            'vencimiento' => 'vencimiento_licencia',
+            'area' => 'area',
+            'vehiculos' => fn (Builder $q, string $dir) => $q->withCount('vehiculos')->orderBy('vehiculos_count', $dir),
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['nombre', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
 
-        $choferes = Chofer::where(function ($query) {
+        $choferes = $this->aplicarOrden(Chofer::where(function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
                       ->orWhere('dni', 'like', '%' . $this->search . '%')
                       ->orWhere('numero_empleado', 'like', '%' . $this->search . '%')
                       ->orWhere('area', 'like', '%' . $this->search . '%');
             })
             ->with('vehiculos')
-            ->orderBy('nombre')
-            ->paginate(10);
+        )->paginate(10);
 
         $vehiculos = Vehiculo::orderBy('nro_patrimonio')->get();
         $secretarias = Secretaria::orderBy('secretaria')->get();

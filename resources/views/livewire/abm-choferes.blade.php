@@ -7,121 +7,101 @@
 
     <!-- Búsqueda y filtros -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div class="flex-1 max-w-md">
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input
-                    type="text"
-                    wire:model.live="search"
-                    placeholder="Buscar por nombre, DNI, legajo o área..."
-                    class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-            </div>
-        </div>
+        <x-ui.buscador wire:model.live="search" placeholder="Buscar por nombre, DNI, legajo o área..." />
 
     </div>
 
-    <!-- Tabla -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Legajo</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nombre</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">DNI</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Licencia</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Venc. Licencia</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Área</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Vehículos</th>
-                        @if($puedeEditar || $puedeEliminar)
-                        <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
+    {{-- Tabla --}}
+    <x-ui.tabla>
+        <x-slot:cabecera>
+            <x-ui.th columna="legajo" :orden="$this->orden()">Legajo</x-ui.th>
+            <x-ui.th columna="nombre" :orden="$this->orden()">Nombre</x-ui.th>
+            <x-ui.th columna="dni" :orden="$this->orden()">DNI</x-ui.th>
+            <x-ui.th columna="licencia" :orden="$this->orden()">Licencia</x-ui.th>
+            <x-ui.th columna="vencimiento" :orden="$this->orden()">Venc. Licencia</x-ui.th>
+            <x-ui.th columna="area" :orden="$this->orden()">Área</x-ui.th>
+            <x-ui.th columna="vehiculos" :orden="$this->orden()">Vehículos</x-ui.th>
+            @if($puedeEditar || $puedeEliminar)
+            <x-ui.th derecha>Acciones</x-ui.th>
+            @endif
+        </x-slot:cabecera>
+
+        @forelse ($choferes as $chofer)
+            <tr wire:key="fila-{{ $chofer->id }}" class="hover:bg-gray-50/50 transition-colors duration-150">
+                <td class="px-6 py-4">
+                    <x-ui.badge color="azul">{{ $chofer->numero_empleado }}</x-ui.badge>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">{{ $chofer->nombre }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-600">{{ $chofer->dni }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    @if($chofer->licencia)
+                        <x-ui.badge>{{ $chofer->licencia }}</x-ui.badge>
+                    @else
+                        <span class="text-gray-400 text-xs">—</span>
+                    @endif
+                </td>
+                <td class="px-6 py-4">
+                    @if($chofer->vencimiento_licencia)
+                        @php
+                            $hoy = now();
+                            $venc = $chofer->vencimiento_licencia;
+                            $dias = $hoy->diffInDays($venc, false);
+                        @endphp
+                        @if($dias < 0)
+                            <x-ui.badge color="rojo">Vencida {{ $venc->format('d/m/Y') }}</x-ui.badge>
+                        @elseif($dias <= 30)
+                            <x-ui.badge color="ambar">{{ $venc->format('d/m/Y') }} ({{ (int) ceil($dias) }}d)</x-ui.badge>
+                        @else
+                            <span class="text-sm text-gray-600">{{ $venc->format('d/m/Y') }}</span>
                         @endif
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-50">
-                    @forelse ($choferes as $chofer)
-                        <tr class="hover:bg-gray-50/50 transition-colors duration-150">
-                            <td class="px-6 py-4">
-                                <x-ui.badge color="azul">{{ $chofer->numero_empleado }}</x-ui.badge>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $chofer->nombre }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-600">{{ $chofer->dni }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($chofer->licencia)
-                                    <x-ui.badge>{{ $chofer->licencia }}</x-ui.badge>
-                                @else
-                                    <span class="text-gray-400 text-xs">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($chofer->vencimiento_licencia)
-                                    @php
-                                        $hoy = now();
-                                        $venc = $chofer->vencimiento_licencia;
-                                        $dias = $hoy->diffInDays($venc, false);
-                                    @endphp
-                                    @if($dias < 0)
-                                        <x-ui.badge color="rojo">Vencida {{ $venc->format('d/m/Y') }}</x-ui.badge>
-                                    @elseif($dias <= 30)
-                                        <x-ui.badge color="ambar">{{ $venc->format('d/m/Y') }} ({{ (int) ceil($dias) }}d)</x-ui.badge>
-                                    @else
-                                        <span class="text-sm text-gray-600">{{ $venc->format('d/m/Y') }}</span>
-                                    @endif
-                                @else
-                                    <span class="text-gray-400 text-xs">—</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-600">{{ $chofer->area ?? '—' }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($chofer->vehiculos->count() > 0)
-                                    <div class="flex flex-wrap gap-1">
-                                        @foreach($chofer->vehiculos as $v)
-                                            <x-ui.badge color="verde">{{ $v->patente ?? 'Patrimonio ' . $v->nro_patrimonio }}</x-ui.badge>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <span class="text-gray-400 text-xs">Sin asignar</span>
-                                @endif
-                            </td>
-                            @if($puedeEditar || $puedeEliminar)
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-1">
-                                    @if($puedeEditar)
-                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $chofer->id }})" />
-                                    @endif
+                    @else
+                        <span class="text-gray-400 text-xs">—</span>
+                    @endif
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-600">{{ $chofer->area ?? '—' }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    @if($chofer->vehiculos->count() > 0)
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($chofer->vehiculos as $v)
+                                <x-ui.badge color="verde">{{ $v->patente ?? 'Patrimonio ' . $v->nro_patrimonio }}</x-ui.badge>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="text-gray-400 text-xs">Sin asignar</span>
+                    @endif
+                </td>
+                @if($puedeEditar || $puedeEliminar)
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        @if($puedeEditar)
+                        <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="editar({{ $chofer->id }})" />
+                        @endif
 
-                                    @if($puedeEliminar)
-                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $chofer->id }})" />
-                                    @endif
-                                </div>
-                            </td>
-                            @endif
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-6 py-6">
-                                <x-ui.vacio icono="fa-id-card">{{ $search ? 'No hay choferes que coincidan con la búsqueda' : 'Todavía no hay choferes cargados' }}</x-ui.vacio>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                        @if($puedeEliminar)
+                        <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $chofer->id }})" />
+                        @endif
+                    </div>
+                </td>
+                @endif
+            </tr>
+        @empty
+            <tr>
+                <td colspan="8" class="px-6 py-6">
+                    <x-ui.vacio icono="fa-id-card">{{ $search ? 'No hay choferes que coincidan con la búsqueda' : 'Todavía no hay choferes cargados' }}</x-ui.vacio>
+                </td>
+            </tr>
+        @endforelse
 
-        <!-- Paginación -->
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
-            {{ $choferes->links() }}
-        </div>
-    </div>
+        <x-slot:pie>
+            <x-ui.paginacion :paginador="$choferes" />
+        </x-slot:pie>
+    </x-ui.tabla>
 
     <!-- Modal -->
     @if($showModal)
