@@ -88,16 +88,6 @@ final class Tema
     }
 
     /**
-     * <select> nativo dentro de un <x-ui.campo>, con el mismo aspecto que
-     * <x-ui.input>. Provisorio: los select pasan a combobox en su fase.
-     */
-    public static function selectNativo(bool $conError = false): string
-    {
-        return 'block w-full px-4 py-2.5 border rounded-xl text-gray-800 focus:outline-none transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400 '
-            .self::anilloFoco().' '.($conError ? 'border-red-500' : 'border-gray-200');
-    }
-
-    /**
      * Botón de <x-ui.combobox>: mismo aspecto que <x-ui.input> (rounded-xl,
      * px-4 py-2.5, borde gris o rojo con error).
      */

@@ -156,19 +156,6 @@ class PiezasPantallaTest extends TestCase
         $this->assertStringNotContainsString('aria-invalid', $sinError);
     }
 
-    public function test_select_nativo_provisorio_se_enlaza_al_campo_como_el_input(): void
-    {
-        $this->conErrores(['id_corralon' => ['Debe seleccionar un corralón']]);
-
-        $html = Blade::render('<x-ui.campo etiqueta="Corralón" nombre="id_corralon" obligatorio><x-ui.select-nativo nombre="id_corralon" wire:model="id_corralon"><option value="">-</option></x-ui.select-nativo></x-ui.campo>');
-
-        $this->assertMatchesRegularExpression('/<select\s+id="campo-id_corralon"/', $html);
-        $this->assertStringContainsString('aria-describedby="error-id_corralon ayuda-id_corralon"', $html);
-        $this->assertStringContainsString('aria-invalid="true"', $html);
-        $this->assertStringContainsString('border-red-500', $html);
-        $this->assertStringContainsString('wire:model="id_corralon"', $html);
-    }
-
     public function test_checkbox_con_rotulo_al_lado(): void
     {
         $html = Blade::render('<x-ui.checkbox nombre="evento_anual" etiqueta="Evento anual" ayuda="Se repite todos los años" wire:model="evento_anual" />');
