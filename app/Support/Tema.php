@@ -97,6 +97,22 @@ final class Tema
             .self::anilloFoco().' '.($conError ? 'border-red-500' : 'border-gray-200');
     }
 
+    /**
+     * Botón de <x-ui.combobox>: mismo aspecto que <x-ui.input> (rounded-xl,
+     * px-4 py-2.5, borde gris o rojo con error).
+     */
+    public static function controlCombobox(bool $conError = false): string
+    {
+        return 'flex w-full items-center gap-2 px-4 py-2.5 border rounded-xl bg-white text-left text-gray-800 focus:outline-none transition-all duration-200 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed '
+            .self::anilloFoco().' '.($conError ? 'border-red-500' : 'border-gray-200');
+    }
+
+    /** Insignia de la opción de un combobox (la categoría del insumo): el azul de <x-ui.badge>. */
+    public static function insigniaOpcion(): string
+    {
+        return 'bg-blue-100 text-blue-800';
+    }
+
     /** Fondo suave de acento (opción resaltada de un desplegable, chips). */
     public static function acentoFondoSuave(): string
     {

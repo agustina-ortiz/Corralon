@@ -110,9 +110,17 @@
         // Mueve el foco al primer campo posterior a `desde` (sin contar los
         // que estén adentro de `desde`). Devuelve false si era el último.
         siguienteCampo(desde) {
+            // Un grupo de radios (x-ui.opciones) cuenta como un solo campo:
+            // se saltean los del mismo grupo y, si el grupo siguiente ya tiene
+            // uno marcado, se entra por ese.
+            const mismoGrupo = campo => campo.type === 'radio' && desde.type === 'radio' && campo.name === desde.name;
+            const otroDelGrupo = campo => campo.type === 'radio' && ! campo.checked
+                && $refs.cuerpo.querySelector(`input[type=radio][name='${CSS.escape(campo.name)}']:checked`);
             const siguiente = this.campos().find(campo =>
                 campo !== desde
                 && ! desde.contains(campo)
+                && ! mismoGrupo(campo)
+                && ! otroDelGrupo(campo)
                 && (desde.compareDocumentPosition(campo) & Node.DOCUMENT_POSITION_FOLLOWING)
             );
             if (! siguiente) return false;
