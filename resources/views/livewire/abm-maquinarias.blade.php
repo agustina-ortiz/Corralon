@@ -242,12 +242,8 @@
                 </x-ui.campo>
 
                 <x-ui.campo class="sm:col-span-2" etiqueta="Categoría" nombre="id_categoria_maquinaria" obligatorio>
-                    <x-ui.select-nativo nombre="id_categoria_maquinaria" wire:model="id_categoria_maquinaria">
-                        <option value="">Seleccione una categoría</option>
-                        @foreach($categorias as $categoria)
-                            <option value="{{ $categoria->id }}">{{ $categoria->nombre }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_categoria_maquinaria" wire:model="id_categoria_maquinaria" placeholder="Seleccione una categoría"
+                                   :opciones="$categorias" />
                 </x-ui.campo>
 
                 <x-ui.campo etiqueta="Cantidad" nombre="cantidad" obligatorio
@@ -262,30 +258,20 @@
                     </div>
                 </x-ui.campo>
 
-                <x-ui.campo etiqueta="Estado" nombre="estado" obligatorio>
-                    <x-ui.select-nativo nombre="estado" wire:model="estado">
-                        <option value="">Seleccione un estado</option>
-                        <option value="disponible">Disponible</option>
-                        <option value="no disponible">No Disponible</option>
-                    </x-ui.select-nativo>
-                </x-ui.campo>
+                <x-ui.grupo etiqueta="Estado" nombre="estado" obligatorio>
+                    <x-ui.opciones nombre="estado" wire:model="estado" class="w-full"
+                                   :opciones="['disponible' => 'Disponible', 'no disponible' => 'No Disponible']" />
+                </x-ui.grupo>
 
                 <x-ui.campo etiqueta="Corralón" nombre="id_corralon" obligatorio>
-                    <x-ui.select-nativo nombre="id_corralon" wire:model.live="id_corralon">
-                        <option value="">Seleccione un corralón</option>
-                        @foreach($corralones as $corralon)
-                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_corralon" wire:model.live="id_corralon" placeholder="Seleccione un corralón"
+                                   :opciones="$corralones" etiqueta="descripcion" />
                 </x-ui.campo>
 
                 <x-ui.campo etiqueta="Depósito" nombre="id_deposito" obligatorio>
-                    <x-ui.select-nativo nombre="id_deposito" wire:model="id_deposito" :disabled="! $id_corralon">
-                        <option value="">{{ $id_corralon ? 'Seleccione un depósito' : 'Primero seleccione un corralón' }}</option>
-                        @foreach($depositosModal as $deposito)
-                            <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_deposito" wire:model="id_deposito" :disabled="! $id_corralon"
+                                   :placeholder="$id_corralon ? 'Seleccione un depósito' : 'Primero seleccione un corralón'"
+                                   :opciones="$depositosModal" etiqueta="deposito" />
                 </x-ui.campo>
             </div>
 

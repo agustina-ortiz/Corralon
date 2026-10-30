@@ -59,7 +59,7 @@
          'border-red-500 divide-red-200' => $conError,
      ]) }}>
     @foreach($normalizadas as $valor => $texto)
-        <label class="relative min-w-0 flex-1">
+        <label class="relative flex-auto">
             <input type="radio" name="{{ $grupo }}" value="{{ $valor }}" id="campo-{{ $grupo }}-{{ Str::slug((string) $valor) ?: 'vacio' }}"
                    class="peer sr-only" @disabled($disabled)
                    @if($conError && $loop->first) aria-invalid="true" @endif
