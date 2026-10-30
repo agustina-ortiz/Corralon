@@ -15,11 +15,13 @@
       columna  Clave que recibe ordenarPor(). Sin ella no se ordena.
       orden    ['columna' => ..., 'direccion' => 'asc'|'desc'] ($this->orden()).
       derecha  Alinea a la derecha (cantidades, acciones).
+      centro   Centra la columna (badges Sí/No).
 --}}
 @props([
     'columna' => null,
     'orden' => ['columna' => null, 'direccion' => 'asc'],
     'derecha' => false,
+    'centro' => false,
 ])
 
 @php
@@ -34,7 +36,8 @@
 <th scope="col" {{ $attributes->class([
         'px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider',
         'text-right' => $derecha,
-        'text-left' => ! $derecha,
+        'text-center' => $centro && ! $derecha,
+        'text-left' => ! $derecha && ! $centro,
     ]) }}
     @if($ariaSort) aria-sort="{{ $ariaSort }}" @endif
     @if($columna) data-columna="{{ $columna }}" @endif>

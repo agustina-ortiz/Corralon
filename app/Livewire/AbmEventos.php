@@ -6,12 +6,15 @@ use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
 use App\Models\Evento;
 use App\Models\Secretaria;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class AbmEventos extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -56,11 +59,29 @@ class AbmEventos extends Component
         }
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'evento' => 'evento',
+            'fecha' => 'fecha',
+            'ubicacion' => 'ubicacion',
+            'secretaria' => fn (Builder $q, string $dir) => $q->orderBy(
+                Secretaria::select('secretaria')->whereColumn('secretarias.id', 'eventos.secretaria_id'), $dir
+            ),
+            'anual' => 'evento_anual',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['fecha', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
         
-        $eventos = Evento::with('secretaria')
+        $eventos = $this->aplicarOrden(Evento::with('secretaria')
             ->when($this->search, function($query) {
                 $query->where('evento', 'like', '%' . $this->search . '%')
                       ->orWhere('ubicacion', 'like', '%' . $this->search . '%')
@@ -68,8 +89,7 @@ class AbmEventos extends Component
                           $q->where('secretaria', 'like', '%' . $this->search . '%');
                       });
             })
-            ->orderBy('fecha', 'asc')
-            ->paginate(10);
+        )->paginate(10);
 
         $secretarias = Secretaria::orderBy('secretaria')->get();
 
