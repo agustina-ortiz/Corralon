@@ -6,12 +6,14 @@ use App\Models\Secretaria;
 use App\Models\Area;
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
+use App\Livewire\Traits\OrdenaPorColumna;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class AbmSecretarias extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -71,11 +73,25 @@ class AbmSecretarias extends Component
         }
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'id' => 'id',
+            'secretaria' => 'secretaria',
+            'areas' => 'areas_count',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['secretaria', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
 
-        $secretarias = Secretaria::withCount('areas')
+        $secretarias = $this->aplicarOrden(Secretaria::withCount('areas')
             ->with(['areas' => function ($query) {
                 $query->orderBy('area');
             }])
@@ -85,8 +101,7 @@ class AbmSecretarias extends Component
                         $q->where('area', 'like', '%' . $this->search . '%');
                     });
             })
-            ->orderBy('secretaria')
-            ->paginate(15);
+        )->paginate(15);
 
         return view('livewire.abm-secretarias', [
             'secretarias' => $secretarias,
