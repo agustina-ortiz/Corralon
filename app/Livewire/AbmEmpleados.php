@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Traits\OrdenaPorColumna;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\EmpleadoMunicipal;
@@ -9,6 +10,7 @@ use App\Models\EmpleadoMunicipal;
 class AbmEmpleados extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
 
     public $search = '';
 
@@ -25,9 +27,25 @@ class AbmEmpleados extends Component
         $this->resetPage();
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'legajo' => 'LEGAJO',
+            'nombre' => 'NOMBRE',
+            'dni' => 'DNI',
+            'categoria' => 'CATEGORIA',
+            'ingreso' => 'FECING',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['nombre', 'asc'];
+    }
+
     public function render()
     {
-        $empleados = EmpleadoMunicipal::query()
+        $empleados = $this->aplicarOrden(EmpleadoMunicipal::query()
             ->activos()
             ->when($this->search, function ($query) {
                 $term = '%' . $this->search . '%';
@@ -37,8 +55,7 @@ class AbmEmpleados extends Component
                       ->orWhere('DNI', 'like', $term);
                 });
             })
-            ->orderBy('NOMBRE')
-            ->paginate(10);
+        )->paginate(10);
 
         return view('livewire.abm-empleados', [
             'empleados' => $empleados,
