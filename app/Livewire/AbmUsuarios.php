@@ -9,6 +9,8 @@ use App\Models\Corralon;
 use App\Models\Deposito;
 use App\Models\Rol;
 use App\Models\UsuarioPermiso;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 class AbmUsuarios extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -53,9 +56,7 @@ class AbmUsuarios extends Component
     // Estructura: ['corralon_id' => ['modulo' => [deposito_ids], ...], ...]
     public $depositos_especificos = [];
 
-    // Ordenamiento
-    public $orden_campo = 'name';
-    public $orden_direccion = 'asc';
+
 
     protected function rules()
     {
@@ -100,7 +101,7 @@ class AbmUsuarios extends Component
 
     public function getUsersProperty()
     {
-        return User::with(['rol', 'permisos'])
+        return $this->aplicarOrden(User::with(['rol', 'permisos'])
             ->when($this->busqueda, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->busqueda . '%')
@@ -121,8 +122,7 @@ class AbmUsuarios extends Component
                 });
             })
             ->when($this->filtro_rol, fn($q) => $q->where('id_rol', $this->filtro_rol))
-            ->orderBy($this->orden_campo, $this->orden_direccion)
-            ->paginate(10);
+        )->paginate(10);
     }
 
     public function getCorralonesProperty()
@@ -146,15 +146,7 @@ class AbmUsuarios extends Component
         return $resultado;
     }
 
-    public function ordenarPor($campo)
-    {
-        if ($this->orden_campo === $campo) {
-            $this->orden_direccion = $this->orden_direccion === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->orden_campo = $campo;
-            $this->orden_direccion = 'asc';
-        }
-    }
+
 
     public function toggleCorralon($corralonId)
     {
@@ -457,6 +449,22 @@ class AbmUsuarios extends Component
         }
 
         return $resumen;
+    }
+
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'nombre' => 'name',
+            'email' => 'email',
+            'rol' => fn (Builder $q, string $dir) => $q->orderBy(
+                Rol::select('nombre')->whereColumn('roles.id', 'users.id_rol'), $dir
+            ),
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['nombre', 'asc'];
     }
 
     public function render()

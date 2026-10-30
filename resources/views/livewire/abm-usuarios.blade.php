@@ -7,178 +7,112 @@
     @endif
 
     <!-- Búsqueda y filtros -->
+    @php
+        $filtrosActivos = collect([$filtro_acceso, $filtro_corralon, $filtro_rol])->filter()->count();
+    @endphp
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
-        <div class="flex-1 max-w-md">
-            <div class="relative">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                <input
-                    type="text"
-                    wire:model.live="busqueda"
-                    placeholder="Buscar usuarios..."
-                    class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                >
-            </div>
-        </div>
+        <x-ui.buscador wire:model.live="busqueda" placeholder="Buscar usuarios..." />
         <div class="flex gap-3">
-            <x-ui.boton variante="secundario" icono="fa-filter" wire:click="$toggle('mostrarFiltros')">
-                Filtros
-                @if($filtro_acceso || $filtro_corralon || $filtro_rol)
-                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-600 rounded-full">
-                        {{ collect([$filtro_acceso, $filtro_corralon, $filtro_rol])->filter()->count() }}
-                    </span>
-                @endif
-            </x-ui.boton>
+            <x-ui.boton-filtros :activos="$filtrosActivos" wire:click="$toggle('mostrarFiltros')" />
         </div>
     </div>
 
-    <!-- Panel de Filtros -->
-    @if($mostrarFiltros)
-    <div class="mb-6 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-5">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-base font-semibold text-gray-900">Filtros Avanzados</h3>
-                @if($filtro_acceso || $filtro_corralon || $filtro_rol)
-                    <button wire:click="resetearFiltros" class="text-sm text-blue-600 hover:text-blue-700 font-medium">Limpiar filtros</button>
-                @endif
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                    <select wire:model.live="filtro_rol" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        <option value="">Todos los roles</option>
-                        @foreach($roles as $rol)
-                            <option value="{{ $rol->id }}">{{ $rol->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Acceso</label>
-                    <select wire:model.live="filtro_acceso" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        <option value="">Todos</option>
-                        <option value="admin">Administradores</option>
-                        <option value="limitado">Acceso limitado</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Corralon</label>
-                    <select wire:model.live="filtro_corralon" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
-                        <option value="">Todos los corralones</option>
-                        @foreach($corralones as $corralon)
-                            <option value="{{ $corralon->id }}">{{ $corralon->descripcion }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
+    {{-- Panel de Filtros --}}
+    <x-ui.panel-filtros mostrar="mostrarFiltros" :activos="$filtrosActivos" limpiar="resetearFiltros" columnas="3">
+        <x-ui.campo etiqueta="Rol" nombre="filtro_rol">
+            <x-ui.combobox nombre="filtro_rol" wire:model.live="filtro_rol" :opciones="$roles"
+                           vacio="Todos los roles" placeholder="Todos los roles" />
+        </x-ui.campo>
+        <x-ui.campo etiqueta="Tipo de Acceso" nombre="filtro_acceso">
+            <x-ui.combobox nombre="filtro_acceso" wire:model.live="filtro_acceso"
+                           :opciones="['admin' => 'Administradores', 'limitado' => 'Acceso limitado']" :ordenar="false"
+                           vacio="Todos" placeholder="Todos" />
+        </x-ui.campo>
+        <x-ui.campo etiqueta="Corralón" nombre="filtro_corralon">
+            <x-ui.combobox nombre="filtro_corralon" wire:model.live="filtro_corralon" :opciones="$corralones" etiqueta="descripcion"
+                           vacio="Todos los corralones" placeholder="Todos los corralones" />
+        </x-ui.campo>
+    </x-ui.panel-filtros>
 
+    {{-- Tabla --}}
+    <x-ui.tabla>
+        <x-slot:cabecera>
+            <x-ui.th columna="nombre" :orden="$this->orden()">Nombre</x-ui.th>
+            <x-ui.th columna="email" :orden="$this->orden()">Email</x-ui.th>
+            <x-ui.th columna="rol" :orden="$this->orden()">Rol</x-ui.th>
+            <x-ui.th>Permisos</x-ui.th>
+            @if($puedeEditar || $puedeEliminar)
+            <x-ui.th derecha>Acciones</x-ui.th>
+            @endif
+        </x-slot:cabecera>
 
-    <!-- Tabla -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gradient-to-r from-gray-50 to-gray-100/50">
-                    <tr>
-                        <th wire:click="ordenarPor('name')" class="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            <div class="flex items-center gap-1">
-                                Nombre
-                                @if($orden_campo === 'name')
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $orden_direccion === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
-                                    </svg>
-                                @endif
+        @forelse($usuarios as $usuario)
+            <tr wire:key="fila-{{ $usuario->id }}" class="hover:bg-gray-50/50 transition-colors duration-150">
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">{{ $usuario->name }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm text-gray-600">{{ $usuario->email }}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <x-ui.badge :color="$usuario->rol->nombre === 'Administrador' ? 'violeta' : 'gris'">{{ $usuario->rol->nombre }}</x-ui.badge>
+                </td>
+                <td class="px-6 py-4">
+                    @if($usuario->esAdministrador())
+                        <x-ui.badge color="verde">Acceso total</x-ui.badge>
+                    @else
+                        @php $permisosUser = $usuario->permisos; @endphp
+                        @if($permisosUser->isEmpty())
+                            <span class="text-xs text-gray-400 italic">Sin permisos asignados</span>
+                        @else
+                            <div class="flex flex-wrap gap-1 max-w-xs">
+                                @php
+                                    $corralonesConPermisos = $permisosUser->whereNotNull('id_corralon')->pluck('id_corralon')->unique();
+                                    $modulosGlobalesUsuario = $permisosUser->whereNull('id_corralon')->pluck('modulo')->unique();
+                                @endphp
+                                @foreach($corralonesConPermisos as $cId)
+                                    @php $corr = $corralones->firstWhere('id', $cId); @endphp
+                                    @if($corr)
+                                    <span class="inline-flex rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700 border border-blue-200">
+                                        {{ $corr->descripcion }}
+                                        <span class="ml-1 text-blue-400">({{ $permisosUser->where('id_corralon', $cId)->pluck('modulo')->unique()->count() }} mod.)</span>
+                                    </span>
+                                    @endif
+                                @endforeach
+                                @foreach($modulosGlobalesUsuario as $mod)
+                                <span class="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                                    {{ $todosLosModulos[$mod] ?? $mod }}
+                                </span>
+                                @endforeach
                             </div>
-                        </th>
-                        <th wire:click="ordenarPor('email')" class="cursor-pointer px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                            <div class="flex items-center gap-1">
-                                Email
-                                @if($orden_campo === 'email')
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $orden_direccion === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7' }}"/>
-                                    </svg>
-                                @endif
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rol</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Permisos</th>
-                        @if($puedeEditar || $puedeEliminar)
-                        <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
                         @endif
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-50">
-                    @forelse($usuarios as $usuario)
-                        <tr class="hover:bg-gray-50/50 transition-colors duration-150">
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ $usuario->name }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-600">{{ $usuario->email }}</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <x-ui.badge :color="$usuario->rol->nombre === 'Administrador' ? 'violeta' : 'gris'">{{ $usuario->rol->nombre }}</x-ui.badge>
-                            </td>
-                            <td class="px-6 py-4">
-                                @if($usuario->esAdministrador())
-                                    <x-ui.badge color="verde">Acceso total</x-ui.badge>
-                                @else
-                                    @php $permisosUser = $usuario->permisos; @endphp
-                                    @if($permisosUser->isEmpty())
-                                        <span class="text-xs text-gray-400 italic">Sin permisos asignados</span>
-                                    @else
-                                        <div class="flex flex-wrap gap-1 max-w-xs">
-                                            @php
-                                                $corralonesConPermisos = $permisosUser->whereNotNull('id_corralon')->pluck('id_corralon')->unique();
-                                                $modulosGlobalesUsuario = $permisosUser->whereNull('id_corralon')->pluck('modulo')->unique();
-                                            @endphp
-                                            @foreach($corralonesConPermisos as $cId)
-                                                @php $corr = $corralones->firstWhere('id', $cId); @endphp
-                                                @if($corr)
-                                                <span class="inline-flex rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700 border border-blue-200">
-                                                    {{ $corr->descripcion }}
-                                                    <span class="ml-1 text-blue-400">({{ $permisosUser->where('id_corralon', $cId)->pluck('modulo')->unique()->count() }} mod.)</span>
-                                                </span>
-                                                @endif
-                                            @endforeach
-                                            @foreach($modulosGlobalesUsuario as $mod)
-                                            <span class="inline-flex rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                                                {{ $todosLosModulos[$mod] ?? $mod }}
-                                            </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                @endif
-                            </td>
-                            @if($puedeEditar || $puedeEliminar)
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-1">
-                                    @if($puedeEditar)
-                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="abrirModal('editar', {{ $usuario->id }})" />
-                                    @endif
-                                    @if($puedeEliminar && $usuario->id !== auth()->id())
-                                    <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $usuario->id }})" />
-                                    @endif
-                                </div>
-                            </td>
-                            @endif
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-6">
-                                <x-ui.vacio icono="fa-users">{{ $busqueda || $filtro_acceso || $filtro_corralon || $filtro_rol ? 'No hay usuarios que coincidan con la búsqueda o los filtros' : 'Todavía no hay usuarios cargados' }}</x-ui.vacio>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50/30">
-            {{ $usuarios->links() }}
-        </div>
-    </div>
+                    @endif
+                </td>
+                @if($puedeEditar || $puedeEliminar)
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                        @if($puedeEditar)
+                        <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar" wire:click="abrirModal('editar', {{ $usuario->id }})" />
+                        @endif
+                        @if($puedeEliminar && $usuario->id !== auth()->id())
+                        <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar" wire:click="confirmarEliminar({{ $usuario->id }})" />
+                        @endif
+                    </div>
+                </td>
+                @endif
+            </tr>
+        @empty
+            <tr>
+                <td colspan="5" class="px-6 py-6">
+                    <x-ui.vacio icono="fa-users">{{ $busqueda || $filtro_acceso || $filtro_corralon || $filtro_rol ? 'No hay usuarios que coincidan con la búsqueda o los filtros' : 'Todavía no hay usuarios cargados' }}</x-ui.vacio>
+                </td>
+            </tr>
+        @endforelse
+
+        <x-slot:pie>
+            <x-ui.paginacion :paginador="$usuarios" />
+        </x-slot:pie>
+    </x-ui.tabla>
 
     <!-- Modal -->
     @if($modalAbierto)
