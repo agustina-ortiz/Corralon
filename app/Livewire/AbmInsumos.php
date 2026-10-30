@@ -11,6 +11,8 @@ use App\Models\Deposito;
 use App\Models\TipoMovimiento;
 use App\Models\MovimientoInsumo;
 use App\Exports\InsumosExport;
+use App\Livewire\Traits\OrdenaPorColumna;
+use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +22,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class AbmInsumos extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -124,13 +127,38 @@ class AbmInsumos extends Component
             });
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'insumo' => 'insumo',
+            'categoria' => fn (Builder $q, string $dir) => $q->orderBy(
+                CategoriaInsumo::select('nombre')->whereColumn('categorias_insumos.id', 'insumos.id_categoria'), $dir
+            ),
+            'stock' => 'stock_actual',
+            'unidad' => 'unidad',
+            'minimo' => 'stock_minimo',
+            'deposito' => fn (Builder $q, string $dir) => $q->orderBy(
+                Deposito::select('deposito')->whereColumn('depositos.id', 'insumos.id_deposito'), $dir
+            ),
+            'corralon' => fn (Builder $q, string $dir) => $q->orderBy(
+                Deposito::join('corralones', 'corralones.id', '=', 'depositos.id_corralon')
+                    ->select('corralones.descripcion')
+                    ->whereColumn('depositos.id', 'insumos.id_deposito'),
+                $dir
+            ),
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['insumo', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
 
-        $insumos = $this->baseQuery()
-            ->with(['categoriaInsumo', 'deposito.corralon'])
-            ->orderBy('insumo')
+        $insumos = $this->aplicarOrden($this->baseQuery()->with(['categoriaInsumo', 'deposito.corralon']))
             ->paginate(10);
 
         $estadisticas = $this->showEstadisticas ? $this->calcularEstadisticas() : null;
