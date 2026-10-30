@@ -260,14 +260,10 @@
                         <x-ui.input nombre="patente" wire:model="patente" maxlength="20" autocomplete="off" placeholder="Ej: ABC123" />
                     </x-ui.campo>
 
-                    <x-ui.campo etiqueta="Tipo de Combustible" nombre="tipo_combustible" obligatorio>
-                        <x-ui.select-nativo nombre="tipo_combustible" wire:model.live="tipo_combustible">
-                            <option value="">Seleccione tipo</option>
-                            <option value="nafta">Nafta</option>
-                            <option value="diesel">Diesel</option>
-                            <option value="gas">Gas</option>
-                        </x-ui.select-nativo>
-                    </x-ui.campo>
+                    <x-ui.grupo etiqueta="Tipo de Combustible" nombre="tipo_combustible" obligatorio>
+                        <x-ui.opciones nombre="tipo_combustible" wire:model.live="tipo_combustible" class="w-full"
+                                       :opciones="['nafta' => 'Nafta', 'diesel' => 'Diesel', 'gas' => 'Gas']" />
+                    </x-ui.grupo>
 
                     {{-- Vencimiento Oblea: solo si es GAS --}}
                     @if($tipo_combustible === 'gas')
@@ -344,31 +340,19 @@
                     Estado y Ubicación
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <x-ui.campo etiqueta="Estado" nombre="estado" obligatorio>
-                        <x-ui.select-nativo nombre="estado" wire:model="estado">
-                            <option value="">Seleccione un estado</option>
-                            <option value="EN USO">En Uso</option>
-                            <option value="BAJA">Baja</option>
-                            <option value="MANTENIMIENTO">Mantenimiento</option>
-                        </x-ui.select-nativo>
-                    </x-ui.campo>
+                    <x-ui.grupo etiqueta="Estado" nombre="estado" obligatorio>
+                        <x-ui.opciones nombre="estado" wire:model="estado" class="w-full"
+                                       :opciones="['EN USO' => 'En Uso', 'BAJA' => 'Baja', 'MANTENIMIENTO' => 'Mantenimiento']" />
+                    </x-ui.grupo>
 
                     <x-ui.campo etiqueta="Secretaría" nombre="id_secretaria">
-                        <x-ui.select-nativo nombre="id_secretaria" wire:model="id_secretaria">
-                            <option value="">Seleccione una secretaría</option>
-                            @foreach($secretarias as $secretaria)
-                                <option value="{{ $secretaria->id }}">{{ $secretaria->secretaria }}</option>
-                            @endforeach
-                        </x-ui.select-nativo>
+                        <x-ui.combobox nombre="id_secretaria" wire:model="id_secretaria" placeholder="Seleccione una secretaría"
+                                       :opciones="$secretarias" etiqueta="secretaria" />
                     </x-ui.campo>
 
                     <x-ui.campo etiqueta="Depósito" nombre="id_deposito">
-                        <x-ui.select-nativo nombre="id_deposito" wire:model="id_deposito">
-                            <option value="">Seleccione un depósito</option>
-                            @foreach($depositos as $deposito)
-                                <option value="{{ $deposito->id }}">{{ $deposito->deposito }}@if($deposito->corralon) — {{ $deposito->corralon->descripcion }}@endif</option>
-                            @endforeach
-                        </x-ui.select-nativo>
+                        <x-ui.combobox nombre="id_deposito" wire:model="id_deposito" placeholder="Seleccione un depósito" :ordenar="false"
+                                       :opciones="$depositos->mapWithKeys(fn ($d) => [$d->id => $d->deposito.($d->corralon ? ' — '.$d->corralon->descripcion : '')])" />
                     </x-ui.campo>
                 </div>
             </div>
