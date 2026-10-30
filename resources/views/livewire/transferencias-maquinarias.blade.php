@@ -1,6 +1,34 @@
 {{-- resources/views/livewire/transferencias-maquinarias.blade.php --}}
-<div>
-    <!-- Header con búsqueda y botones -->
+<x-ui.pagina titulo="Movimientos de Maquinarias" icono="fa-right-left">
+    <x-slot:acciones>
+        <x-ui.boton variante="secundario" icono="fa-chart-column" wire:click="toggleEstadisticas">Estadísticas</x-ui.boton>
+
+        {{-- Exportar (dropdown Excel/PDF) --}}
+        <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+            <x-ui.boton variante="secundario" icono="fa-download" x-on:click="open = !open">
+                Exportar <i class="fa-solid fa-chevron-down text-xs" aria-hidden="true"></i>
+            </x-ui.boton>
+            <div
+                x-show="open" x-transition x-cloak
+                class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20"
+            >
+                <button wire:click="exportarExcel" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Excel (.xlsx)
+                </button>
+                <button wire:click="exportarPdf" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    PDF
+                </button>
+            </div>
+        </div>
+
+        @if($puedeCrear)
+            <x-ui.boton icono="fa-plus" wire:click="crear">Nuevo Movimiento</x-ui.boton>
+        @endif
+    </x-slot:acciones>
+
+    <!-- Búsqueda y filtros -->
     <div class="mb-6 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div class="flex-1 max-w-md">
             <div class="relative">
@@ -30,57 +58,6 @@
                     </span>
                 @endif
             </button>
-
-            {{-- Botón Estadísticas --}}
-            <button
-                wire:click="toggleEstadisticas"
-                class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                Estadísticas
-            </button>
-
-            {{-- Botón Exportar (dropdown Excel/PDF) --}}
-            <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                <button
-                    @click="open = !open"
-                    class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 font-medium shadow-sm"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Exportar
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
-                <div
-                    x-show="open" x-transition x-cloak
-                    class="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20"
-                >
-                    <button wire:click="exportarExcel" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Excel (.xlsx)
-                    </button>
-                    <button wire:click="exportarPdf" @click="open = false" class="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-                        PDF
-                    </button>
-                </div>
-            </div>
-
-            {{-- Botón Nuevo Movimiento solo si tiene permisos --}}
-            @if($puedeCrear)
-            <button
-                wire:click="crear"
-                class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-200 flex items-center justify-center gap-2 font-medium"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Nuevo Movimiento
-            </button>
-            @endif
         </div>
     </div>
 
@@ -225,22 +202,20 @@
 
 
 
-    <!-- Panel de Asignaciones Pendientes (solo si hay pendientes) -->
+    {{-- Panel de Asignaciones Pendientes (solo si hay pendientes) --}}
     @if($puedeCrear && $asignacionesPendientes->count() > 0)
     <div class="mb-6">
         <button
+            type="button"
             wire:click="$toggle('showAsignacionesPendientes')"
+            aria-expanded="{{ $showAsignacionesPendientes ? 'true' : 'false' }}"
             class="w-full flex items-center justify-between px-5 py-3 bg-white border-2 border-orange-200 rounded-xl hover:bg-orange-50 transition-colors duration-200"
         >
             <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
+                <i class="fa-regular fa-clock text-orange-500" aria-hidden="true"></i>
                 <span class="text-sm font-semibold text-orange-800">Asignaciones Pendientes de Reposición</span>
             </div>
-            <svg class="w-5 h-5 text-orange-500 transition-transform duration-200 {{ $showAsignacionesPendientes ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
+            <i class="fa-solid fa-chevron-down text-orange-500 transition-transform duration-200 {{ $showAsignacionesPendientes ? 'rotate-180' : '' }}" aria-hidden="true"></i>
         </button>
 
         @if($showAsignacionesPendientes)
@@ -267,9 +242,7 @@
                                             <div class="text-sm text-gray-900">{{ $item['referencia_nombre'] }}</div>
                                         </td>
                                         <td class="px-4 py-3 text-center">
-                                            <span class="inline-flex items-center px-2.5 py-1 text-sm font-bold text-orange-700 bg-orange-100 rounded-full">
-                                                {{ $item['cantidad_pendiente'] }}
-                                            </span>
+                                            <x-ui.badge color="ambar">{{ $item['cantidad_pendiente'] }}</x-ui.badge>
                                         </td>
                                         <td class="px-4 py-3">
                                             <div class="flex items-center justify-center gap-2">
@@ -279,25 +252,19 @@
                                                         x-model="cantidad"
                                                         min="1"
                                                         max="{{ $item['cantidad_pendiente'] }}"
+                                                        aria-label="Cantidad a devolver de {{ $item['maquinaria_nombre'] }}"
                                                         class="w-16 px-2 py-1.5 text-sm border border-gray-200 rounded-lg text-center focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                                                     >
-                                                    <button
-                                                        type="button"
-                                                        x-on:click="$wire.devolverAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}', cantidad)"
-                                                        class="px-3 py-1.5 text-xs font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors"
-                                                        title="Devolver"
-                                                    >
+                                                    <x-ui.boton variante="secundario" tamano="chico" icono="fa-rotate-left"
+                                                                x-on:click="$wire.devolverAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}', cantidad)">
                                                         Devolver
-                                                    </button>
+                                                    </x-ui.boton>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    wire:click="confirmarBajaAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}')"
-                                                    class="px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors"
-                                                    title="Dar de baja (no devuelve stock)"
-                                                >
+                                                <x-ui.boton variante="peligro" tamano="chico" icono="fa-xmark"
+                                                            wire:click="confirmarBajaAsignacion({{ $item['id_maquinaria'] }}, '{{ $item['tipo_referencia'] }}', '{{ $item['id_referencia'] }}')"
+                                                            title="Dar de baja (no devuelve stock)">
                                                     Baja
-                                                </button>
+                                                </x-ui.boton>
                                             </div>
                                         </td>
                                     </tr>
@@ -306,12 +273,7 @@
                         </table>
                     </div>
                 @else
-                    <div class="px-6 py-8 text-center text-gray-400">
-                        <svg class="w-10 h-10 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="text-sm">No hay asignaciones pendientes de reposición</p>
-                    </div>
+                    <x-ui.vacio icono="fa-regular fa-circle-check" class="py-8">No hay asignaciones pendientes de reposición</x-ui.vacio>
                 @endif
             </div>
         @endif
@@ -348,9 +310,7 @@
                             <div class="text-xs text-gray-500">{{ $movimiento->maquinaria->categoriaMaquinaria->nombre }}</div>
                             @if($movimiento->observaciones)
                                 <div class="flex items-start gap-1 mt-1 text-xs text-gray-400 max-w-xs" title="{{ $movimiento->observaciones }}">
-                                    <svg class="w-3.5 h-3.5 flex-shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                                    </svg>
+                                    <i class="fa-regular fa-comment-dots flex-shrink-0 mt-0.5" aria-hidden="true"></i>
                                     <span class="line-clamp-2">{{ $movimiento->observaciones }}</span>
                                 </div>
                             @endif
@@ -377,18 +337,14 @@
                             <!-- Indicador de entrada/salida -->
                             @if($movimiento->tipoMovimiento->esEntrada())
                                 <div class="flex items-center gap-1 mt-1">
-                                    <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
-                                    </svg>
+                                    <i class="fa-solid fa-arrow-up text-[10px] text-green-600" aria-hidden="true"></i>
                                     <span class="text-xs text-green-600">
                                         +{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Entrada' : 'Entradas' }}
                                     </span>
                                 </div>
                             @else
                                 <div class="flex items-center gap-1 mt-1">
-                                    <svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                    </svg>
+                                    <i class="fa-solid fa-arrow-down text-[10px] text-red-600" aria-hidden="true"></i>
                                     <span class="text-xs text-red-600">
                                         -{{ $movimiento->cantidad }} {{ $movimiento->cantidad == 1 ? 'Salida' : 'Salidas' }}
                                     </span>
@@ -397,7 +353,7 @@
                         </td>
                         
                         <!-- COLUMNA ORIGEN -->
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 text-center">
                             @php
                                 $nombreTipo = $movimiento->tipoMovimiento->tipo_movimiento;
                                 $esSalidaTransferencia = $nombreTipo === 'Transferencia Salida' || $nombreTipo === 'Transferencia Salida Maquinaria';
@@ -428,18 +384,14 @@
                             @endphp
                             
                             @if($depositoOrigen)
-                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-lg font-medium">
-                                    {{ $depositoOrigen->deposito }}
-                                </span>
+                                <x-ui.badge color="rojo">{{ $depositoOrigen->deposito }}</x-ui.badge>
                             @else
-                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
-                                    —
-                                </span>
+                                <span class="text-sm text-gray-400">—</span>
                             @endif
                         </td>
 
                         <!-- COLUMNA DESTINO -->
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 text-center">
                             @php
                                 if ($esTransferencia) {
                                     if ($esSalidaTransferencia) {
@@ -465,18 +417,14 @@
                             @endphp
                             
                             @if($depositoDestino)
-                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-lg font-medium">
-                                    {{ $depositoDestino->deposito }}
-                                </span>
+                                <x-ui.badge color="verde">{{ $depositoDestino->deposito }}</x-ui.badge>
                             @elseif($movimiento->id_secretaria || $movimiento->area)
-                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-lg font-medium">
-                                    @if($movimiento->secretaria)
-                                        {{ $movimiento->secretaria->secretaria }}
-                                    @endif
-                                    @if($movimiento->area)
-                                        <span class="block text-purple-500">{{ $movimiento->area }}</span>
-                                    @endif
-                                </span>
+                                @if($movimiento->secretaria)
+                                    <x-ui.badge color="violeta">{{ $movimiento->secretaria->secretaria }}</x-ui.badge>
+                                @endif
+                                @if($movimiento->area)
+                                    <span class="block mt-1 text-xs text-purple-600">{{ $movimiento->area }}</span>
+                                @endif
                             @elseif(in_array($movimiento->tipo_referencia, ['vehiculo', 'evento', 'empleado']) && $movimiento->id_referencia)
                                 @php
                                     $refLabel = ['vehiculo' => 'Vehículo', 'evento' => 'Evento', 'empleado' => 'Empleado'][$movimiento->tipo_referencia];
@@ -487,40 +435,30 @@
                                         default    => null,
                                     };
                                 @endphp
-                                <span class="block w-full text-center px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg font-medium">
-                                    {{ $refNombre ?? $refLabel }}
-                                    <span class="block text-blue-500">{{ $refLabel }}</span>
-                                </span>
+                                <x-ui.badge color="azul">{{ $refNombre ?? $refLabel }}</x-ui.badge>
+                                <span class="block mt-1 text-xs text-blue-600">{{ $refLabel }}</span>
                             @else
-                                <span class="block w-full text-center px-3 py-1.5 text-xs font-medium bg-gray-100 text-gray-400 rounded-lg">
-                                    —
-                                </span>
+                                <span class="text-sm text-gray-400">—</span>
                             @endif
                         </td>
 
                         <!-- Estado ACTUAL de la maquinaria -->
                         <td class="px-6 py-4">
                             @if($movimiento->estado_calculado === 'disponible')
-                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                    Disponible
-                                </span>
+                                <x-ui.badge color="verde">Disponible</x-ui.badge>
                             @else
-                                <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-                                    No Disponible
-                                </span>
+                                <x-ui.badge color="ambar">No Disponible</x-ui.badge>
                             @endif
                         </td>
                         
                         <!-- Tipo de Movimiento -->
-                        <td class="px-6 py-4">
+                        <td class="px-6 py-4 text-center">
                             @php
-                                $clase = $movimiento->tipoMovimiento->esEntrada()
-                                    ? 'bg-green-100 text-green-700'
-                                    : ($movimiento->tipoMovimiento->esSalida() ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700');
+                                $colorTipo = $movimiento->tipoMovimiento->esEntrada()
+                                    ? 'verde'
+                                    : ($movimiento->tipoMovimiento->esSalida() ? 'rojo' : 'gris');
                             @endphp
-                            <span class="block w-full text-center px-3 py-1.5 text-xs font-medium {{ $clase }} rounded-lg">
-                                {{ $movimiento->tipoMovimiento->tipo_movimiento }}
-                            </span>
+                            <x-ui.badge :color="$colorTipo">{{ $movimiento->tipoMovimiento->tipo_movimiento }}</x-ui.badge>
                             @if($movimiento->nro_orden_compra)
                                 <div class="text-xs text-gray-500 text-center mt-1">OC: {{ $movimiento->nro_orden_compra }}</div>
                             @endif
@@ -528,27 +466,20 @@
 
                         <!-- Usuario -->
                         <td class="px-6 py-4 text-sm text-gray-500">
-                            <div class="flex items-center gap-2">
-                                <span>{{ $movimiento->usuario->name }}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="mr-1">{{ $movimiento->usuario->name }}</span>
                                 @if($movimiento->comprobantes->count() > 0)
                                     <div x-data="{ open: false }" class="relative">
-                                        <button type="button" @click="open = !open" class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Ver comprobantes ({{ $movimiento->comprobantes->count() }})">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                                            </svg>
-                                        </button>
+                                        <x-ui.accion icono="fa-paperclip" :etiqueta="'Ver comprobantes ('.$movimiento->comprobantes->count().')'"
+                                                     x-on:click="open = !open" />
                                         <div x-show="open" @click.away="open = false" x-transition class="absolute right-0 z-50 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
                                             <div class="text-xs font-semibold text-gray-700 mb-2">Comprobantes adjuntos</div>
                                             @foreach($movimiento->comprobantes as $comp)
-                                                <div class="flex items-center justify-between gap-1 px-2 py-1.5 rounded-lg hover:bg-gray-50">
+                                                <div class="flex items-center justify-between gap-1 px-2 py-1 rounded-lg hover:bg-gray-50">
                                                     <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
-                                                    <div class="flex items-center gap-1 flex-shrink-0">
-                                                        <a href="{{ route('comprobantes-maquinaria.ver', $comp->id) }}" target="_blank" title="Ver" class="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                                        </a>
-                                                        <a href="{{ route('comprobantes-maquinaria.descargar', $comp->id) }}" title="Descargar" class="p-1 text-green-600 hover:bg-green-100 rounded transition-colors">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                        </a>
+                                                    <div class="flex items-center flex-shrink-0">
+                                                        <x-ui.accion icono="fa-regular fa-eye" etiqueta="Ver" :href="route('comprobantes-maquinaria.ver', $comp->id)" target="_blank" />
+                                                        <x-ui.accion icono="fa-download" etiqueta="Descargar" color="exito" :href="route('comprobantes-maquinaria.descargar', $comp->id)" :navegar="false" />
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -556,19 +487,16 @@
                                     </div>
                                 @endif
                                 @if($puedeCrear && in_array($movimiento->tipoMovimiento->tipo_movimiento, ['Carga de Stock', 'Ajuste Positivo']))
-                                    <button type="button" wire:click="abrirEdicion({{ $movimiento->id }})" class="p-1 text-amber-600 hover:bg-amber-50 rounded transition-colors" title="Editar N° orden, observaciones y comprobantes">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                        </svg>
-                                    </button>
+                                    <x-ui.accion icono="fa-regular fa-pen-to-square" etiqueta="Editar N° orden, observaciones y comprobantes"
+                                                 wire:click="abrirEdicion({{ $movimiento->id }})" />
                                 @endif
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
-                            No se encontraron movimientos
+                        <td colspan="8" class="px-6 py-6">
+                            <x-ui.vacio icono="fa-right-left">{{ $search || $filtro_corralon || $filtro_fecha_desde || $filtro_fecha_hasta || $filtro_deposito_origen || $filtro_usuario || $filtro_maquinaria || $filtro_categoria || $filtro_tipo_movimiento ? 'No hay movimientos que coincidan con la búsqueda o los filtros' : 'Todavía no hay movimientos registrados' }}</x-ui.vacio>
                         </td>
                     </tr>
                 @endforelse
@@ -611,22 +539,14 @@
 
             <!-- PASO 1: Seleccionar Maquinaria -->
             @if($paso_actual === 1)
-                <div class="relative">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Maquinaria *</label>
-
+                <x-ui.campo etiqueta="Buscar Maquinaria" nombre="search_maquinaria" obligatorio>
                     <div class="relative">
-                        <input 
-                            type="text" 
-                            wire:model.live="search_maquinaria"
-                            wire:focus="mostrarLista"
-                            placeholder="Buscar por nombre, categoría o depósito..."
-                            class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            autocomplete="off"
-                        >
-
-                        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
+                        <x-ui.input nombre="search_maquinaria"
+                                    wire:model.live="search_maquinaria"
+                                    wire:focus="mostrarLista"
+                                    placeholder="Buscar por nombre, categoría o depósito..."
+                                    class="pr-10" autocomplete="off" />
+                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
                     </div>
 
                     @if($mostrar_lista && $maquinarias_filtradas->count() > 0)
@@ -634,7 +554,7 @@
                             <ul class="py-2">
                                @foreach($maquinarias_filtradas as $maquinaria)
                                     <li>
-                                        <button 
+                                        <button
                                             type="button"
                                             wire:click="seleccionarMaquinaria({{ $maquinaria->id }})"
                                             class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
@@ -643,27 +563,20 @@
                                                 <div class="flex-1">
                                                     <div class="text-sm font-medium text-gray-900">{{ $maquinaria->maquinaria }}</div>
                                                     <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded">{{ $maquinaria->categoriaMaquinaria->nombre }}</span>
+                                                        <x-ui.badge color="azul">{{ $maquinaria->categoriaMaquinaria->nombre }}</x-ui.badge>
                                                         <span>•</span>
                                                         <span>{{ $maquinaria->deposito->deposito }}</span>
                                                         <span>•</span>
-                                                        <span class="px-2 py-0.5 {{ $maquinaria->cantidad > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }} rounded font-medium">
+                                                        <x-ui.badge :color="$maquinaria->cantidad > 0 ? 'verde' : 'rojo'">
                                                             {{ $maquinaria->cantidad }} {{ $maquinaria->cantidad == 1 ? 'unidad' : 'unidades' }}
-                                                        </span>
+                                                        </x-ui.badge>
                                                     </div>
                                                 </div>
                                                 <div class="text-right ml-3">
-                                                    @php
-                                                        $tieneStock = $maquinaria->cantidad > 0;
-                                                    @endphp
-                                                    @if($tieneStock)
-                                                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                                            Disponible
-                                                        </span>
+                                                    @if($maquinaria->cantidad > 0)
+                                                        <x-ui.badge color="verde">Disponible</x-ui.badge>
                                                     @else
-                                                        <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-                                                            Sin Stock
-                                                        </span>
+                                                        <x-ui.badge color="ambar">Sin Stock</x-ui.badge>
                                                     @endif
                                                 </div>
                                             </div>
@@ -676,24 +589,13 @@
 
                     @if($mostrar_lista && $search_maquinaria && $maquinarias_filtradas->count() == 0)
                         <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                            <div class="px-4 py-8 text-center text-gray-400">
-                                <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                </svg>
-                                <p class="text-sm">No se encontraron maquinarias</p>
-                            </div>
+                            <x-ui.vacio icono="fa-gears">No hay maquinarias que coincidan con la búsqueda</x-ui.vacio>
                         </div>
                     @endif
-                </div>
+                </x-ui.campo>
 
                 @if(!$search_maquinaria)
-                    <div class="text-center py-12 text-gray-400">
-                        <svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        <p class="text-sm font-medium">Comience buscando una maquinaria</p>
-                        <p class="text-xs mt-1">Escriba el nombre de la maquinaria, categoría o depósito</p>
-                    </div>
+                    <x-ui.vacio icono="fa-magnifying-glass" class="py-12">Comience buscando una maquinaria por nombre, categoría o depósito</x-ui.vacio>
                 @endif
             @endif
 
@@ -710,7 +612,6 @@
                                     <span>•</span>
                                     <span>{{ $maquinaria_seleccionada->deposito->deposito }}</span>
                                     <span>•</span>
-                                    <!-- ✅ Mostrar cantidad -->
                                     <span class="px-2 py-0.5 bg-white text-blue-900 rounded font-medium">
                                         {{ $maquinaria_seleccionada->cantidad }} {{ $maquinaria_seleccionada->cantidad == 1 ? 'unidad' : 'unidades' }}
                                     </span>
@@ -718,47 +619,46 @@
                             </div>
                             <div class="text-right">
                                 @if($maquinaria_seleccionada->estado === 'disponible')
-                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                        Disponible
-                                    </span>
+                                    <x-ui.badge color="verde">Disponible</x-ui.badge>
                                 @else
-                                    <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-                                        No Disponible
-                                    </span>
+                                    <x-ui.badge color="ambar">No Disponible</x-ui.badge>
                                 @endif
                             </div>
                         </div>
                     </div>
 
-                    <label class="block text-sm font-medium text-gray-700 mb-4">Seleccione el Tipo de Movimiento</label>
+                    {{-- Grupo de opciones: fieldset + legend (no va en x-ui.campo) --}}
+                    <fieldset class="w-full min-w-0">
+                        <legend class="block text-sm font-medium text-gray-700 mb-4">Seleccione el Tipo de Movimiento</legend>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        @foreach($tipos_movimiento_disponibles as $tipo)
-                            <button 
-                                type="button"
-                                wire:click="seleccionarTipoMovimiento('{{ $tipo['key'] }}')"
-                                class="p-5 border-2 border-gray-200 rounded-xl hover:border-{{ $tipo['color'] }}-500 hover:bg-{{ $tipo['color'] }}-50 transition-all duration-200 text-left group"
-                            >
-                                <div class="flex items-start gap-4">
-                                    <div class="p-3 bg-{{ $tipo['color'] }}-100 rounded-lg group-hover:bg-{{ $tipo['color'] }}-200 transition-colors">
-                                        <svg class="w-6 h-6 text-{{ $tipo['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tipo['icon'] }}"></path>
-                                        </svg>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($tipos_movimiento_disponibles as $tipo)
+                                <button
+                                    type="button"
+                                    wire:click="seleccionarTipoMovimiento('{{ $tipo['key'] }}')"
+                                    class="p-5 border-2 border-gray-200 rounded-xl hover:border-{{ $tipo['color'] }}-500 hover:bg-{{ $tipo['color'] }}-50 transition-all duration-200 text-left group"
+                                >
+                                    <div class="flex items-start gap-4">
+                                        <div class="p-3 bg-{{ $tipo['color'] }}-100 rounded-lg group-hover:bg-{{ $tipo['color'] }}-200 transition-colors">
+                                            <svg class="w-6 h-6 text-{{ $tipo['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tipo['icon'] }}"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="text-base font-semibold text-gray-900 mb-1">{{ $tipo['nombre'] }}</div>
+                                            <div class="text-sm text-gray-600">{{ $tipo['descripcion'] }}</div>
+                                        </div>
                                     </div>
-                                    <div class="flex-1">
-                                        <div class="text-base font-semibold text-gray-900 mb-1">{{ $tipo['nombre'] }}</div>
-                                        <div class="text-sm text-gray-600">{{ $tipo['descripcion'] }}</div>
-                                    </div>
-                                </div>
-                            </button>
-                        @endforeach
-                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                    </fieldset>
                 </div>
             @endif
 
             <!-- PASO 3: Completar Datos -->
             @if($paso_actual === 3 && $maquinaria_seleccionada && $tipo_movimiento)
-                <div>
+                <div class="space-y-5">
                     <!-- Info del movimiento -->
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
                         <div class="flex items-center justify-between mb-3">
@@ -767,7 +667,7 @@
                                     $tipoInfo = collect($tipos_movimiento_disponibles)->firstWhere('key', $tipo_movimiento);
                                 @endphp
                                 <div class="p-2 bg-white rounded-lg">
-                                    <svg class="w-5 h-5 text-{{ $tipoInfo['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-{{ $tipoInfo['color'] }}-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tipoInfo['icon'] }}"></path>
                                     </svg>
                                 </div>
@@ -778,40 +678,33 @@
                             </div>
                             <div class="text-right">
                                 @if($maquinaria_seleccionada->estado === 'disponible')
-                                    <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-                                        Disponible
-                                    </span>
+                                    <x-ui.badge color="verde">Disponible</x-ui.badge>
                                 @else
-                                    <span class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-                                        No Disponible
-                                    </span>
+                                    <x-ui.badge color="ambar">No Disponible</x-ui.badge>
                                 @endif
                             </div>
                         </div>
                     </div>
 
+                    @php $disponibleEnDeposito = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
+
                     @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion', 'ajuste_negativo']))
                         @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
                             {{-- Depósito auto-determinado --}}
-                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
-                                <svg class="w-4 h-4 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
+                            <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                                <i class="fa-regular fa-building text-blue-500 shrink-0" aria-hidden="true"></i>
                                 <span class="text-blue-800">
                                     Depósito de origen: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
                                     &nbsp;—&nbsp;
-                                    @php $dispAsig = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
-                                    {{ $dispAsig }} {{ $dispAsig == 1 ? 'unidad disponible' : 'unidades disponibles' }}
+                                    {{ $disponibleEnDeposito }} {{ $disponibleEnDeposito == 1 ? 'unidad disponible' : 'unidades disponibles' }}
                                 </span>
                             </div>
                         @endif
 
                         @if($tipo_movimiento === 'ajuste_negativo')
                             {{-- Depósito y disponible (ajuste negativo) --}}
-                            <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
-                                <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
+                            <div class="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+                                <i class="fa-regular fa-building text-red-500 shrink-0" aria-hidden="true"></i>
                                 <span class="text-red-800">
                                     Depósito: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
                                     — Disponible: <strong>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</strong> {{ $maquinaria_seleccionada->getCantidadTotalDisponible() == 1 ? 'unidad' : 'unidades' }}
@@ -822,66 +715,44 @@
                         <!-- Selector de tipo de destino -->
                         @php
                             $destinoLabel = $tipo_movimiento === 'entrada_reposicion'
-                                ? 'Devuelto desde *'
-                                : ($tipo_movimiento === 'ajuste_negativo' ? 'Asignar a (opcional)' : 'Asignar a *');
+                                ? 'Devuelto desde'
+                                : ($tipo_movimiento === 'ajuste_negativo' ? 'Asignar a (opcional)' : 'Asignar a');
+                            $destinoObligatorio = $tipo_movimiento !== 'ajuste_negativo';
+                            $tiposDestino = [
+                                'vehiculo' => ['Vehículo', 'fa-solid fa-truck'],
+                                'evento' => ['Evento', 'fa-regular fa-calendar'],
+                                'empleado' => ['Empleado', 'fa-regular fa-user'],
+                                'secretaria' => ['Secretaría', 'fa-regular fa-building'],
+                            ];
                         @endphp
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                        {{-- Grupo de opciones: fieldset + legend (no va en x-ui.campo) --}}
+                        <fieldset class="w-full min-w-0">
+                            <legend class="block text-sm font-medium text-gray-700 mb-2">
                                 {{ $destinoLabel }}
-                            </label>
+                                @if($destinoObligatorio)<span class="text-red-600" aria-hidden="true">*</span>@endif
+                            </legend>
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <button
-                                    type="button"
-                                    wire:click="seleccionarTipoDestino('vehiculo')"
-                                    class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'vehiculo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
-                                >
-                                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
-                                    </svg>
-                                    <span class="text-sm font-medium">Vehículo</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="seleccionarTipoDestino('evento')"
-                                    class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'evento' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
-                                >
-                                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                    </svg>
-                                    <span class="text-sm font-medium">Evento</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="seleccionarTipoDestino('empleado')"
-                                    class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'empleado' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
-                                >
-                                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                    </svg>
-                                    <span class="text-sm font-medium">Empleado</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="seleccionarTipoDestino('secretaria')"
-                                    class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === 'secretaria' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
-                                >
-                                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                    </svg>
-                                    <span class="text-sm font-medium">Secretaría</span>
-                                </button>
+                                @foreach($tiposDestino as $clave => [$etiquetaDestino, $iconoDestino])
+                                    <button
+                                        type="button"
+                                        wire:click="seleccionarTipoDestino('{{ $clave }}')"
+                                        aria-pressed="{{ $tipo_destino === $clave ? 'true' : 'false' }}"
+                                        class="p-3 border-2 rounded-xl text-center transition-all duration-200 {{ $tipo_destino === $clave ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300 text-gray-600' }}"
+                                    >
+                                        <i class="{{ $iconoDestino }} block text-xl mb-1" aria-hidden="true"></i>
+                                        <span class="text-sm font-medium">{{ $etiquetaDestino }}</span>
+                                    </button>
+                                @endforeach
                             </div>
-                            @error('tipo_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                            @error('tipo_destino')
+                                <p id="error-tipo_destino" class="mt-1 text-xs text-red-600" data-error="tipo_destino">{{ $message }}</p>
+                            @enderror
+                        </fieldset>
 
                         <!-- Buscar y seleccionar destino (vehículo/evento/empleado) -->
                         @if(in_array($tipo_destino, ['vehiculo', 'evento', 'empleado']))
-                            <div class="mb-5 relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Seleccionar {{ $tipo_destino === 'vehiculo' ? 'Vehículo' : ($tipo_destino === 'evento' ? 'Evento' : 'Empleado') }} *
-                                </label>
-
+                            <x-ui.campo :etiqueta="'Seleccionar '.($tipo_destino === 'vehiculo' ? 'Vehículo' : ($tipo_destino === 'evento' ? 'Evento' : 'Empleado'))"
+                                        nombre="id_referencia" obligatorio>
                                 @if($id_referencia)
                                     @php
                                         if ($tipo_destino === 'vehiculo') {
@@ -905,25 +776,16 @@
                                                 <div class="text-xs text-green-700">Legajo {{ $destinoSeleccionado->LEGAJO }} • DNI {{ number_format($destinoSeleccionado->DNI, 0, '', '.') }}</div>
                                             @endif
                                         </div>
-                                        <button type="button" wire:click="$set('id_referencia', '')" class="text-green-600 hover:text-green-800">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </button>
+                                        <x-ui.accion icono="fa-xmark" etiqueta="Quitar la selección" wire:click="$set('id_referencia', '')" />
                                     </div>
                                 @else
                                     <div class="relative">
-                                        <input
-                                            type="text"
-                                            wire:model.live="search_destino"
-                                            wire:focus="$set('mostrar_lista_destino', true)"
-                                            placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
-                                            class="w-full px-4 py-2.5 pr-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            autocomplete="off"
-                                        >
-                                        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                        </svg>
+                                        <x-ui.input nombre="id_referencia"
+                                                    wire:model.live="search_destino"
+                                                    wire:focus="$set('mostrar_lista_destino', true)"
+                                                    placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
+                                                    class="pr-10" autocomplete="off" />
+                                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
                                     </div>
 
                                     @if($mostrar_lista_destino)
@@ -968,190 +830,115 @@
                                             </div>
                                         @elseif($search_destino)
                                             <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                                <div class="px-4 py-6 text-center text-gray-400">
-                                                    <p class="text-sm">No se encontraron {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }}</p>
-                                                </div>
+                                                <x-ui.vacio icono="fa-magnifying-glass">No hay {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }} que coincidan con la búsqueda</x-ui.vacio>
                                             </div>
                                         @endif
                                     @endif
                                 @endif
-                                @error('id_referencia') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
+                            </x-ui.campo>
                         @elseif($tipo_destino === 'secretaria')
                             <!-- Secretaría y Área -->
-                            <div class="mb-5 grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Secretaría *</label>
-                                    <select
-                                        wire:model.live="id_secretaria_ajuste" @error('id_secretaria_ajuste') aria-invalid="true" @enderror
-                                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                    >
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <x-ui.campo etiqueta="Secretaría" nombre="id_secretaria_ajuste" obligatorio>
+                                    <x-ui.select-nativo nombre="id_secretaria_ajuste" wire:model.live="id_secretaria_ajuste">
                                         <option value="">— Seleccionar —</option>
                                         @foreach($secretarias as $sec)
                                             <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
                                         @endforeach
-                                    </select>
-                                    @error('id_secretaria_ajuste') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                                <div x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Área</label>
+                                    </x-ui.select-nativo>
+                                </x-ui.campo>
+                                <x-ui.campo etiqueta="Área" nombre="area_ajuste"
+                                            :ayuda="$id_secretaria_ajuste && count($areas_disponibles) === 0 ? 'No hay áreas cargadas para esta secretaría.' : null"
+                                            x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
                                     <template x-if="!modoLibre">
                                         <div>
-                                            <select
-                                                wire:model="area_ajuste"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
+                                            <x-ui.select-nativo nombre="area_ajuste" wire:model="area_ajuste">
                                                 <option value="">— Seleccionar —</option>
                                                 @foreach($areas_disponibles as $area)
                                                     <option value="{{ $area }}">{{ $area }}</option>
                                                 @endforeach
-                                            </select>
-                                            <button type="button" @click="modoLibre = true; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                            </x-ui.select-nativo>
+                                            <x-ui.boton variante="enlace" tamano="chico" icono="fa-regular fa-pen-to-square" class="mt-1"
+                                                        x-on:click="modoLibre = true; $wire.set('area_ajuste', '')">
                                                 Escribir área manualmente
-                                            </button>
+                                            </x-ui.boton>
                                         </div>
                                     </template>
                                     <template x-if="modoLibre">
                                         <div>
-                                            <input
-                                                type="text"
-                                                wire:model="area_ajuste"
-                                                x-ref="areaInputMaquinarias"
-                                                placeholder="Escribir nombre del área"
-                                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                            >
+                                            <x-ui.input nombre="area_ajuste" wire:model="area_ajuste" x-ref="areaInputMaquinarias"
+                                                        placeholder="Escribir nombre del área" />
                                             @if(count($areas_disponibles) > 0)
-                                                <button type="button" @click="modoLibre = false; $wire.set('area_ajuste', '')" class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-flex items-center gap-1">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                                <x-ui.boton variante="enlace" tamano="chico" icono="fa-list" class="mt-1"
+                                                            x-on:click="modoLibre = false; $wire.set('area_ajuste', '')">
                                                     Seleccionar de la lista
-                                                </button>
+                                                </x-ui.boton>
                                             @endif
                                         </div>
                                     </template>
-                                    @if($id_secretaria_ajuste && count($areas_disponibles) === 0)
-                                        <p class="text-xs text-gray-400 mt-1">No hay áreas cargadas para esta secretaría</p>
-                                    @endif
-                                </div>
+                                </x-ui.campo>
                             </div>
                         @endif
 
                         <!-- Cantidad (asignaciones / entrada reposición) -->
                         @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion', 'entrada_reposicion']))
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Cantidad *
-                                @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
-                                    <span class="text-xs text-gray-500 font-normal">
-                                        (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
-                                    </span>
-                                @endif
-                            </label>
-                            <div class="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    wire:click="decrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_asignar <= 1 ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                    </svg>
-                                </button>
-
-                                <input
-                                    type="number"
-                                    wire:model.live="cantidad_a_asignar" @error('cantidad_a_asignar') aria-invalid="true" @enderror
-                                    min="1"
-                                    @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
-                                        max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
-                                    @endif
-                                    class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                >
-
-                                <button
-                                    type="button"
-                                    wire:click="incrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                </button>
-
-                                @if(in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']))
-                                    <div class="flex-1">
-                                        <input
-                                            type="range"
-                                            wire:model.live="cantidad_a_asignar" @error('cantidad_a_asignar') aria-invalid="true" @enderror
-                                            min="1"
-                                            max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
-                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                                        >
+                            @php $esAsignacion = in_array($tipo_movimiento, ['asignacion_con_reposicion', 'asignacion_sin_reposicion']); @endphp
+                            <x-ui.campo etiqueta="Cantidad" nombre="cantidad_a_asignar" obligatorio
+                                        :ayuda="$esAsignacion ? 'Disponible: '.$disponibleEnDeposito.'.' : null">
+                                <div class="flex items-center gap-3">
+                                    <x-ui.accion icono="fa-minus" etiqueta="Restar uno" wire:click="decrementarCantidad"
+                                                 class="border border-gray-300" :disabled="$cantidad_a_asignar <= 1" />
+                                    <div class="w-24 shrink-0">
+                                        <x-ui.input nombre="cantidad_a_asignar" type="number" wire:model.live="cantidad_a_asignar" min="1"
+                                                    :max="$esAsignacion ? $disponibleEnDeposito : null" class="text-center" />
                                     </div>
-                                @endif
-                            </div>
-                            @error('cantidad_a_asignar')
-                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+                                    <x-ui.accion icono="fa-plus" etiqueta="Sumar uno" wire:click="incrementarCantidad" class="border border-gray-300" />
+
+                                    @if($esAsignacion)
+                                        <div class="flex-1">
+                                            <input
+                                                type="range"
+                                                wire:model.live="cantidad_a_asignar"
+                                                min="1"
+                                                max="{{ $disponibleEnDeposito }}"
+                                                aria-label="Cantidad"
+                                                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            >
+                                        </div>
+                                    @endif
+                                </div>
+                            </x-ui.campo>
                         @endif
                     @endif
 
                     @if(in_array($tipo_movimiento, ['carga_stock', 'ajuste_positivo']))
                         {{-- Depósito auto-determinado por la maquinaria seleccionada --}}
-                        <div class="mb-5 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
-                            <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                            </svg>
+                        <div class="flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-sm">
+                            <i class="fa-regular fa-building text-indigo-500 shrink-0" aria-hidden="true"></i>
                             <span class="text-indigo-800">
                                 Depósito destino: <strong>{{ $maquinaria_seleccionada->deposito->deposito }}</strong>
                             </span>
                         </div>
 
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                {{ $tipo_movimiento === 'ajuste_positivo' ? 'Cantidad a Ajustar' : 'Cantidad a Cargar' }} *
-                                <span class="text-xs text-gray-500 font-normal">(Máximo: 1000 unidades)</span>
-                            </label>
+                        <x-ui.campo :etiqueta="$tipo_movimiento === 'ajuste_positivo' ? 'Cantidad a Ajustar' : 'Cantidad a Cargar'"
+                                    nombre="cantidad_a_cargar" obligatorio ayuda="Máximo: 1000 unidades.">
                             <div class="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    wire:click="decrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_cargar <= 1 ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                    </svg>
-                                </button>
-
-                                <input
-                                    type="number"
-                                    wire:model.live="cantidad_a_cargar" @error('cantidad_a_cargar') aria-invalid="true" @enderror
-                                    min="1"
-                                    max="1000"
-                                    class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                >
-
-                                <button
-                                    type="button"
-                                    wire:click="incrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_cargar >= 1000 ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                </button>
+                                <x-ui.accion icono="fa-minus" etiqueta="Restar uno" wire:click="decrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_cargar <= 1" />
+                                <div class="w-24 shrink-0">
+                                    <x-ui.input nombre="cantidad_a_cargar" type="number" wire:model.live="cantidad_a_cargar" min="1" max="1000" class="text-center" />
+                                </div>
+                                <x-ui.accion icono="fa-plus" etiqueta="Sumar uno" wire:click="incrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_cargar >= 1000" />
 
                                 <div class="flex-1">
                                     <input
                                         type="range"
-                                        wire:model.live="cantidad_a_cargar" @error('cantidad_a_cargar') aria-invalid="true" @enderror
+                                        wire:model.live="cantidad_a_cargar"
                                         min="1"
                                         max="100"
                                         step="1"
+                                        aria-label="Cantidad"
                                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                     >
                                     <div class="flex justify-between text-xs text-gray-500 mt-1">
@@ -1160,89 +947,56 @@
                                     </div>
                                 </div>
                             </div>
-                            @error('cantidad_a_cargar')
-                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+                        </x-ui.campo>
                     @endif
 
                     <!-- Cantidad a Ajustar (Ajuste Negativo) -->
                     @if($tipo_movimiento === 'ajuste_negativo')
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Cantidad a Ajustar *
-                            </label>
+                        @php $disponibleTotal = $maquinaria_seleccionada->getCantidadTotalDisponible(); @endphp
+                        <x-ui.campo etiqueta="Cantidad a Ajustar" nombre="cantidad_a_cargar" obligatorio>
                             <div class="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    wire:click="decrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_cargar <= 1 ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                    </svg>
-                                </button>
-
-                                <input
-                                    type="number"
-                                    wire:model.live="cantidad_a_cargar" @error('cantidad_a_cargar') aria-invalid="true" @enderror
-                                    min="1"
-                                    max="{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}"
-                                    class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200"
-                                >
-
-                                <button
-                                    type="button"
-                                    wire:click="incrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_cargar >= $maquinaria_seleccionada->getCantidadTotalDisponible() ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                </button>
+                                <x-ui.accion icono="fa-minus" etiqueta="Restar uno" wire:click="decrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_cargar <= 1" />
+                                <div class="w-24 shrink-0">
+                                    <x-ui.input nombre="cantidad_a_cargar" type="number" wire:model.live="cantidad_a_cargar" min="1"
+                                                :max="$disponibleTotal" class="text-center" />
+                                </div>
+                                <x-ui.accion icono="fa-plus" etiqueta="Sumar uno" wire:click="incrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_cargar >= $disponibleTotal" />
 
                                 <div class="flex-1">
                                     <input
                                         type="range"
-                                        wire:model.live="cantidad_a_cargar" @error('cantidad_a_cargar') aria-invalid="true" @enderror
+                                        wire:model.live="cantidad_a_cargar"
                                         min="1"
-                                        max="{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}"
+                                        max="{{ $disponibleTotal }}"
                                         step="1"
+                                        aria-label="Cantidad"
                                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-600"
                                     >
                                     <div class="flex justify-between text-xs text-gray-500 mt-1">
                                         <span>1</span>
-                                        <span>{{ $maquinaria_seleccionada->getCantidadTotalDisponible() }}</span>
+                                        <span>{{ $disponibleTotal }}</span>
                                     </div>
                                 </div>
                             </div>
-                            @error('cantidad_a_cargar')
-                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+                        </x-ui.campo>
                     @endif
 
                     <!-- Transferencia -->
                     @if($tipo_movimiento === 'transferencia')
                         {{-- Origen auto-determinado, destino a elegir --}}
-                        <div class="mb-5 grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-3">
                             <div class="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
-                                <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                                </svg>
+                                <i class="fa-solid fa-right-from-bracket text-red-500 shrink-0" aria-hidden="true"></i>
                                 <div>
                                     <div class="text-xs text-red-600 font-medium">Origen</div>
                                     <div class="text-red-900 font-semibold">{{ $maquinaria_seleccionada->deposito->deposito }}</div>
-                                    @php $dispTrans = $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito); @endphp
-                                    <div class="text-xs text-red-600">{{ $dispTrans }} {{ $dispTrans == 1 ? 'unidad' : 'unidades' }} disponibles</div>
+                                    <div class="text-xs text-red-600">{{ $disponibleEnDeposito }} {{ $disponibleEnDeposito == 1 ? 'unidad' : 'unidades' }} disponibles</div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm">
-                                <svg class="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18m-6 4v1a3 3 0 003 3h1a3 3 0 003-3V7a3 3 0 00-3-3h-1a3 3 0 00-3 3v1"></path>
-                                </svg>
+                                <i class="fa-solid fa-right-to-bracket text-green-500 shrink-0" aria-hidden="true"></i>
                                 <div>
                                     <div class="text-xs text-green-600 font-medium">Destino</div>
                                     <div class="text-green-900 font-semibold">{{ $id_deposito_destino ? $depositos_disponibles->firstWhere('id', $id_deposito_destino)?->deposito ?? '—' : 'Seleccionar' }}</div>
@@ -1251,171 +1005,89 @@
                         </div>
 
                         <!-- Cantidad a Transferir -->
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Cantidad a Transferir *
-                                <span class="text-xs text-gray-500 font-normal">
-                                    (Disponible: {{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }})
-                                </span>
-                            </label>
+                        <x-ui.campo etiqueta="Cantidad a Transferir" nombre="cantidad_a_transferir" obligatorio
+                                    :ayuda="'Disponible: '.$disponibleEnDeposito.'.'">
                             <div class="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    wire:click="decrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_transferir <= 1 ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
-                                    </svg>
-                                </button>
-
-                                <input
-                                    type="number"
-                                    wire:model.live="cantidad_a_transferir" @error('cantidad_a_transferir') aria-invalid="true" @enderror
-                                    min="1"
-                                    max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
-                                    class="w-24 px-4 py-2.5 border border-gray-200 rounded-xl text-center focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                                >
-
-                                <button
-                                    type="button"
-                                    wire:click="incrementarCantidad"
-                                    class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                    {{ $cantidad_a_transferir >= $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) ? 'disabled' : '' }}
-                                >
-                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                    </svg>
-                                </button>
+                                <x-ui.accion icono="fa-minus" etiqueta="Restar uno" wire:click="decrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_transferir <= 1" />
+                                <div class="w-24 shrink-0">
+                                    <x-ui.input nombre="cantidad_a_transferir" type="number" wire:model.live="cantidad_a_transferir" min="1"
+                                                :max="$disponibleEnDeposito" class="text-center" />
+                                </div>
+                                <x-ui.accion icono="fa-plus" etiqueta="Sumar uno" wire:click="incrementarCantidad"
+                                             class="border border-gray-300" :disabled="$cantidad_a_transferir >= $disponibleEnDeposito" />
 
                                 <div class="flex-1">
                                     <input
                                         type="range"
-                                        wire:model.live="cantidad_a_transferir" @error('cantidad_a_transferir') aria-invalid="true" @enderror
+                                        wire:model.live="cantidad_a_transferir"
                                         min="1"
-                                        max="{{ $maquinaria_seleccionada->getCantidadEnDeposito($maquinaria_seleccionada->id_deposito) }}"
+                                        max="{{ $disponibleEnDeposito }}"
+                                        aria-label="Cantidad"
                                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                     >
                                 </div>
                             </div>
-                            @error('cantidad_a_transferir')
-                                <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
-                            @enderror
-                        </div>
+                        </x-ui.campo>
 
                         <!-- Depósito Destino -->
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Depósito Destino *</label>
-                            <select
-                                wire:model.live="id_deposito_destino" @error('id_deposito_destino') aria-invalid="true" @enderror
-                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            >
+                        <x-ui.campo etiqueta="Depósito Destino" nombre="id_deposito_destino" obligatorio>
+                            <x-ui.select-nativo nombre="id_deposito_destino" wire:model.live="id_deposito_destino">
                                 <option value="">Seleccione un depósito</option>
                                 @foreach($depositos_disponibles as $deposito)
                                     @if($deposito->id != $maquinaria_seleccionada->id_deposito)
                                         <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
                                     @endif
                                 @endforeach
-                            </select>
-                            @error('id_deposito_destino') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                            </x-ui.select-nativo>
+                        </x-ui.campo>
                     @endif
 
                     <!-- Fecha de Devolución (solo para devolución) -->
                     @if($tipo_movimiento === 'devolucion')
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Devolución Esperada</label>
-                            <input 
-                                type="date" 
-                                wire:model="fecha_devolucion_esperada" @error('fecha_devolucion_esperada') aria-invalid="true" @enderror
-                                min="{{ date('Y-m-d', strtotime('+1 day')) }}"
-                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            >
-                            @error('fecha_devolucion_esperada') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                        <x-ui.campo etiqueta="Fecha de Devolución Esperada" nombre="fecha_devolucion_esperada">
+                            <x-ui.input nombre="fecha_devolucion_esperada" type="date" wire:model="fecha_devolucion_esperada"
+                                        min="{{ date('Y-m-d', strtotime('+1 day')) }}" />
+                        </x-ui.campo>
                     @endif
 
                     @if(in_array($tipo_movimiento, ['carga_stock', 'ajuste_positivo']))
-                        <!-- N° Orden de Compra -->
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
-                            <input
-                                type="text"
-                                wire:model="nro_orden_compra" @error('nro_orden_compra') aria-invalid="true" @enderror
-                                placeholder="Opcional"
-                                class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                            >
-                            @error('nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                        </div>
+                        <x-ui.campo etiqueta="N° Orden de Compra / Suministro" nombre="nro_orden_compra">
+                            <x-ui.input nombre="nro_orden_compra" wire:model="nro_orden_compra" placeholder="Opcional" autocomplete="off" />
+                        </x-ui.campo>
 
-                        <!-- Comprobantes -->
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Comprobantes (PDF, JPG, PNG — máx. 5 archivos, 5 MB c/u)</label>
-                            <input
-                                type="file"
-                                wire:model="comprobantes" @error('comprobantes') aria-invalid="true" @enderror
-                                multiple
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            >
-                            @error('comprobantes') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            @error('comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                        <x-ui.campo etiqueta="Comprobantes (opcional)" nombre="comprobantes" ayuda="PDF, JPG o PNG. Máximo 5 archivos, 5 MB cada uno.">
+                            <x-ui.input nombre="comprobantes" type="file" wire:model="comprobantes" multiple accept=".pdf,.jpg,.jpeg,.png"
+                                        class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer" />
+                            @error('comprobantes.*')
+                                <p class="mt-1 text-xs text-red-600" data-error="comprobantes.*">{{ $message }}</p>
+                            @enderror
                             <div wire:loading wire:target="comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
 
                             @include('livewire.partials.preview-archivos', ['files' => $comprobantes, 'removeMethod' => 'removeComprobante'])
-                        </div>
+                        </x-ui.campo>
                     @endif
 
-                    <!-- Observaciones -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                        <textarea
-                            wire:model="observaciones" @error('observaciones') aria-invalid="true" @enderror
-                            rows="3"
-                            placeholder="Motivo del movimiento (opcional)"
-                            class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200"
-                        ></textarea>
-                        @error('observaciones') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                    </div>
+                    <x-ui.campo etiqueta="Observaciones" nombre="observaciones">
+                        <x-ui.textarea nombre="observaciones" wire:model="observaciones" placeholder="Motivo del movimiento (opcional)" />
+                    </x-ui.campo>
                 </div>
             @endif
 
             <x-slot:footer class="justify-between">
                 <div>
                     @if($paso_actual > 1)
-                        <button 
-                            type="button"
-                            wire:click="volverPaso"
-                            class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium flex items-center gap-2"
-                        >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                            </svg>
-                            Volver
-                        </button>
+                        <x-ui.boton variante="secundario" icono="fa-chevron-left" wire:click="volverPaso">Volver</x-ui.boton>
                     @endif
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <button 
-                        type="button"
-                        wire:click="intentarCerrar"
-                        class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium"
-                    >
-                        Cancelar
-                    </button>
+                    <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
 
                     @if($paso_actual === 3)
-                        <button 
-                            type="button"
-                            wire:click="guardar"
-                            data-atajo-guardar
-                            wire:loading.attr="disabled" wire:target="guardar"
-                            class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg shadow-blue-500/30 transition-all duration-200 font-medium"
-                        >
+                        <x-ui.boton wire:click="guardar" data-atajo-guardar wire:loading.attr="disabled" wire:target="guardar">
                             Guardar Movimiento
-                        </button>
+                        </x-ui.boton>
                     @endif
                 </div>
             </x-slot:footer>
@@ -1430,73 +1102,62 @@
                 <span class="text-sm text-gray-500 font-normal">{{ $edit_movimiento_tipo }}</span>
             </x-slot:encabezado>
 
-            {{-- N° Orden de Compra --}}
-            <div class="mb-5">
-                <label class="block text-sm font-medium text-gray-700 mb-2">N° Orden de Compra / Suministro</label>
-                <input type="text" wire:model="edit_nro_orden_compra" @error('edit_nro_orden_compra') aria-invalid="true" @enderror placeholder="Opcional"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-200">
-                @error('edit_nro_orden_compra') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+            <div class="space-y-5">
+                <x-ui.campo etiqueta="N° Orden de Compra / Suministro" nombre="edit_nro_orden_compra">
+                    <x-ui.input nombre="edit_nro_orden_compra" wire:model="edit_nro_orden_compra" placeholder="Opcional" autocomplete="off" />
+                </x-ui.campo>
 
-            {{-- Observaciones --}}
-            <div class="mb-5">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                <textarea wire:model="edit_observaciones" @error('edit_observaciones') aria-invalid="true" @enderror rows="3" placeholder="Opcional"
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all duration-200"></textarea>
-                @error('edit_observaciones') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-            </div>
+                <x-ui.campo etiqueta="Observaciones" nombre="edit_observaciones">
+                    <x-ui.textarea nombre="edit_observaciones" wire:model="edit_observaciones" placeholder="Opcional" />
+                </x-ui.campo>
 
-            {{-- Comprobantes existentes --}}
-            @if($comprobantesEdicion->count() > 0)
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Comprobantes adjuntos</label>
-                    <div class="space-y-1">
-                        @foreach($comprobantesEdicion as $comp)
-                            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 rounded-lg">
-                                <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
-                                <div class="flex items-center gap-1 flex-shrink-0">
-                                    <a href="{{ route('comprobantes-maquinaria.ver', $comp->id) }}" target="_blank" title="Ver" class="p-1 text-blue-600 hover:bg-blue-100 rounded">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    </a>
-                                    <button type="button" wire:click="confirmarEliminarComprobante({{ $comp->id }})" title="Eliminar" class="p-1 text-red-600 hover:bg-red-100 rounded">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
+                {{-- Comprobantes existentes --}}
+                @if($comprobantesEdicion->count() > 0)
+                    <div>
+                        <div class="block text-sm font-medium text-gray-700 mb-2">Comprobantes adjuntos</div>
+                        <div class="space-y-1">
+                            @foreach($comprobantesEdicion as $comp)
+                                <div class="flex items-center justify-between gap-2 px-3 py-1 bg-gray-50 rounded-lg">
+                                    <span class="text-sm text-gray-800 truncate flex-1">{{ $comp->nombre_original }}</span>
+                                    <div class="flex items-center flex-shrink-0">
+                                        <x-ui.accion icono="fa-regular fa-eye" etiqueta="Ver" :href="route('comprobantes-maquinaria.ver', $comp->id)" target="_blank" />
+                                        <x-ui.accion icono="fa-regular fa-trash-can" color="peligro" etiqueta="Eliminar"
+                                                     wire:click="confirmarEliminarComprobante({{ $comp->id }})" />
+                                    </div>
                                 </div>
-                            </div>
-                        @endforeach
+                            @endforeach
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            {{-- Agregar nuevos comprobantes --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Agregar comprobantes (PDF, JPG, PNG — máx. 5 MB c/u)</label>
-                <input type="file" wire:model="edit_comprobantes" @error('edit_comprobantes') aria-invalid="true" @enderror multiple accept=".pdf,.jpg,.jpeg,.png"
-                    class="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
-                @error('edit_comprobantes') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                @error('edit_comprobantes.*') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                <div wire:loading wire:target="edit_comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
+                {{-- Agregar nuevos comprobantes --}}
+                <x-ui.campo etiqueta="Agregar comprobantes" nombre="edit_comprobantes" ayuda="PDF, JPG o PNG. Máximo 5 MB cada uno.">
+                    <x-ui.input nombre="edit_comprobantes" type="file" wire:model="edit_comprobantes" multiple accept=".pdf,.jpg,.jpeg,.png"
+                                class="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer" />
+                    @error('edit_comprobantes.*')
+                        <p class="mt-1 text-xs text-red-600" data-error="edit_comprobantes.*">{{ $message }}</p>
+                    @enderror
+                    <div wire:loading wire:target="edit_comprobantes" class="mt-2 text-sm text-blue-600">Subiendo archivos...</div>
 
-                @include('livewire.partials.preview-archivos', ['files' => $edit_comprobantes, 'removeMethod' => 'removeEditComprobante'])
+                    @include('livewire.partials.preview-archivos', ['files' => $edit_comprobantes, 'removeMethod' => 'removeEditComprobante'])
+                </x-ui.campo>
             </div>
 
             <x-slot:footer>
-                <button type="button" wire:click="intentarCerrar" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors duration-200 font-medium">Cancelar</button>
-                <button type="submit" wire:loading.attr="disabled" wire:target="guardarEdicion,edit_comprobantes"
-                    class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 shadow-lg shadow-amber-500/30 transition-all duration-200 font-medium">
+                <x-ui.boton variante="secundario" wire:click="intentarCerrar">Cancelar</x-ui.boton>
+                <x-ui.boton type="submit" wire:loading.attr="disabled" wire:target="guardarEdicion,edit_comprobantes">
                     Guardar Cambios
-                </button>
+                </x-ui.boton>
             </x-slot:footer>
         </x-ui.modal>
     @endif
-
 
     {{-- Modal de Estadísticas --}}
     @if($showEstadisticas && $estadisticas)
         <x-ui.modal titulo="Estadísticas de Movimientos" icono="fa-chart-column" cerrar="toggleEstadisticas" ancho="3xl">
             <div class="space-y-6">
                 @if($estadisticas['total'] == 0)
-                    <p class="text-center text-gray-500 py-8">No hay movimientos para los filtros seleccionados.</p>
+                    <x-ui.vacio icono="fa-chart-column" class="py-8">No hay movimientos que coincidan con la búsqueda o los filtros</x-ui.vacio>
                 @else
                 {{-- KPIs --}}
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -1603,4 +1264,4 @@
             ¿Eliminar este comprobante?
         </x-ui.modal-confirmacion>
     @endif
-</div>
+</x-ui.pagina>

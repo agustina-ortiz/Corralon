@@ -243,7 +243,7 @@ Los movimientos de tipo **Carga de Stock** y **Ajuste Positivo** (insumos **y** 
 
 ### Edición de movimientos (Carga de Stock / Ajuste Positivo)
 
-Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista muestra un **botón de edición (lápiz ámbar)** en la columna Usuario (solo visible con permiso de crear movimientos). Abre un modal que permite editar **únicamente**:
+Cada movimiento de tipo **Carga de Stock** o **Ajuste Positivo** en la lista muestra un **botón de edición** (`<x-ui.accion>` con el lápiz) en la columna Usuario (solo visible con permiso de crear movimientos). Abre un modal que permite editar **únicamente**:
 - `nro_orden_compra`
 - `observaciones`
 - Comprobantes adjuntos: agregar nuevos, ver y eliminar existentes (tope total de 5 archivos)
@@ -478,7 +478,8 @@ La interfaz se está adaptando al kit `C:\Users\Usuario\Desktop\especificaciones
 - **`<x-ui.pagina titulo icono>`** + slot `acciones` — título de la pantalla (antes no había) y botones a la derecha (Estadísticas, Exportar, Nuevo). Adaptado: fila dentro del relleno del layout, no barra a sangre. La vista Livewire queda con `<x-ui.pagina>` como raíz. **Ojo:** no escribir `<x-ui.algo>` ni en un comentario HTML (`<!-- -->`): Blade lo compila como componente abierto y la vista da ParseError; en comentarios usar `{{-- --}}` y sin el `<`.
 - El buscador, el botón Filtros y el panel de filtros quedan como estaban hasta la fase de listados (spec 17).
 
-**Migradas a controles/botones:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Empleados (solo encabezado y vacío), Insumos, Maquinarias, Vehículos (incluido el modal de Documentos), Dashboard y Estadísticas (encabezado con "Personalizar"/"Imprimir PDF" en acciones, modal y vacíos; el panel de filtros de Estadísticas queda para la fase de listados). **Pendientes:** Transferencias de Insumos y de Maquinarias.
+**Migradas a controles/botones:** Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Empleados (solo encabezado y vacío), Insumos, Maquinarias, Vehículos (incluido el modal de Documentos), Dashboard y Estadísticas (encabezado con "Personalizar"/"Imprimir PDF" en acciones, modal y vacíos; el panel de filtros de Estadísticas queda para la fase de listados)., Transferencias de Insumos y de Maquinarias (todos sus modales, el panel de Asignaciones Pendientes y la lista). **Fase terminada en todas las pantallas.**
+- **Transferencias:** las acciones de alta van en el slot `acciones` de `<x-ui.pagina>` (Insumos: Nueva Transferencia y Movimientos Múltiples como secundarios, Nuevo Movimiento primario; Maquinarias: Estadísticas/Exportar/Nuevo como en los ABM). Los botones violeta/verde azulado/ámbar de los footers pasaron al primario azul. Los selectores de destino (Vehículo/Evento/Empleado/Secretaría) y de tipo de movimiento son grupos: `<fieldset>` + `<legend>` con `aria-pressed`. Los campos de líneas (`insumos_transferencia.N.cantidad`, `multi_lineas.N.*`) usan `<x-ui.campo>` sin rótulo + `aria-label`; para fijarles ancho, envolver el campo en un `<div class="w-44">` (el `w-full` del campo le gana a una clase de ancho pasada al componente).
 
 **Migradas a modales/toasts:** todas las pantallas (Depósitos, Categorías de Insumos/Maquinarias, Eventos, Choferes, Secretarías, Usuarios, Insumos, Maquinarias, Vehículos, Transferencias de Insumos/Maquinarias, Dashboard, Estadísticas).
 
