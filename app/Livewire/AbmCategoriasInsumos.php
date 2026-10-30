@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
+use App\Livewire\Traits\OrdenaPorColumna;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\CategoriaInsumo;
@@ -11,6 +12,7 @@ use App\Models\CategoriaInsumo;
 class AbmCategoriasInsumos extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -44,16 +46,29 @@ class AbmCategoriasInsumos extends Component
         }
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'id' => 'id',
+            'nombre' => 'nombre',
+            'descripcion' => 'descripcion',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['id', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
         
-        $categorias = CategoriaInsumo::when($this->search, function ($query) {
+        $categorias = $this->aplicarOrden(CategoriaInsumo::when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('id')
-            ->paginate(10);
+        )->paginate(10);
 
         return view('livewire.abm-categorias-insumos', [
             'categorias' => $categorias,

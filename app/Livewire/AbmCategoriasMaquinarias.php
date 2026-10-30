@@ -5,12 +5,14 @@ namespace App\Livewire;
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
 use App\Models\CategoriaMaquinaria;
+use App\Livewire\Traits\OrdenaPorColumna;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class AbmCategoriasMaquinarias extends Component
 {
     use WithPagination;
+    use OrdenaPorColumna;
     use EnviaToasts;
     use ConfirmaDescarte;
 
@@ -45,6 +47,20 @@ class AbmCategoriasMaquinarias extends Component
         }
     }
 
+    protected function columnasOrdenables(): array
+    {
+        return [
+            'id' => 'id',
+            'nombre' => 'nombre',
+            'descripcion' => 'descripcion',
+        ];
+    }
+
+    protected function ordenInicial(): array
+    {
+        return ['nombre', 'asc'];
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -53,9 +69,8 @@ class AbmCategoriasMaquinarias extends Component
             ->when($this->search, function($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%')
                       ->orWhere('descripcion', 'like', '%' . $this->search . '%');
-            })
-            ->orderBy('nombre')
-            ->paginate(10);
+            });
+        $categorias = $this->aplicarOrden($categorias)->paginate(10);
 
         return view('livewire.abm-categorias-maquinarias', [
             'categorias' => $categorias,
