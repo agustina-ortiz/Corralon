@@ -103,6 +103,6 @@ class ListadoTest extends TestCase
     {
         $html = Blade::render('<x-ui.campo etiqueta="Corralón" nombre="filtro_corralon" oculto>x</x-ui.campo>');
 
-        $this->assertMatchesRegularExpression('/<labels+for="campo-filtro_corralon"s+class="sr-only">/', $html);
+        $this->assertMatchesRegularExpression('/<label\s+for="campo-filtro_corralon"\s+class="sr-only">/', $html);
     }
 }
