@@ -540,58 +540,20 @@
             <!-- PASO 1: Seleccionar Maquinaria -->
             @if($paso_actual === 1)
                 <x-ui.campo etiqueta="Buscar Maquinaria" nombre="search_maquinaria" obligatorio>
-                    <div class="relative">
-                        <x-ui.input nombre="search_maquinaria"
-                                    wire:model.live="search_maquinaria"
-                                    wire:focus="mostrarLista"
-                                    placeholder="Buscar por nombre, categoría o depósito..."
-                                    class="pr-10" autocomplete="off" />
-                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                    </div>
-
-                    @if($mostrar_lista && $maquinarias_filtradas->count() > 0)
-                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-96 overflow-y-auto">
-                            <ul class="py-2">
-                               @foreach($maquinarias_filtradas as $maquinaria)
-                                    <li>
-                                        <button
-                                            type="button"
-                                            wire:click="seleccionarMaquinaria({{ $maquinaria->id }})"
-                                            class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
-                                        >
-                                            <div class="flex justify-between items-start">
-                                                <div class="flex-1">
-                                                    <div class="text-sm font-medium text-gray-900">{{ $maquinaria->maquinaria }}</div>
-                                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                                                        <x-ui.badge color="azul">{{ $maquinaria->categoriaMaquinaria->nombre }}</x-ui.badge>
-                                                        <span>•</span>
-                                                        <span>{{ $maquinaria->deposito->deposito }}</span>
-                                                        <span>•</span>
-                                                        <x-ui.badge :color="$maquinaria->cantidad > 0 ? 'verde' : 'rojo'">
-                                                            {{ $maquinaria->cantidad }} {{ $maquinaria->cantidad == 1 ? 'unidad' : 'unidades' }}
-                                                        </x-ui.badge>
-                                                    </div>
-                                                </div>
-                                                <div class="text-right ml-3">
-                                                    @if($maquinaria->cantidad > 0)
-                                                        <x-ui.badge color="verde">Disponible</x-ui.badge>
-                                                    @else
-                                                        <x-ui.badge color="ambar">Sin Stock</x-ui.badge>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </button>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-
-                    @if($mostrar_lista && $search_maquinaria && $maquinarias_filtradas->count() == 0)
-                        <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                            <x-ui.vacio icono="fa-gears">No hay maquinarias que coincidan con la búsqueda</x-ui.vacio>
-                        </div>
-                    @endif
+                    {{-- Busca en el servidor (search_maquinaria); al elegir avanza al paso 2. --}}
+                    <x-ui.combobox nombre="search_maquinaria" buscar-en="search_maquinaria" accion="seleccionarMaquinaria"
+                                   placeholder="Buscar por nombre, categoría o depósito..."
+                                   sin-resultados="No hay maquinarias que coincidan con la búsqueda"
+                                   x-on:combobox-abierto="$wire.mostrarLista()"
+                                   :opciones="$maquinarias_filtradas->map(fn ($m) => [
+                                       'id' => $m->id,
+                                       'nombre' => $m->maquinaria,
+                                       'insignia' => $m->categoriaMaquinaria->nombre,
+                                       'detalle' => $m->deposito->deposito,
+                                       'cifra' => $m->cantidad > 0 ? 'Disponible' : 'Sin Stock',
+                                       'cifra_color' => $m->cantidad > 0 ? 'verde' : 'naranja',
+                                       'subcifra' => $m->cantidad.' '.($m->cantidad == 1 ? 'unidad' : 'unidades'),
+                                   ])" />
                 </x-ui.campo>
 
                 @if(!$search_maquinaria)
@@ -779,85 +741,32 @@
                                         <x-ui.accion icono="fa-xmark" etiqueta="Quitar la selección" wire:click="$set('id_referencia', '')" />
                                     </div>
                                 @else
-                                    <div class="relative">
-                                        <x-ui.input nombre="id_referencia"
-                                                    wire:model.live="search_destino"
-                                                    wire:focus="$set('mostrar_lista_destino', true)"
-                                                    placeholder="Buscar {{ $tipo_destino === 'vehiculo' ? 'por nombre, patente o marca...' : ($tipo_destino === 'evento' ? 'por nombre de evento...' : 'por nombre, legajo o DNI...') }}"
-                                                    class="pr-10" autocomplete="off" />
-                                        <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden="true"></i>
-                                    </div>
-
-                                    @if($mostrar_lista_destino)
-                                        @if($tipo_destino === 'vehiculo' && $vehiculos_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($vehiculos_destino as $v)
-                                                        <li>
-                                                            <button type="button" wire:click="seleccionarDestino({{ $v->id }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                                <div class="text-sm font-medium text-gray-900">{{ $v->vehiculo }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">{{ $v->patente }} • {{ $v->marca_modelo }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($tipo_destino === 'evento' && $eventos_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($eventos_destino as $ev)
-                                                        <li>
-                                                            <button type="button" wire:click="seleccionarDestino({{ $ev->id }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                                <div class="text-sm font-medium text-gray-900">{{ $ev->evento }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">{{ $ev->fecha?->format('d/m/Y') }} • {{ $ev->ubicacion }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($tipo_destino === 'empleado' && $empleados_destino->count() > 0)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                                                <ul class="py-2">
-                                                    @foreach($empleados_destino as $emp)
-                                                        <li>
-                                                            <button type="button" wire:click="seleccionarDestino({{ $emp->LEGAJO }})" class="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0">
-                                                                <div class="text-sm font-medium text-gray-900">{{ $emp->nombre_formateado }}</div>
-                                                                <div class="text-xs text-gray-500 mt-0.5">Legajo {{ $emp->LEGAJO }} • DNI {{ number_format($emp->DNI, 0, '', '.') }}</div>
-                                                            </button>
-                                                        </li>
-                                                    @endforeach
-                                                </ul>
-                                            </div>
-                                        @elseif($search_destino)
-                                            <div class="relative z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg">
-                                                <x-ui.vacio icono="fa-magnifying-glass">No hay {{ $tipo_destino === 'vehiculo' ? 'vehículos' : ($tipo_destino === 'evento' ? 'eventos' : 'empleados') }} que coincidan con la búsqueda</x-ui.vacio>
-                                            </div>
-                                        @endif
-                                    @endif
+                                    {{-- Busca en el servidor (search_destino); al elegir marca el destino. --}}
+                                    @include('livewire.partials.combobox-destino', [
+                                        'tipo' => $tipo_destino,
+                                        'buscarEn' => 'search_destino',
+                                        'accion' => 'seleccionarDestino',
+                                        'alAbrir' => "\$wire.set('mostrar_lista_destino', true)",
+                                        'vehiculos' => $vehiculos_destino,
+                                        'eventos' => $eventos_destino,
+                                        'empleados' => $empleados_destino,
+                                    ])
                                 @endif
                             </x-ui.campo>
                         @elseif($tipo_destino === 'secretaria')
                             <!-- Secretaría y Área -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <x-ui.campo etiqueta="Secretaría" nombre="id_secretaria_ajuste" obligatorio>
-                                    <x-ui.select-nativo nombre="id_secretaria_ajuste" wire:model.live="id_secretaria_ajuste">
-                                        <option value="">— Seleccionar —</option>
-                                        @foreach($secretarias as $sec)
-                                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                                        @endforeach
-                                    </x-ui.select-nativo>
+                                    <x-ui.combobox nombre="id_secretaria_ajuste" wire:model.live="id_secretaria_ajuste" placeholder="— Seleccionar —"
+                                                   :opciones="$secretarias" etiqueta="secretaria" />
                                 </x-ui.campo>
                                 <x-ui.campo etiqueta="Área" nombre="area_ajuste"
                                             :ayuda="$id_secretaria_ajuste && count($areas_disponibles) === 0 ? 'No hay áreas cargadas para esta secretaría.' : null"
                                             x-data="{ modoLibre: false }" x-init="$watch('modoLibre', val => { if(val) $nextTick(() => $refs.areaInputMaquinarias?.focus()) })">
                                     <template x-if="!modoLibre">
                                         <div>
-                                            <x-ui.select-nativo nombre="area_ajuste" wire:model="area_ajuste">
-                                                <option value="">— Seleccionar —</option>
-                                                @foreach($areas_disponibles as $area)
-                                                    <option value="{{ $area }}">{{ $area }}</option>
-                                                @endforeach
-                                            </x-ui.select-nativo>
+                                            <x-ui.combobox nombre="area_ajuste" wire:model="area_ajuste" placeholder="— Seleccionar —"
+                                                           :opciones="collect($areas_disponibles)->values()" />
                                             <x-ui.boton variante="enlace" tamano="chico" icono="fa-regular fa-pen-to-square" class="mt-1"
                                                         x-on:click="modoLibre = true; $wire.set('area_ajuste', '')">
                                                 Escribir área manualmente
@@ -1032,14 +941,9 @@
 
                         <!-- Depósito Destino -->
                         <x-ui.campo etiqueta="Depósito Destino" nombre="id_deposito_destino" obligatorio>
-                            <x-ui.select-nativo nombre="id_deposito_destino" wire:model.live="id_deposito_destino">
-                                <option value="">Seleccione un depósito</option>
-                                @foreach($depositos_disponibles as $deposito)
-                                    @if($deposito->id != $maquinaria_seleccionada->id_deposito)
-                                        <option value="{{ $deposito->id }}">{{ $deposito->deposito }}</option>
-                                    @endif
-                                @endforeach
-                            </x-ui.select-nativo>
+                            <x-ui.combobox nombre="id_deposito_destino" wire:model.live="id_deposito_destino" placeholder="Seleccione un depósito"
+                                           :ordenar="false" etiqueta="deposito"
+                                           :opciones="collect($depositos_disponibles)->where('id', '!=', $maquinaria_seleccionada->id_deposito)->values()" />
                         </x-ui.campo>
                     @endif
 

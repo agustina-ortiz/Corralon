@@ -141,10 +141,12 @@
         @endif
         servidor: @js($servidor),
         accion: @js($accion),
+        buscarEn: @js($buscarEn),
         abierto: false,
         busqueda: '',
         resaltado: -1,
         version: 0,
+        temporizador: null,
         init() {
             // Livewire cambia data-opciones al re-renderizar: se relee.
             new MutationObserver(() => this.version++).observe($el, { attributes: true, attributeFilter: ['data-opciones'] });
@@ -163,30 +165,37 @@
         get vacio() { return this.seleccionada === null },
         // El panel se posiciona con `fixed` contra el botón: así sobresale del
         // modal en vez de quedar recortado por el body, que scrollea.
-        panel: { top: 0, left: 0, width: 0, arriba: false },
+        panel: { top: 0, left: 0, width: 0, arriba: false, max: null },
         posicionar() {
             const r = this.$refs.boton.getBoundingClientRect();
-            const alto = this.$refs.panel?.offsetHeight ?? 280;
-            // Si abajo no entra y arriba sí, se despliega hacia arriba.
-            this.panel.arriba = (r.bottom + alto + 8 > window.innerHeight) && (r.top - alto - 8 > 0);
-            this.panel.top = this.panel.arriba ? r.top - alto - 4 : r.bottom + 4;
+            // Alto natural del panel (buscador + lista), sin el tope de max.
+            const lista = this.$refs.lista;
+            const alto = (this.$refs.buscador?.parentElement.offsetHeight ?? 0) + Math.min(lista?.scrollHeight ?? 280, lista ? parseFloat(getComputedStyle(lista).maxHeight) || 280 : 280) + 2;
+            const abajo = window.innerHeight - r.bottom - 12;
+            const arriba = r.top - 12;
+            // Abajo si entra; si no, arriba si entra; si no entra en
+            // ninguno, del lado con más lugar y achicado a ese lugar.
+            this.panel.arriba = alto > abajo && (alto <= arriba || arriba > abajo);
+            const lugar = this.panel.arriba ? arriba : abajo;
+            this.panel.max = alto > lugar ? lugar : null;
+            this.panel.top = this.panel.arriba ? r.top - Math.min(alto, lugar) - 4 : r.bottom + 4;
             this.panel.left = r.left;
             this.panel.width = r.width;
         },
         abrir(tecla = null) {
             if ($el.dataset.disabled === '1') return;
             this.abierto = true;
-            this.busqueda = this.servidor ? (this.$refs.buscador?.value ?? '') : '';
+            // Modo servidor: el texto vive acá y se manda con $wire.set (un
+            // wire:model.live en el buscador perdía lo tipeado mientras volvía
+            // el pedido que carga la lista).
+            this.busqueda = this.servidor ? String($wire.get(this.buscarEn) ?? '') : '';
+            if (tecla !== null) { this.busqueda = tecla; this.enviarBusqueda() }
             this.resaltado = Math.max(0, this.filtradas.findIndex(o => this.seleccionada && String(o.valor) === String(this.seleccionada.valor)));
             if (this.servidor) this.$dispatch('combobox-abierto');
             this.$nextTick(() => {
                 this.posicionar();
                 const buscador = this.$refs.buscador;
                 (buscador ?? this.$refs.boton)?.focus();
-                if (buscador && tecla !== null) {
-                    buscador.value = tecla;
-                    buscador.dispatchEvent(new Event('input', { bubbles: true }));
-                }
                 this.enfocarResaltado();
             });
         },
@@ -200,12 +209,24 @@
             this.valor = opcion.valor;
         },
         limpiar() { this.valor = ''; this.cerrar(); this.$refs.boton.focus() },
-        // Escribir sobre el botón cerrado abre el buscador con esa letra.
+        // Escribir sobre el botón abre el buscador con esa letra; las que
+        // llegan antes de que el foco pase al buscador se le suman.
         teclaEnBoton(evento) {
-            if (this.abierto || evento.key.length !== 1 || evento.ctrlKey || evento.metaKey || evento.altKey || evento.key === ' ') return;
+            if (evento.key.length !== 1 || evento.ctrlKey || evento.metaKey || evento.altKey || evento.key === ' ') return;
             if (! @js($conBuscador)) return;
             evento.preventDefault();
-            this.abrir(evento.key);
+            if (! this.abierto) { this.abrir(evento.key); return }
+            this.busqueda += evento.key;
+            this.resaltado = 0;
+            this.$refs.buscador?.focus();
+            this.enviarBusqueda();
+        },
+        // Modo servidor: manda el texto a la propiedad de búsqueda (300 ms
+        // después de la última tecla).
+        enviarBusqueda() {
+            if (! this.servidor) return;
+            clearTimeout(this.temporizador);
+            this.temporizador = setTimeout(() => $wire.set(this.buscarEn, this.busqueda), 300);
         },
         mover(delta) {
             if (! this.abierto) { this.abrir(); return }
@@ -265,24 +286,19 @@
 
     {{-- Desplegable: fixed para que no lo recorte el modal (z sobre todo) --}}
     <div x-ref="panel" x-show="abierto" x-cloak x-transition.opacity.duration.100ms
-         :style="`top: ${panel.top}px; left: ${panel.left}px; width: ${panel.width}px`"
-         class="fixed z-[80] rounded-xl border border-gray-200 bg-white shadow-lg">
+         :style="`top: ${panel.top}px; left: ${panel.left}px; width: ${panel.width}px` + (panel.max ? `; max-height: ${panel.max}px` : '')"
+         class="fixed z-[80] flex flex-col rounded-xl border border-gray-200 bg-white shadow-lg">
         @if($conBuscador)
-            <div class="border-b border-gray-200 p-2">
+            <div class="shrink-0 border-b border-gray-200 p-2">
                 <input type="text" x-ref="buscador" autocomplete="off" placeholder="Buscar..."
-                       @if($servidor)
-                           wire:model.live="{{ $buscarEn }}"
-                           x-on:input="busqueda = $event.target.value; resaltado = 0"
-                       @else
-                           x-model="busqueda" x-on:input="resaltado = 0"
-                       @endif
+                       x-model="busqueda" x-on:input="resaltado = 0; enviarBusqueda()"
                        class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none {{ Tema::anilloFoco() }}">
             </div>
         @endif
 
         {{-- Tope de 7 filas: con más, la lista se iría de la pantalla --}}
         <ul x-ref="lista" id="{{ $idLista }}" role="listbox"
-            class="{{ $rica ? 'max-h-80' : 'max-h-[17.5rem]' }} overflow-y-auto scroll-fino py-1 text-sm">
+            class="{{ $rica ? 'max-h-80' : 'max-h-[17.5rem]' }} min-h-0 overflow-y-auto scroll-fino py-1 text-sm">
             @if($vacio !== null)
                 <li role="option" x-on:click="limpiar()" :aria-selected="vacio"
                     class="cursor-pointer px-4 py-2 text-gray-500 hover:bg-gray-100"

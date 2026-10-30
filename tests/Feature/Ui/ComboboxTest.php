@@ -272,7 +272,12 @@ class ComboboxTest extends TestCase
             '',
         );
 
-        $this->assertStringContainsString('wire:model.live="busqueda"', $html);
+        // El texto vive en Alpine y va al servidor con debounce (no wire:model:
+        // la respuesta del pedido que carga la lista pisaba lo tipeado).
+        $this->assertStringContainsString('x-on:input="resaltado = 0; enviarBusqueda()"', $html);
+        $this->assertStringContainsString('setTimeout(() => $wire.set(this.buscarEn, this.busqueda), 300)', $html);
+        $this->assertStringContainsString("buscarEn: 'busqueda'", $html);
+        $this->assertStringNotContainsString('wire:model.live="busqueda"', $html);
         $this->assertStringContainsString("accion: 'elegir'", $html);
         $this->assertStringContainsString('servidor: true', $html);
         // Sin wire:model no hay entangle.
