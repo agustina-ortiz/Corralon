@@ -153,12 +153,8 @@
                     cerrar="intentarCerrar" ancho="lg" submit="guardarArea">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <x-ui.campo class="sm:col-span-2" etiqueta="Secretaría" nombre="id_secretaria" obligatorio>
-                    <x-ui.select-nativo nombre="id_secretaria" wire:model="id_secretaria">
-                        <option value="">Seleccione una secretaría</option>
-                        @foreach(\App\Models\Secretaria::orderBy('secretaria')->get() as $sec)
-                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="id_secretaria" wire:model="id_secretaria" placeholder="Seleccione una secretaría"
+                                   :opciones="\App\Models\Secretaria::orderBy('secretaria')->get()" etiqueta="secretaria" />
                 </x-ui.campo>
 
                 <x-ui.campo class="sm:col-span-2" etiqueta="Nombre del Área" nombre="area" obligatorio>
