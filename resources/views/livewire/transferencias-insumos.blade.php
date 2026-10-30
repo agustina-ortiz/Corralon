@@ -690,6 +690,7 @@
                     <x-ui.campo etiqueta="Agregar Insumos" nombre="insumos_transferencia" obligatorio>
                         {{-- Busca en el servidor (search_insumo_transferencia); al elegir agrega la línea. --}}
                         <x-ui.combobox nombre="insumos_transferencia" buscar-en="search_insumo_transferencia" accion="agregarInsumoTransferencia"
+                                       enfocar="[id^='campo-insumos_transferencia.'][id$='.cantidad']"
                                        placeholder="Buscar insumo por nombre o categoría..."
                                        sin-resultados="No hay insumos con stock disponible que coincidan con la búsqueda"
                                        x-on:combobox-abierto="$wire.mostrarListaTransferencia()"

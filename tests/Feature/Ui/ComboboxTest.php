@@ -221,6 +221,7 @@ class ComboboxTest extends TestCase
         $html = $this->html(['a' => 'A']);
 
         $this->assertStringContainsString("attributeFilter: ['data-opciones']", $html);
+        $this->assertStringContainsString('if (! opcion || opcion.deshabilitada) this.resaltado = this.primeraHabilitada();', $html);
         $this->assertStringContainsString('get opciones() { this.version;', $html);
     }
 
@@ -296,6 +297,28 @@ class ComboboxTest extends TestCase
         $html = $this->html(['b' => 'Zapato', 'a' => 'Arena'], 'buscar-en="busqueda" accion="elegir"', '');
 
         $this->assertSame(['Zapato', 'Arena'], $this->textos($html));
+    }
+
+    public function test_modo_servidor_pasa_el_foco_cuando_vuelve_la_accion(): void
+    {
+        $sinEnfocar = $this->html([], 'nombre="busqueda" buscar-en="busqueda" accion="elegir"', '');
+        $conEnfocar = $this->html([], 'nombre="busqueda" buscar-en="busqueda" accion="elegir" enfocar="[id$=\'.cantidad\']"', '');
+
+        // Espera la respuesta de la acción y recién ahí mueve el foco.
+        $this->assertStringContainsString('$wire.call(this.accion, valor).then(', $sinEnfocar);
+        $this->assertStringContainsString('data-nombre="busqueda"', $sinEnfocar);
+        $this->assertStringContainsString("new CustomEvent('ui-siguiente-campo'", $sinEnfocar);
+        $this->assertStringNotContainsString('data-enfocar', $sinEnfocar);
+        $this->assertStringContainsString("data-enfocar=\"[id$='.cantidad']\"", $conEnfocar);
+    }
+
+    public function test_espacio_y_texto_anterior_del_buscador(): void
+    {
+        $html = $this->html([], 'buscar-en="busqueda" accion="elegir"', '');
+
+        // Con el panel abierto el espacio es texto; el texto anterior queda seleccionado.
+        $this->assertStringContainsString("if (evento.key === ' ' && ! this.abierto) return;", $html);
+        $this->assertStringContainsString('if (buscador && tecla === null) buscador.select();', $html);
     }
 
     /**

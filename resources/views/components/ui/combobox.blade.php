@@ -47,13 +47,16 @@
       buscar-en    Modo servidor: propiedad Livewire del texto buscado.
       accion       Modo servidor: método Livewire que recibe el valor elegido.
       sin-resultados  Modo servidor: texto con búsqueda y sin resultados.
+      enfocar      Modo servidor: selector del campo a enfocar cuando vuelve la
+                   acción (el último que coincide: la línea recién agregada).
+                   Sin enfocar, el foco pasa al campo que sigue a este.
 
     El vacío es '' (no null), como el <option value=""> de los <select> que
     reemplaza. Teclado: flechas / Enter / Escape (Escape con el panel cerrado
     sigue cerrando el modal); escribir sobre el botón abre el buscador con esa
     letra. Al elegir con Enter avisa al modal (`ui-siguiente-campo`) para que
-    el foco pase al campo siguiente (en modo servidor no: la acción cambia el
-    formulario). Con más de 200 opciones y APP_DEBUG deja un aviso en el log.
+    el foco pase al campo siguiente (en modo servidor, cuando vuelve la
+    respuesta de la acción: ver `enfocar`). Con más de 200 opciones y APP_DEBUG deja un aviso en el log.
 
     Las opciones viajan en data-opciones y Alpine las relee cuando Livewire
     cambia ese atributo (combo dependiente, resultados del servidor).
@@ -72,6 +75,7 @@
     'buscarEn' => null,
     'accion' => null,
     'sinResultados' => 'No hay resultados que coincidan con la búsqueda',
+    'enfocar' => null,
 ])
 
 @php
@@ -149,7 +153,15 @@
         temporizador: null,
         init() {
             // Livewire cambia data-opciones al re-renderizar: se relee.
-            new MutationObserver(() => this.version++).observe($el, { attributes: true, attributeFilter: ['data-opciones'] });
+            // Si el resaltado quedó fuera de la lista nueva o en una
+            // deshabilitada (resultados del servidor que llegan con el panel
+            // ya abierto), pasa a la primera habilitada.
+            new MutationObserver(() => {
+                this.version++;
+                if (! this.abierto) return;
+                const opcion = this.filtradas[this.resaltado];
+                if (! opcion || opcion.deshabilitada) this.resaltado = this.primeraHabilitada();
+            }).observe($el, { attributes: true, attributeFilter: ['data-opciones'] });
         },
         get opciones() { this.version; return JSON.parse($el.dataset.opciones) },
         normalizar(texto) { return String(texto).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase() },
@@ -197,6 +209,9 @@
                 this.posicionar();
                 const buscador = this.$refs.buscador;
                 (buscador ?? this.$refs.boton)?.focus();
+                // El texto de la búsqueda anterior queda seleccionado: lo que
+                // se tipea lo reemplaza (si no se abrió tipeando).
+                if (buscador && tecla === null) buscador.select();
                 this.enfocarResaltado();
             });
         },
@@ -207,14 +222,35 @@
             if (opcion.deshabilitada) return;
             this.cerrar();
             this.$refs.boton.focus();
-            if (this.accion) { $wire.call(this.accion, opcion.valor); return }
+            if (this.accion) { this.llamarAccion(opcion.valor); return }
             this.valor = opcion.valor;
+        },
+        // Modo servidor: la acción re-renderiza el formulario (agrega la línea,
+        // cambia el combobox por la tarjeta del destino). Cuando vuelve la
+        // respuesta, el foco pasa al campo que sigue al campo de este combobox
+        // (el rótulo del x-ui.campo sigue ahí aunque el combobox ya no esté).
+        llamarAccion(valor) {
+            const nombre = $el.dataset.nombre;
+            const enfocar = $el.dataset.enfocar;
+            const boton = this.$refs.boton;
+            $wire.call(this.accion, valor).then(() => setTimeout(() => {
+                const activo = document.activeElement;
+                if (! nombre || (activo && activo !== document.body && activo !== boton)) return;
+                // `enfocar`: el último que coincide (la línea recién agregada).
+                const destino = enfocar ? [...document.querySelectorAll(enfocar)].pop() : null;
+                if (destino) { destino.focus(); destino.select?.(); return }
+                const ancla = boton.isConnected ? boton : document.querySelector(`label[for='campo-${nombre}']`)?.parentElement;
+                ancla?.dispatchEvent(new CustomEvent('ui-siguiente-campo', { bubbles: true }));
+            }));
         },
         limpiar() { this.valor = ''; this.cerrar(); this.$refs.boton.focus() },
         // Escribir sobre el botón abre el buscador con esa letra; las que
         // llegan antes de que el foco pase al buscador se le suman.
         teclaEnBoton(evento) {
-            if (evento.key.length !== 1 || evento.ctrlKey || evento.metaKey || evento.altKey || evento.key === ' ') return;
+            if (evento.key.length !== 1 || evento.ctrlKey || evento.metaKey || evento.altKey) return;
+            // Espacio con el panel cerrado: el click nativo del botón lo abre.
+            // Abierto (tipeando antes de que el foco pase al buscador) es texto.
+            if (evento.key === ' ' && ! this.abierto) return;
             if (! @js($conBuscador)) return;
             evento.preventDefault();
             if (! this.abierto) { this.abrir(evento.key); return }
@@ -263,6 +299,8 @@
     x-on:resize.window="if (abierto) posicionar()"
     data-opciones="{{ json_encode($normalizadas, JSON_UNESCAPED_UNICODE) }}"
     data-disabled="{{ $disabled ? '1' : '0' }}"
+    @if($nombre) data-nombre="{{ $nombre }}" @endif
+    @if($enfocar) data-enfocar="{{ $enfocar }}" @endif
     {{ $attributes->whereDoesntStartWith('wire:model')->class(['relative w-full']) }}
 >
     {{-- Control --}}
