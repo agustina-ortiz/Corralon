@@ -130,12 +130,8 @@
                 </x-ui.campo>
 
                 <x-ui.campo class="sm:col-span-2" etiqueta="Secretaría" nombre="secretaria_id">
-                    <x-ui.select-nativo nombre="secretaria_id" wire:model="secretaria_id">
-                        <option value="">Seleccione una secretaría</option>
-                        @foreach($secretarias as $sec)
-                            <option value="{{ $sec->id }}">{{ $sec->secretaria }}</option>
-                        @endforeach
-                    </x-ui.select-nativo>
+                    <x-ui.combobox nombre="secretaria_id" wire:model="secretaria_id" placeholder="Seleccione una secretaría"
+                                   :opciones="$secretarias" etiqueta="secretaria" />
                 </x-ui.campo>
 
                 <div class="sm:col-span-2">
