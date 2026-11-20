@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Actions\Usuarios\GuardarUsuario;
 use App\Livewire\Traits\ConfirmaDescarte;
 use App\Livewire\Traits\EnviaToasts;
 use App\Models\User;
@@ -13,8 +14,6 @@ use App\Livewire\Traits\OrdenaPorColumna;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class AbmUsuarios extends Component
 {
@@ -60,32 +59,13 @@ class AbmUsuarios extends Component
 
     protected function rules()
     {
-        $rules = [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $this->usuario_id,
-            'id_rol' => 'required|exists:roles,id',
-        ];
-
-        if ($this->modo === 'crear') {
-            $rules['password'] = 'required|string|min:8|confirmed';
-        } elseif ($this->password) {
-            $rules['password'] = 'string|min:8|confirmed';
-        }
-
-        return $rules;
+        return GuardarUsuario::reglas($this->modo === 'crear' ? null : $this->usuario_id, $this->password);
     }
 
-    protected $messages = [
-        'name.required' => 'El nombre es obligatorio',
-        'email.required' => 'El email es obligatorio',
-        'email.email' => 'Debe ser un email válido',
-        'email.unique' => 'Este email ya está registrado',
-        'id_rol.required' => 'Debe seleccionar un rol',
-        'id_rol.exists' => 'El rol seleccionado no es válido',
-        'password.required' => 'La contraseña es obligatoria',
-        'password.min' => 'La contraseña debe tener al menos 8 caracteres',
-        'password.confirmed' => 'Las contraseñas no coinciden',
-    ];
+    protected function messages()
+    {
+        return GuardarUsuario::mensajes();
+    }
 
     public function mount()
     {
@@ -271,98 +251,22 @@ class AbmUsuarios extends Component
 
         $this->validate();
 
-        $rol = Rol::find($this->id_rol);
-        $esAdmin = $rol && $rol->nombre === 'Administrador';
-
-        DB::beginTransaction();
         try {
-            $data = [
-                'name' => $this->name,
-                'email' => $this->email,
-                'id_rol' => $this->id_rol,
-                'acceso_todos_corralones' => $esAdmin,
-                'corralones_permitidos' => $esAdmin ? null : array_map('intval', $this->corralones_seleccionados),
-            ];
-
-            if ($this->password) {
-                $data['password'] = Hash::make($this->password);
-            }
-
-            if ($this->modo === 'crear') {
-                $usuario = User::create($data);
-            } else {
-                $usuario = User::findOrFail($this->usuario_id);
-                $usuario->update($data);
-            }
-
-            // Guardar permisos (solo si no es admin)
-            // Eliminar permisos existentes
-            $usuario->permisos()->delete();
-
-            if (!$esAdmin) {
-                $permisosACrear = [];
-
-                // Permisos globales
-                foreach ($this->permisos_globales as $modulo => $nivel) {
-                    $permisosACrear[] = [
-                        'id_usuario' => $usuario->id,
-                        'id_corralon' => null,
-                        'id_deposito' => null,
-                        'modulo' => $modulo,
-                        'nivel_acceso' => $nivel,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                // Permisos por corralon
-                foreach ($this->permisos_por_corralon as $corralonId => $modulos) {
-                    foreach ($modulos as $modulo => $nivel) {
-                        // Módulo mixto con permiso global: ya ve todo, el permiso por corralón sobra
-                        if (UsuarioPermiso::esModuloMixto($modulo) && isset($this->permisos_globales[$modulo])) {
-                            continue;
-                        }
-
-                        // Verificar si hay depositos especificos
-                        $depositosEsp = $this->depositos_especificos[$corralonId][$modulo] ?? [];
-
-                        if (empty($depositosEsp)) {
-                            // Acceso a todos los depositos del corralon
-                            $permisosACrear[] = [
-                                'id_usuario' => $usuario->id,
-                                'id_corralon' => (int) $corralonId,
-                                'id_deposito' => null,
-                                'modulo' => $modulo,
-                                'nivel_acceso' => $nivel,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ];
-                        } else {
-                            // Acceso solo a depositos especificos
-                            foreach ($depositosEsp as $depositoId) {
-                                $permisosACrear[] = [
-                                    'id_usuario' => $usuario->id,
-                                    'id_corralon' => (int) $corralonId,
-                                    'id_deposito' => (int) $depositoId,
-                                    'modulo' => $modulo,
-                                    'nivel_acceso' => $nivel,
-                                    'created_at' => now(),
-                                    'updated_at' => now(),
-                                ];
-                            }
-                        }
-                    }
-                }
-
-                if (!empty($permisosACrear)) {
-                    DB::table('usuario_permisos')->insert($permisosACrear);
-                }
-            }
-
-            DB::commit();
+            app(GuardarUsuario::class)->ejecutar(
+                $this->modo === 'crear' ? null : User::findOrFail($this->usuario_id),
+                [
+                    'name' => $this->name,
+                    'email' => $this->email,
+                    'id_rol' => $this->id_rol,
+                    'password' => $this->password,
+                    'corralones_seleccionados' => $this->corralones_seleccionados,
+                    'permisos_globales' => $this->permisos_globales,
+                    'permisos_por_corralon' => $this->permisos_por_corralon,
+                    'depositos_especificos' => $this->depositos_especificos,
+                ],
+            );
             $this->toastExito($this->modo === 'crear' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
         } catch (\Exception $e) {
-            DB::rollBack();
             $this->toastError('Error al guardar: ' . $e->getMessage());
         }
 
