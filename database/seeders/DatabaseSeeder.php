@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Support\SinActividad;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -15,7 +16,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
+        // Datos de prueba: no dejan Actividad (kit, spec 38).
+        SinActividad::correr(fn () => $this->call([
             // 1. Tipos de movimiento (sin dependencias, necesarios para los demás seeders)
             TipoMovimientoSeeder::class,
 
@@ -41,6 +43,6 @@ class DatabaseSeeder extends Seeder
             // NOTA: Asegúrate de tener la tabla 'secretarias' poblada antes de ejecutar este seeder
             // o modifica el seeder para usar IDs existentes
             VehiculosSeeder::class,
-        ]);
+        ]));
     }
 }

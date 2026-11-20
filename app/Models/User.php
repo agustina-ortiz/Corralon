@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Support\RegistraActividad;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, RegistraActividad;
+
+    /** Preferencias de pantalla: no son cambios de nadie sobre el usuario (Actividad). */
+    protected array $actividadSinRegistrar = ['dashboard_widgets', 'estadisticas_widgets'];
 
     protected $fillable = [
         'name',

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Support\SinActividad;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 
@@ -12,6 +13,12 @@ class RehashPasswords extends Command
     protected $description = 'Rehash user passwords to bcrypt';
 
     public function handle()
+    {
+        // Proceso masivo: no es una acción de nadie, no deja Actividad.
+        return SinActividad::correr(fn () => $this->procesar());
+    }
+
+    private function procesar()
     {
         $users = User::all();
         

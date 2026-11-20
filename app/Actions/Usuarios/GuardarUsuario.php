@@ -103,54 +103,94 @@ class GuardarUsuario
             }
 
             // La matriz se reemplaza entera (un administrador queda sin filas).
-            $usuario->permisos()->delete();
-
-            if (! $esAdmin) {
-                $permisosACrear = [];
-
-                foreach ($permisosGlobales as $modulo => $nivel) {
-                    $permisosACrear[] = $this->fila($usuario, null, null, $modulo, $nivel);
-                }
-
-                foreach ($permisosPorCorralon as $corralonId => $modulos) {
-                    foreach ($modulos as $modulo => $nivel) {
-                        // Módulo mixto con permiso global: ya ve todo, el permiso por corralón sobra
-                        if (UsuarioPermiso::esModuloMixto($modulo) && isset($permisosGlobales[$modulo])) {
-                            continue;
-                        }
-
-                        $depositosEsp = $depositosEspecificos[$corralonId][$modulo] ?? [];
-
-                        if (empty($depositosEsp)) {
-                            // Acceso a todos los depósitos del corralón
-                            $permisosACrear[] = $this->fila($usuario, (int) $corralonId, null, $modulo, $nivel);
-                        } else {
-                            foreach ($depositosEsp as $depositoId) {
-                                $permisosACrear[] = $this->fila($usuario, (int) $corralonId, (int) $depositoId, $modulo, $nivel);
-                            }
-                        }
-                    }
-                }
-
-                if (! empty($permisosACrear)) {
-                    DB::table('usuario_permisos')->insert($permisosACrear);
-                }
-            }
+            $this->sincronizarPermisos($usuario, $esAdmin ? [] : $this->permisosDeseados(
+                $permisosGlobales, $permisosPorCorralon, $depositosEspecificos
+            ));
 
             return $usuario;
         });
     }
 
-    private function fila(User $usuario, ?int $corralonId, ?int $depositoId, string $modulo, string $nivel): array
+    /**
+     * Las filas que tiene que quedar en `usuario_permisos`, como [corralón, depósito,
+     * módulo, nivel], en el orden de siempre.
+     */
+    private function permisosDeseados(array $permisosGlobales, array $permisosPorCorralon, array $depositosEspecificos): array
     {
-        return [
-            'id_usuario' => $usuario->id,
-            'id_corralon' => $corralonId,
-            'id_deposito' => $depositoId,
-            'modulo' => $modulo,
-            'nivel_acceso' => $nivel,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
+        $filas = [];
+
+        foreach ($permisosGlobales as $modulo => $nivel) {
+            $filas[] = [null, null, $modulo, $nivel];
+        }
+
+        foreach ($permisosPorCorralon as $corralonId => $modulos) {
+            foreach ($modulos as $modulo => $nivel) {
+                // Módulo mixto con permiso global: ya ve todo, el permiso por corralón sobra
+                if (UsuarioPermiso::esModuloMixto($modulo) && isset($permisosGlobales[$modulo])) {
+                    continue;
+                }
+
+                $depositosEsp = $depositosEspecificos[$corralonId][$modulo] ?? [];
+
+                if (empty($depositosEsp)) {
+                    // Acceso a todos los depósitos del corralón
+                    $filas[] = [(int) $corralonId, null, $modulo, $nivel];
+                } else {
+                    foreach ($depositosEsp as $depositoId) {
+                        $filas[] = [(int) $corralonId, (int) $depositoId, $modulo, $nivel];
+                    }
+                }
+            }
+        }
+
+        return $filas;
+    }
+
+    /**
+     * Deja en `usuario_permisos` exactamente las filas pedidas. Va por el modelo (no con
+     * un insert masivo) para que cada alta, cambio de nivel o baja quede en la
+     * Actividad: lo que no cambia no se toca, así editar un usuario sin tocar sus
+     * permisos no deja ruido. El resultado es el mismo que borrar todo y volver a
+     * insertar.
+     */
+    private function sincronizarPermisos(User $usuario, array $filas): void
+    {
+        $clave = fn ($corralon, $deposito, $modulo) => ($corralon ?? '-').'|'.($deposito ?? '-').'|'.$modulo;
+
+        $existentes = [];
+        foreach ($usuario->permisos()->orderBy('id')->get() as $permiso) {
+            $k = $clave($permiso->id_corralon, $permiso->id_deposito, $permiso->modulo);
+            if (isset($existentes[$k])) {
+                $permiso->delete();  // fila repetida: queda una sola
+            } else {
+                $existentes[$k] = $permiso;
+            }
+        }
+
+        $pedidas = [];
+        foreach ($filas as [$corralon, $deposito, $modulo, $nivel]) {
+            $pedidas[$clave($corralon, $deposito, $modulo)] = [$corralon, $deposito, $modulo, $nivel];
+        }
+
+        foreach (array_diff_key($existentes, $pedidas) as $sobrante) {
+            $sobrante->delete();
+        }
+
+        foreach ($pedidas as $k => [$corralon, $deposito, $modulo, $nivel]) {
+            if (isset($existentes[$k])) {
+                $existentes[$k]->update(['nivel_acceso' => $nivel]);
+            } else {
+                UsuarioPermiso::create([
+                    'id_usuario' => $usuario->id,
+                    'id_corralon' => $corralon,
+                    'id_deposito' => $deposito,
+                    'modulo' => $modulo,
+                    'nivel_acceso' => $nivel,
+                ]);
+            }
+        }
+
+        $usuario->limpiarCachePermisos();
+        $usuario->unsetRelation('permisos');
     }
 }

@@ -85,6 +85,11 @@ Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
     ->middleware(['auth'])
     ->name('usuarios');
 
+// Actividad (auditoría de usuarios y permisos): solo administradores, lo revisa el componente.
+Route::get('/actividad', \App\Livewire\Actividad::class)
+    ->middleware(['auth'])
+    ->name('actividad');
+
 Route::get('/comprobantes/{comprobante}/ver', function (App\Models\ComprobanteMovimiento $comprobante) {
     $path = storage_path('app/private/comprobantes/' . $comprobante->archivo);
     return response()->file($path, ['Content-Type' => $comprobante->tipo_mime]);

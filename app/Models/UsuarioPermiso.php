@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\RegistraActividad;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UsuarioPermiso extends Model
 {
+    use RegistraActividad;
+
     protected $table = 'usuario_permisos';
 
     protected $fillable = [

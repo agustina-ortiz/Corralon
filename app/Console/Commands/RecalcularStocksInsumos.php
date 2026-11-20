@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Insumo;
+use App\Support\SinActividad;
 use Illuminate\Console\Command;
 
 class RecalcularStocksInsumos extends Command
@@ -11,6 +12,12 @@ class RecalcularStocksInsumos extends Command
     protected $description = 'Recalcula el stock actual de todos los insumos basado en sus movimientos';
 
     public function handle()
+    {
+        // Proceso masivo: no es una acción de nadie, no deja Actividad.
+        return SinActividad::correr(fn () => $this->procesar());
+    }
+
+    private function procesar()
     {
         $insumoId = $this->option('insumo_id');
         
