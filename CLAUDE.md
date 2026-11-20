@@ -22,8 +22,11 @@ Sistema de gestión de inventario y recursos para corralones municipales (Munici
 
 ```
 app/
-  Console/Commands/       # RecalcularStocksInsumos, RehashPasswords
-  Http/Controllers/       # DashboardController, Auth/VerifyEmailController
+  Actions/                # Usuarios/GuardarUsuario (alta/edición de usuarios: pantalla y API), Intranet/*
+  Console/Commands/       # RecalcularStocksInsumos, RehashPasswords (corren sin Actividad)
+  Http/Controllers/       # DashboardController, Auth/VerifyEmailController, Intranet/IngresoSso, Api/Intranet/UsuarioController
+  Http/Middleware/        # ClaveServicioIntranet (API intranet), CerrarSesionInactivos (grupo web)
+  Support/                # Tema, RegistraActividad, ActividadLegible, SinActividad, ActorIntranet
   Livewire/               # Componentes reactivos (ABM*, Transferencias*, Dashboard)
     Actions/              # Logout
     Forms/                # LoginForm
@@ -39,7 +42,8 @@ resources/views/
   layouts/                # app.blade.php (layout principal), guest.blade.php
   pages/                  # Páginas de auth (Volt)
 routes/
-  web.php                 # Rutas principales (16 rutas)
+  web.php                 # Rutas principales
+  api.php                 # Solo /api/intranet/v1 (sin Sanctum)
   auth.php                # Rutas de autenticación (Volt)
 ```
 
@@ -49,7 +53,8 @@ routes/
 
 | Modelo | Tabla | Descripción |
 |--------|-------|-------------|
-| `User` | `users` | Usuarios con roles y acceso por corralon |
+| `User` | `users` | Usuarios con roles y acceso por corralon. `dni` (opcional, único: SSO de la intranet) y `activo` (un inactivo no entra; al desactivarlo se borran sus sesiones y su "Recordarme", y `CerrarSesionInactivos` lo saca). Audita con `RegistraActividad` (menos las preferencias de dashboard/estadísticas) |
+| `Actividad` | `activity_log` | Registro de spatie/laravel-activitylog (modelo propio: si no puede grabar, reporta y sigue). Hoy audita solo `User` y `UsuarioPermiso` |
 | `Rol` | `roles` | Roles del sistema (nombre + descripción) |
 | `Corralon` | `corralones` | Sedes/ubicaciones |
 | `Deposito` | `depositos` | Subdivisiones dentro de un corralon |
@@ -104,6 +109,9 @@ routes/
 | `/comprobantes-maquinaria/{id}/descargar` | Closure (ruta) | autenticado |
 | `/documentos-vehiculo/{id}/ver` | DocumentoVehiculoController@ver | autenticado + acceso al vehículo (`porCorralonesPermitidos`) |
 | `/documentos-vehiculo/{id}/descargar` | DocumentoVehiculoController@descargar | autenticado + acceso al vehículo |
+| `/actividad` | Actividad (solo lectura: quién creó/editó/eliminó usuarios y permisos) | solo Administrador (fuera de la matriz) |
+| `/sso/ingresar?ticket=` | Intranet\IngresoSso (SSO por ticket, `throttle:30,1`) | público |
+| `/api/intranet/v1/*` | Api\Intranet\UsuarioController (`alta/opciones`, `usuarios/{dni}`, `POST usuarios`, `PATCH usuarios/{dni}/vinculo` y `/estado`) | clave de servicio + IPs (`ClaveServicioIntranet`), `throttle:60,1` |
 
 ---
 
@@ -154,6 +162,8 @@ Cada fila es un permiso individual: usuario + corralón + depósito + módulo + 
 - Secciones enteras se ocultan si el usuario no tiene acceso a ningún módulo de esa sección
 
 ### Gestión de permisos (AbmUsuarios)
+- El guardado vive en **`App\Actions\Usuarios\GuardarUsuario`** (reglas, mensajes y matriz); lo usan la pantalla y la API de la intranet. Tests de caracterización en `tests/Feature/Usuarios/AbmUsuariosCaracterizacionTest.php`: si fallan, cambió el comportamiento. La matriz se sincroniza por el modelo (lo que no cambia no se toca) para que quede en Actividad.
+- Guardas: nadie se desactiva a sí mismo y siempre queda un Administrador activo (no se desactiva, ni se le saca el rol, ni se elimina al último).
 - Si el rol = Administrador → acceso total, no se configuran permisos
 - Si otro rol → UI de permisos:
   - **Módulos Globales**: toggle por módulo (Ver / Editar)
@@ -552,8 +562,27 @@ php artisan db:seed
 # Comandos personalizados
 php artisan insumos:recalcular-stocks              # Recalcula stocks desde movimientos
 php artisan insumos:recalcular-stocks --insumo_id= # Recalcula un insumo específico
-php artisan usuarios:rehash-passwords              # Rehashea contraseñas a bcrypt
+php artisan users:rehash-passwords                 # Rehashea contraseñas a bcrypt
+
+# Tests (SQLite en memoria, phpunit.xml; nunca contra MySQL)
+php artisan test
 ```
+
+---
+
+## Integración con la intranet municipal
+
+Contrato: `C:\xampp\htdocs\intranet\docs\integracion.md` (§5). Guía propia y forma de `alta/opciones`: `docs/api-intranet.md`. Config en `config/intranet.php` (`INTRANET_URL`, `INTRANET_CLAVE_SERVICIO`, `INTRANET_IPS`; IPs vacías = no se controla).
+- Desde la API **no se crea, ni se activa/desactiva, ni se vincula un Administrador** (decisión conservadora).
+- Lo hecho por la API queda en Actividad sin causer, con `properties` `origen=intranet`, `actor_dni`, `actor_nombre` ("Intranet · Nombre (DNI n)"), vía `ActorIntranet::registrando()`.
+- Actividad (spec 38 del kit): `RegistraActividad` en el modelo; lo masivo (seeders, comandos, `db:seed`/`migrate` desde artisan) corre en `SinActividad::correr()`.
+
+### Al desplegar esta integración
+1. `composer install` (paquete nuevo `spatie/laravel-activitylog`).
+2. `php artisan migrate` (aditivas: `activity_log`, `users.dni`, `users.activo`; todos quedan activos).
+3. `.env`: `INTRANET_URL`, `INTRANET_CLAVE_SERVICIO` (la misma que `SISTEMA_CORRALON_CLAVE_SERVICIO` de la intranet), `INTRANET_IPS` (IP de la intranet). Después `php artisan optimize:clear` (y `config:cache` si se cachea).
+4. `npm run build` (vistas nuevas: Actividad, DNI/activo en Usuarios, mensaje del login).
+5. Cargar el DNI de los usuarios (desde Usuarios o con `PATCH vinculo` desde la intranet) para que puedan entrar por SSO.
 
 ---
 
