@@ -85,6 +85,11 @@ Route::get('/usuarios', \App\Livewire\AbmUsuarios::class)
     ->middleware(['auth'])
     ->name('usuarios');
 
+// Ingreso desde la intranet por ticket (SSO). GET sin CSRF: el ticket es la prueba.
+Route::get('/sso/ingresar', \App\Http\Controllers\Intranet\IngresoSso::class)
+    ->middleware('throttle:30,1')
+    ->name('sso.ingresar');
+
 // Actividad (auditoría de usuarios y permisos): solo administradores, lo revisa el componente.
 Route::get('/actividad', \App\Livewire\Actividad::class)
     ->middleware(['auth'])
