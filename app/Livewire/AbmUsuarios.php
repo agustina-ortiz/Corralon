@@ -12,6 +12,7 @@ use App\Models\Rol;
 use App\Models\UsuarioPermiso;
 use App\Livewire\Traits\OrdenaPorColumna;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -43,6 +44,9 @@ class AbmUsuarios extends Component
     public $password;
     public $password_confirmation;
     public $id_rol;
+    // Integración con la intranet: DNI (opcional, único) y si puede entrar
+    public $dni = '';
+    public $activo = true;
 
     // Permisos granulares
     // Estructura: ['corralon_id' => ['modulo' => 'nivel_acceso', ...], ...]
@@ -183,6 +187,8 @@ class AbmUsuarios extends Component
             $this->name = $usuario->name;
             $this->email = $usuario->email;
             $this->id_rol = $usuario->id_rol;
+            $this->dni = $usuario->dni === null ? '' : (string) $usuario->dni;
+            $this->activo = (bool) $usuario->activo;
 
             // Cargar permisos existentes
             $this->cargarPermisosUsuario($usuario);
@@ -227,7 +233,7 @@ class AbmUsuarios extends Component
 
     protected function camposFormulario(): array
     {
-        return ['name', 'email', 'password', 'password_confirmation', 'id_rol', 'permisos_por_corralon', 'permisos_globales', 'corralones_seleccionados', 'depositos_especificos'];
+        return ['name', 'email', 'password', 'password_confirmation', 'id_rol', 'dni', 'activo', 'permisos_por_corralon', 'permisos_globales', 'corralones_seleccionados', 'depositos_especificos'];
     }
 
     public function cerrarFormulario(): void
@@ -263,9 +269,14 @@ class AbmUsuarios extends Component
                     'permisos_globales' => $this->permisos_globales,
                     'permisos_por_corralon' => $this->permisos_por_corralon,
                     'depositos_especificos' => $this->depositos_especificos,
+                    'dni' => $this->dni,
+                    'activo' => (bool) $this->activo,
                 ],
+                auth()->user(),
             );
             $this->toastExito($this->modo === 'crear' ? 'Usuario creado exitosamente' : 'Usuario actualizado exitosamente');
+        } catch (ValidationException $e) {
+            throw $e;  // guardas del usuario (último administrador, desactivarse): van al campo
         } catch (\Exception $e) {
             $this->toastError('Error al guardar: ' . $e->getMessage());
         }
@@ -300,6 +311,11 @@ class AbmUsuarios extends Component
             return;
         }
 
+        if ($usuario->esAdministradorActivo() && !User::hayOtroAdministradorActivo($usuario)) {
+            $this->toastError('No se puede eliminar: tiene que quedar al menos un Administrador activo.');
+            return;
+        }
+
         try {
             $usuario->delete(); // cascade elimina permisos
             $this->toastExito('Usuario eliminado exitosamente');
@@ -318,6 +334,8 @@ class AbmUsuarios extends Component
         $this->password = '';
         $this->password_confirmation = '';
         $this->id_rol = '';
+        $this->dni = '';
+        $this->activo = true;
         $this->permisos_por_corralon = [];
         $this->permisos_globales = [];
         $this->corralones_seleccionados = [];

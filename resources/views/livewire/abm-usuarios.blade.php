@@ -49,7 +49,11 @@
         @forelse($usuarios as $usuario)
             <tr wire:key="fila-{{ $usuario->id }}" class="hover:bg-gray-50/50 transition-colors duration-150">
                 <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900">{{ $usuario->name }}</div>
+                    <div class="text-sm font-medium text-gray-900">{{ $usuario->name }}
+                        @unless($usuario->activo)
+                            <x-ui.badge color="rojo">Inactivo</x-ui.badge>
+                        @endunless
+                    </div>
                 </td>
                 <td class="px-6 py-4">
                     <div class="text-sm text-gray-600">{{ $usuario->email }}</div>
@@ -127,6 +131,14 @@
             <x-ui.campo etiqueta="Email" nombre="email" obligatorio>
                 <x-ui.input nombre="email" type="email" wire:model="email" maxlength="255" autocomplete="off" />
             </x-ui.campo>
+            <x-ui.campo etiqueta="DNI" nombre="dni" ayuda="Opcional. Para entrar desde la intranet municipal.">
+                <x-ui.input nombre="dni" wire:model="dni" inputmode="numeric" maxlength="8" autocomplete="off" />
+            </x-ui.campo>
+            <div class="sm:pt-8">
+                <x-ui.checkbox nombre="activo" wire:model="activo" etiqueta="Usuario activo"
+                               ayuda="Un usuario inactivo no puede entrar al sistema." />
+                @error('activo') <p id="error-activo" class="mt-1 text-xs text-red-600" data-error="activo">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         <!-- Rol -->

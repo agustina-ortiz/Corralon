@@ -6,6 +6,7 @@ use App\Support\RegistraActividad;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -23,10 +24,17 @@ class User extends Authenticatable
         'dashboard_widgets',
         'estadisticas_widgets',
         'id_rol',
+        'dni',
+        'activo',
     ];
 
     protected $hidden = [
         'remember_token',
+    ];
+
+    /** Como el default de la columna: un usuario nuevo está activo. */
+    protected $attributes = [
+        'activo' => true,
     ];
 
     protected $casts = [
@@ -35,7 +43,52 @@ class User extends Authenticatable
         'acceso_todos_corralones' => 'boolean',
         'dashboard_widgets' => 'array',
         'estadisticas_widgets' => 'array',
+        'dni' => 'integer',
+        'activo' => 'boolean',
     ];
+
+    /**
+     * Un usuario que se desactiva pierde sus sesiones: se borran las de la base
+     * (SESSION_DRIVER=database) y se invalida su "Recordarme". Por las dudas, el
+     * middleware CerrarSesionInactivos saca a cualquier inactivo que siga logueado.
+     */
+    protected static function booted(): void
+    {
+        static::updated(function (User $usuario) {
+            if (! $usuario->wasChanged('activo') || $usuario->activo) {
+                return;
+            }
+
+            try {
+                static::query()->whereKey($usuario->getKey())->update(['remember_token' => null]);
+
+                if (config('session.driver') === 'database') {
+                    DB::connection(config('session.connection'))
+                        ->table(config('session.table', 'sessions'))
+                        ->where('user_id', $usuario->getKey())
+                        ->delete();
+                }
+            } catch (\Throwable $e) {
+                report($e);  // el middleware igual lo saca en su próximo pedido
+            }
+        });
+    }
+
+    /** Administrador y activo: el que sostiene el sistema. */
+    public function esAdministradorActivo(): bool
+    {
+        return $this->activo && $this->esAdministrador();
+    }
+
+    /** ¿Queda algún administrador activo además de `$usuario`? */
+    public static function hayOtroAdministradorActivo(?User $usuario): bool
+    {
+        return static::query()
+            ->where('activo', true)
+            ->whereHas('rol', fn ($q) => $q->where('nombre', 'Administrador'))
+            ->when($usuario?->getKey(), fn ($q, $id) => $q->whereKeyNot($id))
+            ->exists();
+    }
 
     // Cache de permisos para evitar queries repetidas en un mismo request
     protected $permisosCache = null;

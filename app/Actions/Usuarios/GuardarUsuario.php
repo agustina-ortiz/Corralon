@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UsuarioPermiso;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Alta y edición de un usuario con su rol, sus corralones y su matriz de permisos.
@@ -22,6 +23,12 @@ use Illuminate\Support\Facades\Hash;
  *   matriz se reemplaza entera: permisos globales (sin corralón), y por corralón,
  *   una fila para todo el corralón o una por cada depósito específico. Un módulo
  *   mixto (vehículos) con permiso global no graba filas por corralón.
+ *
+ * **DNI y activo** (integración con la intranet): el DNI es opcional y único; un
+ * usuario inactivo no entra y pierde sus sesiones. Sin la clave `dni` / `activo` en
+ * los datos, lo que tenga no se toca (un alta queda activa). Dos guardas:
+ * nadie se desactiva a sí mismo (`$quien`, el usuario de la sesión) y siempre queda
+ * al menos un Administrador activo (no se desactiva ni se le saca el rol al último).
  */
 class GuardarUsuario
 {
@@ -36,6 +43,8 @@ class GuardarUsuario
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$usuarioId,
             'id_rol' => 'required|exists:roles,id',
+            'dni' => 'nullable|integer|min:1|max:99999999|unique:users,dni,'.$usuarioId,
+            'activo' => 'boolean',
         ];
 
         if ($usuarioId === null) {
@@ -62,6 +71,10 @@ class GuardarUsuario
             'password.required' => 'La contraseña es obligatoria',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres',
             'password.confirmed' => 'Las contraseñas no coinciden',
+            'dni.integer' => 'El DNI tiene que ser un número, sin puntos',
+            'dni.min' => 'El DNI no es válido',
+            'dni.max' => 'El DNI no es válido',
+            'dni.unique' => 'Este DNI ya está en otro usuario',
         ];
     }
 
@@ -71,9 +84,13 @@ class GuardarUsuario
      *
      * @param  array{name: string, email: string, id_rol: int|string, password?: ?string,
      *               corralones_seleccionados?: array, permisos_globales?: array,
-     *               permisos_por_corralon?: array, depositos_especificos?: array}  $datos
+     *               permisos_por_corralon?: array, depositos_especificos?: array,
+     *               dni?: int|string|null, activo?: bool}  $datos
+     * @param  User|null  $quien  el usuario de la sesión que guarda (null desde la API)
+     *
+     * @throws ValidationException si el guardado dejaría al sistema sin Administrador activo
      */
-    public function ejecutar(?User $usuario, array $datos): User
+    public function ejecutar(?User $usuario, array $datos, ?User $quien = null): User
     {
         $corralonesSeleccionados = $datos['corralones_seleccionados'] ?? [];
         $permisosGlobales = $datos['permisos_globales'] ?? [];
@@ -83,14 +100,22 @@ class GuardarUsuario
         $rol = Rol::find($datos['id_rol']);
         $esAdmin = $rol && $rol->nombre === 'Administrador';
 
-        return DB::transaction(function () use ($usuario, $datos, $esAdmin, $corralonesSeleccionados, $permisosGlobales, $permisosPorCorralon, $depositosEspecificos) {
+        $activo = array_key_exists('activo', $datos) ? (bool) $datos['activo'] : ($usuario?->activo ?? true);
+        self::validarQueQuedeAdministrador($usuario, $esAdmin, $activo, $quien);
+
+        return DB::transaction(function () use ($usuario, $datos, $esAdmin, $activo, $corralonesSeleccionados, $permisosGlobales, $permisosPorCorralon, $depositosEspecificos) {
             $data = [
                 'name' => $datos['name'],
                 'email' => $datos['email'],
                 'id_rol' => $datos['id_rol'],
                 'acceso_todos_corralones' => $esAdmin,
                 'corralones_permitidos' => $esAdmin ? null : array_map('intval', $corralonesSeleccionados),
+                'activo' => $activo,
             ];
+
+            if (array_key_exists('dni', $datos)) {
+                $data['dni'] = filled($datos['dni']) ? (int) $datos['dni'] : null;
+            }
 
             if ($datos['password'] ?? null) {
                 $data['password'] = Hash::make($datos['password']);
@@ -109,6 +134,29 @@ class GuardarUsuario
 
             return $usuario;
         });
+    }
+
+    /**
+     * Las dos guardas del usuario que se guarda (también las usa el cambio de estado
+     * desde la intranet). Un alta no las necesita.
+     *
+     * @throws ValidationException
+     */
+    public static function validarQueQuedeAdministrador(?User $usuario, bool $seraAdmin, bool $seraActivo, ?User $quien): void
+    {
+        if ($usuario === null || ! $usuario->exists) {
+            return;
+        }
+
+        if (! $seraActivo && $usuario->activo && $quien !== null && $quien->is($usuario)) {
+            throw ValidationException::withMessages(['activo' => 'No podés desactivar tu propio usuario']);
+        }
+
+        if ($usuario->esAdministradorActivo() && ! ($seraAdmin && $seraActivo) && ! User::hayOtroAdministradorActivo($usuario)) {
+            throw ValidationException::withMessages([
+                ($seraActivo ? 'id_rol' : 'activo') => 'Tiene que quedar al menos un Administrador activo',
+            ]);
+        }
     }
 
     /**

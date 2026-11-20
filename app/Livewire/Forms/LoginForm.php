@@ -30,7 +30,8 @@ class LoginForm extends Form
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
+        // Un usuario inactivo no entra, con el mismo mensaje que una clave mala.
+        if (! Auth::attempt([...$this->only(['email', 'password']), 'activo' => true], $this->remember)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

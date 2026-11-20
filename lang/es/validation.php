@@ -200,6 +200,7 @@ return [
         'form.email'                           => 'el correo electrónico',
         'form.password'                        => 'la contraseña',
         'name'                                 => 'el nombre',
+        'activo'                               => 'el estado del usuario',
         'id_rol'                               => 'el rol',
 
         // Ubicaciones y catálogos

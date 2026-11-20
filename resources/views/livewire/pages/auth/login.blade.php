@@ -105,6 +105,13 @@ new #[Layout('layouts.guest')] class extends Component
         {{-- Session Status --}}
         <x-auth-session-status class="mb-4 w-1/2" :status="session('status')" />
 
+        {{-- Ingreso desde la intranet que no se pudo validar (SSO) --}}
+        @if(session('error'))
+            <div role="alert" class="mb-4 w-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" data-error-sesion>
+                {{ session('error') }}
+            </div>
+        @endif
+
         {{-- Form --}}
         <form wire:submit="login" class="space-y-5 w-1/2">
 

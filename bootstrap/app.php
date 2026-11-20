@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Un usuario desactivado no sigue adentro con una sesión vieja.
+        $middleware->web(append: [
+            \App\Http\Middleware\CerrarSesionInactivos::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
