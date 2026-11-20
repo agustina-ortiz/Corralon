@@ -44,7 +44,7 @@ resources/views/
 routes/
   web.php                 # Rutas principales
   api.php                 # Solo /api/intranet/v1 (sin Sanctum)
-  auth.php                # Rutas de autenticación (Volt)
+  auth.php                # Rutas de autenticación (Volt). Sin registro público: los usuarios los crea un Administrador o la intranet
 ```
 
 ---

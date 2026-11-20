@@ -2,35 +2,33 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
+/** No hay registro público: los usuarios los crea un Administrador (o la intranet). */
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_screen_can_be_rendered(): void
+    public function test_no_existe_la_pantalla_de_registro(): void
     {
-        $response = $this->get('/register');
-
-        $response
-            ->assertOk()
-            ->assertSeeVolt('pages.auth.register');
+        $this->assertFalse(Route::has('register'));
+        $this->get('/register')->assertNotFound();
     }
 
-    public function test_new_users_can_register(): void
+    public function test_no_se_puede_registrar_por_post(): void
     {
-        $component = Volt::test('pages.auth.register')
-            ->set('name', 'Test User')
-            ->set('email', 'test@example.com')
-            ->set('password', 'password')
-            ->set('password_confirmation', 'password');
+        $this->post('/register', [
+            'name' => 'Intruso',
+            'email' => 'intruso@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertNotFound();
 
-        $component->call('register');
-
-        $component->assertRedirect(route('dashboard', absolute: false));
-
-        $this->assertAuthenticated();
+        $this->assertDatabaseMissing('users', ['email' => 'intruso@example.com']);
+        $this->assertGuest();
+        $this->assertSame(0, User::where('email', 'intruso@example.com')->count());
     }
 }

@@ -4,10 +4,9 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
+// Sin registro público: los usuarios los da de alta un Administrador desde Usuarios
+// o la intranet. El registro de Breeze dejaba a cualquiera crearse un usuario.
 Route::middleware('guest')->group(function () {
-    Volt::route('register', 'pages.auth.register')
-        ->name('register');
-
     Volt::route('login', 'pages.auth.login')
         ->name('login');
 
