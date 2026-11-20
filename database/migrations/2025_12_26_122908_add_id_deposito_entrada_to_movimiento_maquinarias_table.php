@@ -9,6 +9,17 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            if (! Schema::hasColumn('movimiento_maquinarias', 'id_deposito_entrada')) {
+                Schema::table('movimiento_maquinarias', function (Blueprint $table) {
+                    $table->unsignedBigInteger('id_deposito_entrada')->nullable();
+                    $table->foreign('id_deposito_entrada', 'fk_movimiento_maquinarias_deposito_entrada')->references('id')->on('depositos')->onDelete('restrict');
+                });
+            }
+            return;
+        }
+
         // ✅ Verificar primero si la columna NO existe
         $hasColumn = DB::select("SHOW COLUMNS FROM movimiento_maquinarias LIKE 'id_deposito_entrada'");
         
@@ -24,6 +35,17 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            if (Schema::hasColumn('movimiento_maquinarias', 'id_deposito_entrada')) {
+                Schema::table('movimiento_maquinarias', function (Blueprint $table) {
+                    $table->dropForeign('fk_movimiento_maquinarias_deposito_entrada');
+                    $table->dropColumn('id_deposito_entrada');
+                });
+            }
+            return;
+        }
+
         $hasColumn = DB::select("SHOW COLUMNS FROM movimiento_maquinarias LIKE 'id_deposito_entrada'");
         
         if (!empty($hasColumn)) {

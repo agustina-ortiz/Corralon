@@ -1,14 +1,21 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
         // Agregar 'vehiculo' al enum tipo_referencia en movimiento_insumos
-        DB::statement("ALTER TABLE movimiento_insumos MODIFY COLUMN tipo_referencia ENUM('empleado', 'evento', 'maquina', 'secretaria', 'transferencia', 'inventario', 'vehiculo')");
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+                Schema::table('movimiento_insumos', fn (Blueprint $table) => $table->enum('tipo_referencia', ['empleado', 'evento', 'maquina', 'secretaria', 'transferencia', 'inventario', 'vehiculo'])->nullable()->change());
+        } else {
+            DB::statement("ALTER TABLE movimiento_insumos MODIFY COLUMN tipo_referencia ENUM('empleado', 'evento', 'maquina', 'secretaria', 'transferencia', 'inventario', 'vehiculo')");
+        }
 
         // Insertar nuevos tipos de movimiento si no existen
         $tipos = [
@@ -35,6 +42,8 @@ return new class extends Migration
         ])->delete();
 
         // Revertir enum (quitar 'vehiculo')
-        DB::statement("ALTER TABLE movimiento_insumos MODIFY COLUMN tipo_referencia ENUM('empleado', 'evento', 'maquina', 'secretaria', 'transferencia', 'inventario')");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE movimiento_insumos MODIFY COLUMN tipo_referencia ENUM('empleado', 'evento', 'maquina', 'secretaria', 'transferencia', 'inventario')");
+        }
     }
 };

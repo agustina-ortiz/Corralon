@@ -12,6 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            Schema::table('movimiento_maquinarias', fn (Blueprint $table) => $table->enum('tipo_referencia', ['empleado', 'evento', 'secretaria', 'deposito'])->change());
+            return;
+        }
+
         // ✅ PASO 1: Actualizar registros con valores incorrectos a un valor válido
         DB::table('movimiento_maquinarias')
             ->whereNotIn('tipo_referencia', ['empleado', 'evento', 'secretaria'])
@@ -32,6 +38,12 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            Schema::table('movimiento_maquinarias', fn (Blueprint $table) => $table->enum('tipo_referencia', ['empleado', 'evento', 'secretaria'])->change());
+            return;
+        }
+
         // Primero cambiar 'deposito' a algo válido del enum anterior
         DB::table('movimiento_maquinarias')
             ->where('tipo_referencia', 'deposito')

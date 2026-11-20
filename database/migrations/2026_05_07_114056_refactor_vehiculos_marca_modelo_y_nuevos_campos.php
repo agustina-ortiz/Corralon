@@ -10,7 +10,10 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Pasar datos de modelo a anio (solo valores de 4 dígitos, donde anio esté vacío)
-        DB::statement("UPDATE vehiculos SET anio = modelo WHERE (anio IS NULL OR anio = '') AND modelo REGEXP '^[0-9]{4}$'");
+        // En SQLite (solo tests, base vacía) no existe REGEXP: no hay datos que pasar.
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("UPDATE vehiculos SET anio = modelo WHERE (anio IS NULL OR anio = '') AND modelo REGEXP '^[0-9]{4}$'");
+        }
 
         // 2. Renombrar marca a marca_modelo
         Schema::table('vehiculos', function (Blueprint $table) {

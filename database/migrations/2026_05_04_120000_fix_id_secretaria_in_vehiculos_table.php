@@ -9,6 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            Schema::table('vehiculos', function (Blueprint $table) {
+                $table->unsignedBigInteger('id_secretaria')->nullable()->change();
+                $table->foreign('id_secretaria')->references('id')->on('secretarias')->onDelete('set null');
+            });
+            return;
+        }
+
         $columnType = DB::selectOne("SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vehiculos' AND COLUMN_NAME = 'id_secretaria'");
 
         if ($columnType && $columnType->DATA_TYPE === 'varchar') {

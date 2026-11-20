@@ -1,12 +1,25 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            Schema::table('vehiculos', fn (Blueprint $table) => $table->string('nro_movil', 50)->nullable());
+            DB::statement("UPDATE vehiculos SET nro_movil = 'TEMP-' || id WHERE nro_movil IS NULL");
+            Schema::table('vehiculos', function (Blueprint $table) {
+                $table->string('nro_movil', 50)->nullable(false)->change();
+                $table->unique('nro_movil', 'vehiculos_nro_movil_unique');
+            });
+            return;
+        }
+
         // Primero agregar como nullable
         DB::statement('ALTER TABLE vehiculos ADD COLUMN nro_movil VARCHAR(50) NULL AFTER id');
         
@@ -20,6 +33,15 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria). En MySQL sigue el SQL de siempre.
+            Schema::table('vehiculos', function (Blueprint $table) {
+                $table->dropUnique('vehiculos_nro_movil_unique');
+                $table->dropColumn('nro_movil');
+            });
+            return;
+        }
+
         DB::statement('ALTER TABLE vehiculos DROP INDEX IF EXISTS vehiculos_nro_movil_unique');
         DB::statement('ALTER TABLE vehiculos DROP COLUMN IF EXISTS nro_movil');
     }

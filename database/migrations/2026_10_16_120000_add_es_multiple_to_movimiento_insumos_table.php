@@ -16,6 +16,11 @@ return new class extends Migration
         // Marcar los movimientos múltiples ya cargados: asignaciones sueltas que comparten
         // usuario + instante de creación + destinatario (guardarMultiple() las crea en una
         // misma transacción). Una carga múltiple de una sola línea no es distinguible.
+        if (DB::getDriverName() === 'sqlite') {
+            // Solo tests (SQLite en memoria): base vacía, no hay nada que marcar.
+            return;
+        }
+
         DB::statement("
             UPDATE movimiento_insumos m
             JOIN tipo_movimientos t ON t.id = m.id_tipo_movimiento
