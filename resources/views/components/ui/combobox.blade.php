@@ -177,20 +177,28 @@
         get vacio() { return this.seleccionada === null },
         // El panel se posiciona con `fixed` contra el botón: así sobresale del
         // modal en vez de quedar recortado por el body, que scrollea.
-        panel: { top: 0, left: 0, width: 0, arriba: false, max: null },
+        panel: { top: 0, bottom: 0, left: 0, width: 0, arriba: false, max: null },
         posicionar() {
             const r = this.$refs.boton.getBoundingClientRect();
-            // Alto natural del panel (buscador + lista), sin el tope de max.
+            const alturaVentana = document.documentElement.clientHeight;
+            // El alto se mide con el ancho final: medido con el ancho anterior
+            // (o 0 la primera vez) los textos se partían en más renglones, el
+            // alto daba de más y el panel abierto hacia arriba quedaba lejos
+            // del botón, en cualquier parte del modal.
+            this.$refs.panel.style.width = `${r.width}px`;
             const lista = this.$refs.lista;
-            const alto = (this.$refs.buscador?.parentElement.offsetHeight ?? 0) + Math.min(lista?.scrollHeight ?? 280, lista ? parseFloat(getComputedStyle(lista).maxHeight) || 280 : 280) + 2;
-            const abajo = window.innerHeight - r.bottom - 12;
+            const tope = lista ? parseFloat(getComputedStyle(lista).maxHeight) || 280 : 280;
+            const alto = (this.$refs.buscador?.parentElement.offsetHeight ?? 0) + Math.min(lista?.scrollHeight ?? tope, tope) + 2;
+            const abajo = alturaVentana - r.bottom - 12;
             const arriba = r.top - 12;
             // Abajo si entra; si no, arriba si entra; si no entra en
             // ninguno, del lado con más lugar y achicado a ese lugar.
             this.panel.arriba = alto > abajo && (alto <= arriba || arriba > abajo);
-            const lugar = this.panel.arriba ? arriba : abajo;
-            this.panel.max = alto > lugar ? lugar : null;
-            this.panel.top = this.panel.arriba ? r.top - Math.min(alto, lugar) - 4 : r.bottom + 4;
+            this.panel.max = this.panel.arriba ? arriba : abajo;
+            // Hacia arriba se ancla por el borde de abajo (bottom): pegado al
+            // botón aunque el alto cambie (filtrar, resultados del servidor).
+            this.panel.top = r.bottom + 4;
+            this.panel.bottom = alturaVentana - r.top + 4;
             this.panel.left = r.left;
             this.panel.width = r.width;
         },
@@ -326,7 +334,7 @@
 
     {{-- Desplegable: fixed para que no lo recorte el modal (z sobre todo) --}}
     <div x-ref="panel" x-show="abierto" x-cloak x-transition.opacity.duration.100ms
-         :style="`top: ${panel.top}px; left: ${panel.left}px; width: ${panel.width}px` + (panel.max ? `; max-height: ${panel.max}px` : '')"
+         :style="(panel.arriba ? `bottom: ${panel.bottom}px` : `top: ${panel.top}px`) + `; left: ${panel.left}px; width: ${panel.width}px; max-height: ${panel.max}px`"
          class="fixed z-[80] flex flex-col rounded-xl border border-gray-200 bg-white shadow-lg">
         @if($conBuscador)
             <div class="shrink-0 border-b border-gray-200 p-2">
